@@ -11,6 +11,8 @@ import {normalizeLanguage,loadLanguage} from './i18n.mjs';
 import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
 import {inspectCover,imageMetricAdvice} from './image-insight.mjs';
 import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
+import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
+import {createOrb,stepOrb,tossOrb} from './physics.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -311,6 +313,10 @@ class AlquimagoFamiliar extends HTMLElement {
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
     this.preferences=blankPreferences();
+    this.cortex=createCortexRuntime(createCortex());this.cortexStart=Date.now();
+    this.behaviorAllowed=false;this.behaviorMode='equilibrado';
+    this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
+    this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -409,6 +415,7 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.behaviorAllowed=config.behavior.enabled;this.behaviorMode=config.behavior.mode;
       this.observeProjects=config.proactive.projectHover;
       this.skinProfiles=config.appearance.skins;
       this.selectedSkin=config.appearance.selectedSkin;
@@ -431,6 +438,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
       this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
+      let loadedCortex=config.memory.mode==='publish'?null:readCortex(storage(),config.memory.namespace);
       // The Studio always starts from its last published snapshot; no local drafts
       // survive a refresh unless the user explicitly publishes via GitHub.
       if(config.memory.remoteSnapshot&&(config.memory.mode==='publish'||!Object.keys(saved.brain).length)){
@@ -438,6 +446,7 @@ class AlquimagoFamiliar extends HTMLElement {
         if(published?.brain&&typeof published.brain==='object'){
           saved=cleanMemory(published);
           if(published.preferences)this.preferences=cleanPreferences(published.preferences);
+          if(published.behavior)loadedCortex=cleanCortex(published.behavior);
           if(published.neural){
             const restored=restoreNeuralModel(published.neural);
             if(restored)this.neural=restored;
@@ -446,6 +455,8 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       if(!this.isConnected)return;
       this.configReady=true;
+      this.cortex=createCortexRuntime(loadedCortex||createCortex());
+      this.cortexStart=Date.now();
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
       this.applySkin();
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
@@ -610,8 +621,9 @@ class AlquimagoFamiliar extends HTMLElement {
   save(){
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
+    writeCortex(storage(),this.config.memory.namespace,this.cortex.state);
   }
-  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),preferences:cleanPreferences(this.preferences),selectedSkin:this.selectedSkin}:null;}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),preferences:cleanPreferences(this.preferences),behavior:cleanCortex(this.cortex.state),selectedSkin:this.selectedSkin}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -989,6 +1001,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
       this.preferences=blankPreferences();
+      this.cortex=createCortexRuntime(createCortex());this.lastAutoDecision=null;
       this.lastUserText='';this.lastNeuralIntent='';
       this.state.position=null;
       this.dialogue=[];
@@ -1027,6 +1040,7 @@ class AlquimagoFamiliar extends HTMLElement {
         const imported=JSON.parse(raw);
         this.state.brain=restoreBrain(state.brain);this.state.position=state.position;
         this.neural=restoreNeuralModel(imported.neural)||seedNeuralModel();
+        this.cortex=createCortexRuntime(imported.behavior||createCortex());
         this.save();
         if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
         this.message=this.config.memory.mode==='publish'?'Memória importada para o rascunho. Publique para manter.':'Memória e aprendizado restaurados neste dispositivo.';
