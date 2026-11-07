@@ -945,7 +945,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.pageAwayAt=0;touchActivity();
       if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
       this.pageLeaveTimer=null;
-      if(awayFor>420)this.reactPageEmotion('happy',1700,5,1200);
+      if(awayFor>420)this.reactPageEmotion('happy',1700,8,1200);
       else this.renderHeader();
     });
     on(document,'selectionchange',()=>{
@@ -1201,7 +1201,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
     const behavior=this.pageEmotion&&Date.now()<this.pageEmotion.until?this.pageEmotion.name:null;
-    const effective=behavior||(!this.desktop&&this.pageAwayAt?'sad':null);
+    const effective=(!this.desktop&&this.pageAwayAt?'sad':behavior);
     this.$character.dataset.reaction=effective||'';
     if(this.skinAdapter?.setExpression){
       try{this.skinAdapter.setExpression(effective||skinExpression(mood))}catch{/* optional 3D adapter */}
