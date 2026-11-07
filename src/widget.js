@@ -287,9 +287,9 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   updateThought(){
     if(!this.$thought)return;
-    const issue=this.suggestions.find(x=>x.id!=='route'&&x.id!=='editor');
-    this.$thought.textContent=issue?'✦ '+issue.title:'';
-    this.$thought.hidden=!!this.state.open||!issue;
+    const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
+    this.$thought.textContent=tip?'✦ '+tip.title:'';
+    this.$thought.hidden=!!this.state.open||!tip;
   }
   save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
   snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
@@ -433,7 +433,10 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     if(button.dataset.insight!==undefined){
       const tip=this.suggestions[Number(button.dataset.insight)];
-      if(tip)void this.copy(this.createPrompt()+'\n\nMelhoria solicitada: '+tip.title+' — '+tip.description);
+      if(tip){
+        window.open('https://chatgpt.com/','_blank','noopener,noreferrer');
+        void this.copy(this.createPrompt()+'\n\nMelhoria solicitada: '+tip.title+' — '+tip.description);
+      }
       return;
     }
     const action = button.dataset.action;
