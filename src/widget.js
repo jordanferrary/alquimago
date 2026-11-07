@@ -649,6 +649,12 @@ class AlquimagoFamiliar extends HTMLElement {
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
+      response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
+        name:this.config.identity.name,xp:String(this.state.brain.xp),
+        page:this.activePage?.route||'desktop',level:String(levelFromXp(this.state.brain.xp))
+      })[key]||'');
+    }
     if(response.action)this.action(response.action);
     let destination=null;
     if(response.intent==='navigate'&&!this.desktop){
@@ -788,7 +794,7 @@ class AlquimagoFamiliar extends HTMLElement {
       const chooser=document.createElement('select');chooser.id='alquimago-teach';
       const intentLabels={greeting:'Saudação',identity:'Identidade',status:'XP e status',pet:'Carinho',play:'Brincar',brew:'Poção',rest:'Descanso',navigate:'Navegação',insight:'Sugestão',help:'Ajuda',mood:'Humor',thanks:'Agradecimento'};
       for(const intent of INTENTS){
-        const option=document.createElement('option');option.value=intent;option.textContent=intentLabels[intent]||intent;
+        const option=document.createElement('option');option.value=intent;option.textContent=this.language.intentLabels?.[intent]||intentLabels[intent]||intent;
         option.selected=intent===this.lastNeuralIntent;chooser.appendChild(option);
       }
       const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
@@ -817,6 +823,16 @@ class AlquimagoFamiliar extends HTMLElement {
       select.value=this.selectedSkin;
       skinLabel.appendChild(select);
     }
+    const chatInput=this.$content.querySelector('input[name="message"]');
+    if(chatInput)chatInput.placeholder=this.language.ui.message;
+    const sendButton=this.$content.querySelector('.chat-send');
+    if(sendButton)sendButton.setAttribute('aria-label',this.language.ui.send);
+    const teachButton=this.$content.querySelector('[data-action="teach-neural"]');
+    if(teachButton)teachButton.textContent=this.language.ui.learn;
+    const teachLabel=this.$content.querySelector('.neural-teach label');
+    if(teachLabel)teachLabel.textContent=this.language.ui.learnTitle;
+    const closeButton=this.shadowRoot.getElementById('close-panel');
+    if(closeButton)closeButton.setAttribute('aria-label',this.language.ui.close);
     if(this.config.memory.mode==='publish'){
       const reset=this.$content.querySelector('[data-action="reset-memory"]');
       if(reset)reset.textContent='Zerar rascunho do mago';
