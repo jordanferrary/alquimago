@@ -42,7 +42,7 @@ export function applyAction(brain,name,now=Date.now(),detail=''){
  // No XP for petting, rest or passive UI changes. Other actions have cooldown.
  let earned=0;
  if(name==='explore'){
-  const safe=typeof detail==='string'&&/^[-\w/#.]{1,120}$/.test(detail)?detail:'';
+  const safe=typeof detail==='string'&&/^[A-Za-z0-9_./#-]{1,120}$/.test(detail)?detail:'';
   // First deliberate exploration of each route per day.
   const day=Math.floor(now/86400000);
   if(safe&&next.rewardedPages[safe]!==day){earned=action.xp;next.rewardedPages[safe]=day;}
