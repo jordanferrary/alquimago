@@ -3,14 +3,19 @@ import assert from 'node:assert/strict';
 import {respondToChat} from '../src/dialogue.mjs';
 import {pendingFromReply} from '../src/conversation.mjs';
 import {seedNeuralModel,neuralPredict,serializeNeuralModel,restoreNeuralModel,upgradeNeuralSeed} from '../src/neural.mjs';
-test('greeting followed by yes gives actual contextual answer',()=>{
+test('greeting is natural and never registers a misleading yes/no prompt',()=>{
  const first=respondToChat('oi',{name:'Alquimago'});
- assert.equal(first.pending.kind,'page-insight');
- const second=respondToChat('sim',{pending:pendingFromReply(first),
+ assert.equal(first.intent,'greeting');
+ assert.equal(first.pending,undefined);
+ assert.match(first.reply,/projetos públicos/);
+ const second=respondToChat('sim',{pending:pendingFromReply(first)});
+ assert.equal(second.intent,'clarify');
+});
+test('explicit pending yes/no can still lead to a grounded page explanation',()=>{
+ const second=respondToChat('sim',{pending:{kind:'page-insight',at:Date.now()},
   suggestions:[{title:'Texto de capa',description:'Uma capa deve ter uma legenda.'}]});
  assert.equal(second.intent,'followup');
  assert.match(second.reply,/Texto de capa/);
- assert.equal(second.pending,null);
 });
 test('brincadeira requires confirmation, refusal has no side effects',()=>{
  const first=respondToChat('vamos brincar');
