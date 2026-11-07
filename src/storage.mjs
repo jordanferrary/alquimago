@@ -6,9 +6,13 @@ const memoryObject=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 const num=x=>typeof x==='number'&&Number.isFinite(x);
 export function cleanMemory(value){
   const data=memoryObject(value),raw=memoryObject(data.brain),p=memoryObject(data.position),brain={};
-  for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil'])
+  for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil','lastRewardAt'])
     if(num(raw[k]))brain[k]=Math.max(0,Math.min(1e12,raw[k]));
-  if(typeof raw.lastAction==='string'&&['pet','play','focus','rest','study','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  if(typeof raw.lastRewardAction==='string'&&raw.lastRewardAction.length<40)brain.lastRewardAction=raw.lastRewardAction;
+  if(raw.rewardedPages&&typeof raw.rewardedPages==='object'){
+    brain.rewardedPages=Object.fromEntries(Object.entries(raw.rewardedPages).filter(([key,value])=>/^[-\\w/#.]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)).slice(-80));
+  }
   return {schema:2,brain,position:num(p.x)&&num(p.y)?{x:Math.max(0,Math.min(10000,p.x)),y:Math.max(0,Math.min(10000,p.y))}:null};
 }
 export function readMemory(storage,namespace='default'){
