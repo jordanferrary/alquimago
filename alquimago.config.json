@@ -8,7 +8,27 @@
   "appearance": {
     "accent": "#b58aff",
     "gold": "#f9d891",
-    "position": "bottom-right"
+    "position": "bottom-right",
+    "skins": [
+      {
+        "id": "padrao",
+        "label": "Alquimago original",
+        "type": "svg",
+        "src": "",
+        "shapeKeys": {
+          "idle": "Idle",
+          "blink": "Blink",
+          "happy": "Happy",
+          "curious": "Curious",
+          "talk": "Talk",
+          "pet": "Pet",
+          "sleep": "Sleep",
+          "focused": "Focused",
+          "sad": "Sad"
+        }
+      }
+    ],
+    "selectedSkin": "padrao"
   },
   "features": {
     "actions": true,
@@ -42,5 +62,14 @@
       "Não publique alterações sem autorização.",
       "Não acesse informações privadas."
     ]
+  },
+  "language": {
+    "code": "pt-BR",
+    "file": ""
+  },
+  "proactive": {
+    "projectHover": true,
+    "delayMs": 1100,
+    "cooldownMs": 50000
   }
 }
