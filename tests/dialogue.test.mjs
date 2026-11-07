@@ -13,3 +13,9 @@ test('private-looking messages are not saved',()=>{
  assert.equal(respondToChat('senha abc123').store,false);
  assert.equal(safeChatText('a'.repeat(500)).length,320);
 });
+
+test('natural language route command resolves to a request for an internal route',()=>{
+ const r=respondToChat('abre a galeria');
+ assert.equal(r.intent,'navigate');
+ assert.equal(r.target,'galeria');
+});
