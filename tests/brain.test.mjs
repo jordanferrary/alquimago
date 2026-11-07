@@ -52,3 +52,12 @@ test('each public route rewards exploration once per day',()=>{
  assert.equal(again.xp,4);
  assert.equal(tomorrow.xp,8);
 });
+
+test('one published revision rewards once, even after reloading memory',()=>{
+ const first=applyAction(restoreBrain(null),'publish',100000,'pub-2026-test-a');
+ const second=applyAction(restoreBrain(first),'publish',100200,'pub-2026-test-a');
+ const other=applyAction(second,'publish',101000,'pub-2026-test-b');
+ assert.equal(first.xp,10);
+ assert.equal(second.xp,10);
+ assert.equal(other.xp,20);
+});
