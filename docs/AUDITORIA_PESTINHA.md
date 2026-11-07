@@ -15,7 +15,7 @@ O original é um pet **desktop em Python/PySide6**, com rede LIF de 470 neurôni
 | `core/nervous_system.py` | rede LIF, habituação, aprendizado de três fatores, motores | **Parcial**: rede neural de intenção treinável; falta rede pulsada para decisões comportamentais |
 | `core/homeostasis.py` e `emotion.py` | energia, carência, estímulo, humor | **Parcial**: energia/foco/curiosidade/afinidade e humor simbólico |
 | `core/conditioning.py` | antecipação de eventos/estímulos | **Pendente** |
-| `core/episodic.py` | memória contextual, recompensa e consequências de ações | **Pendente** para ações autônomas; aprendizado explícito de frases disponível |
+| `core/episodic.py` | memória contextual, recompensa e consequências de ações | **Parcial**: preferência por tipos de dicas evolui com feedback útil/não priorizar, mas ainda não há episódios autônomos de travessuras |
 | `core/physics.py` | gravidade, quique, arremesso e pouso | **Parcial**: mover e girar o mascote, sem física equivalente |
 | `body/pet.py` | corpo, gestos mouse, carinho | **Disponível**: clique, carinho horizontal, arraste e rodinha |
 | `body/bolinha.py` e `toy.py` | brinquedo físico de tela | **Pendente** |
@@ -35,6 +35,7 @@ O original é um pet **desktop em Python/PySide6**, com rede LIF de 470 neurôni
 - **Visão heurística local:** amostra pixels de uma capa **na mesma origem** para medir luminosidade, contraste aproximado e cores; não identifica objetos nem substitui crítica artística humana.
 - **Dicas específicas:** orientações por tipo de projeto, ferramentas e leitura visual; ao clicar na fala, abre a análise completa.
 - **Aprendizado visível:** botão Ensinar guarda um protótipo numérico da frase, corrige sua classificação imediatamente e salva os pesos somente conforme o modo de memória configurado.
+- **Preferências episódicas simples:** nas dicas de projetos, os botões 'Dica útil' e 'Não priorizar' ajustam uma memória numérica por categoria de arte, para mudar a ordem das orientações futuras.
 - **Interface:** três abas principais, ferramentas recolhidas, scrollbar combinando com a paleta, painel visível em telas pequenas.
 - **Idiomas:** português do Brasil embutido; idiomas adicionais exigem `language.file` com JSON público da mesma origem, respostas e exemplos de treino.
 - **Skins:** perfil SVG padrão e imagem hospedada; GLB com Shape Keys por nome usando `react/three-skin-renderer.mjs` e a dependência opt-in `three` no projeto host. Sem adaptador, o modelo 3D cai para o SVG.
