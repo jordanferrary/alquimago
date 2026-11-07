@@ -1,6 +1,6 @@
 [package]
 name = "alquimago"
-version = "0.4.0"
+version = "0.4.1"
 description = "Familiar arcano desktop"
 authors = ["Jordan Ferrary"]
 edition = "2021"
