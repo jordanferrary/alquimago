@@ -5,7 +5,7 @@ import {inspectProjectFiles,readPublicSnapshot} from './project.mjs';
 import {readPublicPage,suggestionsFromPage,samePageSignature,routeSignature} from './awareness.mjs';
 import {freshStroke,updateHeadStroke} from './gestures.mjs';
 import {respondToChat,readDialogue,writeDialogue,safeChatText} from './dialogue.mjs';
-import {INTENTS,seedNeuralModel,trainNeural,teachNeural,neuralPredict,serializeNeuralModel,restoreNeuralModel,readNeural,writeNeural} from './neural.mjs';
+import {INTENTS,seedNeuralModel,upgradeNeuralSeed,trainNeural,teachNeural,neuralPredict,serializeNeuralModel,restoreNeuralModel,readNeural,writeNeural} from './neural.mjs';
 import {projectMeta,projectAdvice,projectIdentity,shouldCommentProject} from './project-insight.mjs';
 import {normalizeLanguage,loadLanguage} from './i18n.mjs';
 import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
@@ -489,7 +489,7 @@ class AlquimagoFamiliar extends HTMLElement {
           if(published.behavior)loadedCortex=cleanCortex(published.behavior);
           if(published.neural){
             const restored=restoreNeuralModel(published.neural);
-            if(restored)this.neural=restored;
+            if(restored)this.neural=upgradeNeuralSeed(restored);
           }
         }
       }
