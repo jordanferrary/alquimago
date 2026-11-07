@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.3 • MIT */
+/* ALQUIMAGO v0.4 • MIT */
 (() => {
 "use strict";
 // Alquimago 0.3 — symbolic familiar brain, not a language model.
@@ -88,7 +88,7 @@ const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
-  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true},
+  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:''},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',stroke:'Que carinho agradável! ✧',play:'Prepare-se: poção de diversão!',brew:'Elixir mágico concluído! ⚗',explore:'Rota estudada pelo familiar. ✦',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
@@ -259,6 +259,108 @@ function samePageSignature(a,b){
  a.editorial===b.editorial;
 }
 
+// Recognition of gentle horizontal strokes, without requiring a mouse click.
+// Pure and deterministic so browser gestures can be tested without the DOM.
+function freshStroke(){return {lastX:null,legX:null,direction:0,reversals:0,distance:0,lastAt:0,lastTriggeredAt:-Infinity};}
+function updateHeadStroke(previous,point){
+ const state={...previous},time=Number(point?.time)||0;
+ if(point?.pressed||point?.head!==true||!Number.isFinite(point?.x)){
+   return {state:{...freshStroke(),lastTriggeredAt:state.lastTriggeredAt},triggered:false};
+ }
+ if(time-state.lastAt>1200 || time<state.lastAt){
+   state.lastX=null;state.legX=null;state.direction=0;state.reversals=0;state.distance=0;
+ }
+ const x=point.x;
+ if(state.lastX===null){state.lastX=x;state.legX=x;state.lastAt=time;return {state,triggered:false};}
+ const dx=x-state.lastX;
+ state.lastAt=time;state.lastX=x;
+ if(Math.abs(dx)<3)return {state,triggered:false};
+ const dir=Math.sign(dx);
+ if(state.direction&&dir!==state.direction&&Math.abs(x-state.legX)>=16){
+   state.reversals++;
+   state.legX=x;
+ }else if(!state.direction){state.legX=x;}
+ state.distance=Math.min(1000,state.distance+Math.abs(dx));
+ state.direction=dir;
+ if(state.reversals>=2&&state.distance>=75&&time-state.lastTriggeredAt>=4500){
+   state.reversals=0;state.distance=0;state.lastTriggeredAt=time;state.legX=x;
+   return {state,triggered:true};
+ }
+ return {state,triggered:false};
+}
+
+// Local, transparent conversation engine. Not a model of language or remote chat API.
+// It only reads text the visitor explicitly enters into the familiar's own chat.
+function safeChatText(input){
+ if(typeof input!=='string')return '';
+ return input.replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,320);
+}
+const plain=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+function sensitiveChatText(text){
+ return /(?:github_pat_|gh[pousr]_|\bsk-[a-zA-Z0-9]{12,}|\bAIza[a-zA-Z0-9_-]{20,}|\b(?:senha|password|token|secret|api\s*key)\b)/i.test(text);
+}
+function respondToChat(input,context={}){
+ const raw=safeChatText(input),q=plain(raw);
+ const name=context.name||'Alquimago',mood=context.mood||'curioso';
+ const page=context.page||'home',level=Math.max(1,Number(context.level)||1),xp=Math.max(0,Number(context.xp)||0);
+ const tips=Array.isArray(context.suggestions)?context.suggestions:[];
+ if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
+ if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
+ if(/\b(oi|ola|eai|opa|bom dia|boa tarde|boa noite|salve)\b/.test(q))
+  return {reply:'Saudações! Sou '+name+'. Minha poção está borbulhando e estou '+mood+'. Quer conversar, brincar ou analisar esta página?',intent:'greeting'};
+ if(/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
+  return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
+ if(/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
+  return {reply:'Meu grimório registra nível '+level+' e '+xp+' XP. Carinhos aumentam nossa afinidade, mas não geram XP infinito. Explorar uma rota ou realizar uma tarefa relevante ajuda na evolução.',intent:'status'};
+ if(/\b(carinho|acariciar|afagar|cabeca|cabecinha)\b/.test(q))
+  return {reply:'Passe o mouse suavemente de um lado para o outro sobre meu chapéu, sem clicar! Também pode arrastar o dedo sobre minha cabeça no celular. ✧',intent:'pet'};
+ if(/\b(brincar|brincadeira|jogar|bolinha)\b/.test(q))
+  return {reply:'Uma brincadeira arcana! Vou gastar um pouco de energia e ganhar curiosidade. Vamos?',intent:'play',action:'play'};
+ if(/\b(pocao|elixir|alquimia|mistura)\b/.test(q))
+  return {reply:'Misturei três gotas de luar, uma runa violeta e muita curiosidade. Poção concluída! ⚗',intent:'brew',action:'brew'};
+ if(/\b(descansar|dormir|sono|meditar)\b/.test(q))
+  return {reply:'Vou meditar por um instante e recuperar minha energia arcana.',intent:'rest',action:'rest'};
+ if(/\b(abra|abre|abrir|navegar|visitar|ir|vai|levar|leva)\b.*\b(galeria|portfolio|contato|sobre|inicio|home)\b/.test(q)){
+  const target=q.match(/\b(galeria|portfolio|contato|sobre|inicio|home)\b/)?.[1]||'';
+  return {reply:'Vou procurar a seção '+target+' na navegação pública do site.',intent:'navigate',target};
+ }
+ if(/\b(sugestao|melhorar|analisar|erro|problema|site|pagina|projeto)\b/.test(q)){
+  const tip=tips.find(t=>!['route','studio'].includes(t.id))||tips[0];
+  return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer levar isso para uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight'};
+ }
+ if(/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
+  return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também posso listar rotas do projeto e preparar um resumo para ChatGPT ou Gemini.',intent:'help'};
+ if(/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
+  return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
+ if(/\b(obrigado|valeu|agradeco)\b/.test(q))
+  return {reply:'Sempre um prazer ajudar nas suas criações. ✦',intent:'thanks'};
+ return {reply:'Essa pergunta vai além das respostas locais que conheço. Posso analisar a estrutura do site ou preparar sua pergunta para um modelo de IA, com sua autorização.',intent:'unknown'};
+}
+
+function dialogueKey(namespace='default'){
+ const safe=/^[A-Za-z0-9_-]{1,48}$/.test(namespace)?namespace:'default';
+ return 'alquimago:dialogue:v1:'+safe;
+}
+function readDialogue(storage,namespace='default'){
+ try{
+  const raw=JSON.parse(storage.getItem(dialogueKey(namespace))||'[]');
+  if(!Array.isArray(raw))return [];
+  return raw.slice(-24).filter(item=>
+   item && ['user','familiar'].includes(item.role) &&
+   typeof item.text==='string' && !sensitiveChatText(item.text)
+  ).map(item=>({role:item.role,text:safeChatText(item.text)}));
+ }catch{return [];}
+}
+function writeDialogue(storage,namespace='default',history=[]){
+ const safe=Array.isArray(history)?history.slice(-24).filter(item=>
+  item && ['user','familiar'].includes(item.role)&&typeof item.text==='string'&&!sensitiveChatText(item.text)
+ ).map(item=>({role:item.role,text:safeChatText(item.text)})):[];
+ try{storage.setItem(dialogueKey(namespace),JSON.stringify(safe));return true;}
+ catch{return false;}
+}
+
+
+
 
 
 
@@ -338,6 +440,26 @@ const STYLE = `
 @keyframes twinkle{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.12)}}
 @media(max-width:460px){:host{right:8px;bottom:9px}.panel{width:min(315px,calc(100vw - 16px))}.character{width:100px;height:128px}.character svg{width:100px;height:128px}}
 
+
+/* Conversa local e gestos de afeto — sem dependências externas */
+.content .chat-history{
+ display:flex;flex-direction:column;gap:8px;min-height:125px;
+ max-height:200px;overflow-y:auto;padding:4px 2px 11px;scrollbar-width:thin;
+}
+.chat-bubble{max-width:93%;font-size:12px;line-height:1.55;padding:9px 11px;border-radius:13px;overflow-wrap:anywhere;user-select:text}
+.chat-bubble.from-user{align-self:flex-end;background:#67419d;border:1px solid #9a6fc5;color:#fff}
+.chat-bubble.from-familiar{align-self:flex-start;background:#332243;border:1px solid #634a7f;color:#ecdcff}
+.chat-form{display:flex;align-items:center;gap:6px;margin-top:7px}
+.chat-form input{min-width:0;width:100%;flex:1;background:#140d22;border:1px solid #72548f;border-radius:11px;color:#fff;padding:10px 9px;font:inherit;font-size:12px;user-select:text}
+.chat-form input:focus-visible{outline:2px solid var(--violet);outline-offset:1px}
+.chat-send{min-width:37px;height:37px;border:1px solid #af83dc;background:#6a3f9b;color:#fff;border-radius:11px;cursor:pointer}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
+.chat-suggestions button{font:inherit;font-size:10px;color:#f8e8ff;background:#4b305f;border:1px solid #8563a3;border-radius:15px;padding:6px 9px;cursor:pointer}
+.thought{color:#f2e5ff;text-align:left;cursor:pointer;max-width:205px;font:inherit;font-size:11px}
+.affection-burst{pointer-events:none;position:absolute;top:14%;left:20%;font-size:19px;letter-spacing:8px;color:#ffacd8;animation:affection-rise .95s ease-out forwards;text-shadow:0 0 10px #f394f3}
+@keyframes affection-rise{0%{opacity:0;transform:translateY(10px) scale(.8)}25%{opacity:1}100%{opacity:0;transform:translateY(-40px) scale(1.3)}}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -383,7 +505,7 @@ const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.
 <path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
 <circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
 </svg>`;
-const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA'];
+const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA', 'conversar'];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
 const storage=()=>{try{return window.localStorage;}catch{return null;}};
@@ -419,7 +541,7 @@ class AlquimagoFamiliar extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.state = { brain: restoreBrain(null), tab: 0, open: false, position: null };
+    this.state = { brain: restoreBrain(null), tab: 5, open: false, position: null };
     this.config=normalizeConfig(null);
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
@@ -427,31 +549,52 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
+    this.hoverStroke=freshStroke();this.dialogue=[];
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
     const saved=readMemory(storage());
+    this.dialogue=readDialogue(storage());
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><div class="thought" id="thought" aria-hidden="true"></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
+    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=5;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
     this.$character.addEventListener('pointerdown', e => this.onPointerDown(e));
     this.$character.addEventListener('pointermove', e => this.onPointerMove(e));
+    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};});
     this.$character.addEventListener('pointerup', e => this.onPointerUp(e));
     this.$character.addEventListener('pointercancel', () => { this.pointerStart = null; });
+    this.$character.addEventListener('contextmenu',e=>{e.preventDefault();this.state.open=true;this.state.tab=0;this.render();});
+    this.$character.addEventListener('wheel',e=>{
+      e.preventDefault();
+      const sprite=this.$character.querySelector('svg');
+      if(!sprite)return;
+      this.wheelAngle=(this.wheelAngle||0)+(e.deltaY>0?20:-20);
+      sprite.style.transform='rotate('+this.wheelAngle+'deg)';
+      clearTimeout(this.wheelTimer);
+      this.wheelTimer=setTimeout(()=>{sprite.style.transform='';this.wheelAngle=0;},750);
+    },{passive:false});
     this.$tabs.addEventListener('click', e => {
       const button = e.target.closest('button[data-tab]');
       if (button) { this.state.tab = Number(button.dataset.tab); this.render(); }
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
+    this.$content.addEventListener('submit',e=>{
+      if(e.target?.id!=='alquimago-chat-form')return;
+      e.preventDefault();
+      const input=e.target.querySelector('input[name="message"]');
+      if(!input)return;
+      this.sendMessage(input.value);
+    });
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
     this.startObservation();
@@ -477,6 +620,7 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.dialogue=readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       let saved=readMemory(storage(),config.memory.namespace);
       // A public, site-owned baseline is used only if the device has no progress.
@@ -502,6 +646,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
+    if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
@@ -548,8 +693,9 @@ class AlquimagoFamiliar extends HTMLElement {
   updateThought(){
     if(!this.$thought)return;
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
-    this.$thought.textContent=tip?'✦ '+tip.title:'';
-    this.$thought.hidden=!!this.state.open||!tip;
+    const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<6500?this.lastSpoken:null;
+    this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
+    this.$thought.hidden=!!this.state.open&&this.state.tab===5||(!spoken&&!tip);
   }
   save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
   snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
@@ -569,7 +715,20 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.setPointerCapture(e.pointerId);
   }
   onPointerMove(e) {
-    if(!this.pointerStart)return;
+    if(!this.pointerStart){
+      if(e.pointerType==='mouse'&&e.buttons===0){
+        const rect=this.$character.getBoundingClientRect();
+        const result=updateHeadStroke(this.hoverStroke,{
+          x:e.clientX-rect.left,
+          head:e.clientY-rect.top<rect.height*.71,
+          pressed:false,
+          time:Date.now()
+        });
+        this.hoverStroke=result.state;
+        if(result.triggered){this.action('stroke');this.spawnAffection();}
+      }
+      return;
+    }
     const dx=e.clientX-this.pointerStart.x,dy=e.clientY-this.pointerStart.y;
     this.pointerStart.dx=dx;this.pointerStart.dy=dy;
     // Short strokes are caresses. Intentional longer drags relocate the mascot.
@@ -580,11 +739,48 @@ class AlquimagoFamiliar extends HTMLElement {
     const data = this.pointerStart; this.pointerStart = null;
     if (!data) return;
     if(data.moved){if(!this.desktop)this.save();}
-    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58)this.action('stroke');
-    else this.action('pet');
+    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58){this.action('stroke');this.spawnAffection();}
+    else {this.action('pet');this.spawnAffection();if(!this.desktop){this.state.tab=5;this.state.open=true;this.render();}}
     if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
   }
-  action(name,detail=''){
+  spawnAffection(){
+    const node=document.createElement('span');
+    node.className='affection-burst';node.textContent='♥ ✦ ♥';
+    this.$character.appendChild(node);
+    setTimeout(()=>node.remove(),950);
+  }
+  sendMessage(text){
+    const user=safeChatText(text);
+    if(!user)return;
+    const response=respondToChat(user,{
+      name:this.config.identity.name,mood:currentMood(this.state.brain),
+      level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
+      page:this.activePage?.route||'desktop',suggestions:this.suggestions
+    });
+    if(response.action)this.action(response.action);
+    let destination=null;
+    if(response.intent==='navigate'&&!this.desktop){
+      const names={galeria:'portfolio',portfolio:'portfolio',contato:'contato',sobre:'sobre',inicio:'inicio',home:'inicio'};
+      const hash=names[response.target];
+      const options=findSameOriginLinks();
+      destination=options.find(link=>new URL(link.href).hash.toLowerCase().includes('/'+hash))||null;
+      response.reply=destination?'Encontrei '+response.target+'. Abrindo esta seção do site…':'Não encontrei '+response.target+' na navegação disponível. Você pode conferir a aba Rotas.';
+    }
+    if(response.store!==false){
+      this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:response.reply}].slice(-24);
+      writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+    }else{
+      this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
+    }
+    this.message=response.reply;
+    this.lastSpoken=response.reply;this.lastSpokenAt=Date.now();
+    this.state.tab=5;this.state.open=true;this.render();
+    const log=this.$content.querySelector('.chat-history');
+    if(log)log.scrollTop=log.scrollHeight;
+    this.$content.querySelector('input[name="message"]')?.focus();
+    if(destination&&new URL(destination.href).origin===location.origin)location.assign(destination.href);
+  }
+    action(name,detail=''){
     const before=this.state.brain.xp;
     const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):name==='publish'?detail:'';
     this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
@@ -596,7 +792,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ Grimório de '+this.config.identity.name;
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.4';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle;
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -609,7 +805,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   render() {
     const flags=this.config.features;
-    const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants];
+    const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
     if(!allowed[this.state.tab])this.state.tab=Math.max(0,allowed.indexOf(true));
     this.setAttribute('data-position',this.config.appearance.position);
     this.$panel.classList.toggle('open', this.state.open);
@@ -661,8 +857,25 @@ class AlquimagoFamiliar extends HTMLElement {
         const result=document.createElement('small');result.textContent=entry.status==='read'?String(entry.bytes)+' bytes':entry.status;
         item.append(label,result);this.$content.appendChild(item);
       }
-    } else {
-      add('<p class="muted">Um resumo de tarefa pode ser copiado para continuar no ChatGPT ou no Gemini. Não há automação de login, coleta de conversas nem acesso a tokens.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
+    } else if(this.state.tab===4){
+      add('<p class="muted">Para questões que ultrapassem meu diálogo local, posso preparar um resumo e abrir ChatGPT ou Gemini, sempre por escolha do usuário.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
+    } else if(this.state.tab===5){
+      const history=document.createElement('div');
+      history.className='chat-history';
+      history.setAttribute('role','log');
+      history.setAttribute('aria-label','Diálogo local');
+      const lines=this.dialogue.length?this.dialogue:[{role:'familiar',text:this.config.identity.greeting}];
+      for(const item of lines){
+        const bubble=document.createElement('div');
+        bubble.className='chat-bubble '+(item.role==='user'?'from-user':'from-familiar');
+        bubble.textContent=item.text;
+        history.appendChild(bubble);
+      }
+      this.$content.appendChild(history);
+      add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
+      add('<div class="chat-suggestions"><button type="button" data-say="Oi!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
+      add('<p class="muted">Diálogo local: respostas programadas e contexto público. Não é uma IA generativa, não lê campos do site e não envia mensagens para servidores.</p>');
+      history.scrollTop=history.scrollHeight;
     }
     if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"]').forEach(button=>button.remove());
   }
@@ -691,6 +904,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(link && new URL(link.href).origin===location.origin){location.assign(link.href);this.message='Abrindo '+link.label+'…';this.renderHeader();}
       return;
     }
+    if(button.dataset.say){this.sendMessage(button.dataset.say);return;}
     if(button.dataset.insight!==undefined){
       const tip=this.suggestions[Number(button.dataset.insight)];
       if(tip){
@@ -753,7 +967,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.3.0',
+    version: '0.4.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
