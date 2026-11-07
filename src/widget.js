@@ -195,6 +195,10 @@ const STYLE = `
 }
 
 
+/* Teaching is discoverable but does not crowd the conversation. */
+.neural-lesson{margin:9px 0;padding:8px 10px;background:#24172f;border:1px solid #8b65af70;border-radius:10px}
+.neural-lesson summary{color:#ead6ff;font-size:12px;font-weight:600;cursor:pointer}
+.neural-lesson .neural-teach{margin-top:8px}
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
 #arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
@@ -716,7 +720,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.5';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.6';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -845,7 +849,10 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
       teach.disabled=!this.lastUserText;
-      teacher.append(lbl,chooser,teach);this.$content.appendChild(teacher);
+      teacher.append(lbl,chooser,teach);
+      const lesson=document.createElement('details');lesson.className='neural-lesson';
+      const summary=document.createElement('summary');summary.textContent='✦ Ensinar uma frase';
+      lesson.append(summary,teacher);this.$content.appendChild(lesson);
       const message=document.createElement('p');message.className='muted';
       message.textContent='Cérebro local: 96 entradas · 24 neurônios internos · 12 intenções. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
       this.$content.appendChild(message);
@@ -1038,7 +1045,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.5.0',
+    version: '0.6.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
