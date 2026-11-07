@@ -93,6 +93,12 @@ export function trainNeural(model,text,intent,rate=.075){
  return model;
 }
 export function seedNeuralModel(){
+ // Standalone builds embed a validated, pre-trained immutable seed. This
+ // skips ~15k training iterations during startup on mobile and older PCs.
+ if(typeof ALQUIMAGO_PRETRAINED!=='undefined'){
+  const ready=restoreNeuralModel(ALQUIMAGO_PRETRAINED);
+  if(ready)return ready;
+ }
  const model=newNeuralModel();
  const list=Object.entries(samples).flatMap(([intent,phrases])=>phrases.map(text=>({intent,text})));
  // Deterministic initial examples, no network or personal data.
