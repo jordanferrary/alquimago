@@ -962,6 +962,7 @@ class AlquimagoFamiliar extends HTMLElement {
     on(window,'pointermove',event=>{
       if(event.pointerType!=='mouse')return;
       touchActivity();
+      if(event.buttons!==0)return;
       const previous=this.pageLastMouse;
       this.pageLastMouse={x:event.clientX,y:event.clientY,at:performance.now()};
       if(!previous||document.hidden||ignored(event.target))return;
@@ -979,6 +980,11 @@ class AlquimagoFamiliar extends HTMLElement {
     on(window,'scroll',()=>{
       touchActivity();
       if(!this.pageAwayAt)this.reactPageEmotion('curious',1300,1,14500);
+    },{passive:true});
+    on(document,'click',event=>{
+      if(!(event.target instanceof Element)||ignored(event.target))return;
+      if(event.target.closest('[data-alquimago-project],a[href],button'))
+        this.reactPageEmotion('focused',1450,2,4200);
     },{passive:true});
     const navigation=()=>{touchActivity();this.reactPageEmotion('curious',2100,2,3000)};
     on(window,'hashchange',navigation);
