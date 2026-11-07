@@ -380,7 +380,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if (!data) return;
     if(data.moved){if(!this.desktop)this.save();}
     else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58){this.action('stroke');this.spawnAffection();}
-    else {this.action('pet');this.spawnAffection();}
+    else {this.action('pet');this.spawnAffection();if(!this.desktop){this.state.tab=5;this.state.open=true;this.render();}}
     if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
   }
   spawnAffection(){
@@ -398,6 +398,14 @@ class AlquimagoFamiliar extends HTMLElement {
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     if(response.action)this.action(response.action);
+    let destination=null;
+    if(response.intent==='navigate'&&!this.desktop){
+      const names={galeria:'portfolio',portfolio:'portfolio',contato:'contato',sobre:'sobre',inicio:'inicio',home:'inicio'};
+      const hash=names[response.target];
+      const options=findSameOriginLinks();
+      destination=options.find(link=>new URL(link.href).hash.toLowerCase().includes('/'+hash))||null;
+      response.reply=destination?'Encontrei '+response.target+'. Abrindo esta seção do site…':'Não encontrei '+response.target+' na navegação disponível. Você pode conferir a aba Rotas.';
+    }
     if(response.store!==false){
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:response.reply}].slice(-24);
       writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
@@ -410,6 +418,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const log=this.$content.querySelector('.chat-history');
     if(log)log.scrollTop=log.scrollHeight;
     this.$content.querySelector('input[name="message"]')?.focus();
+    if(destination&&new URL(destination.href).origin===location.origin)location.assign(destination.href);
   }
     action(name,detail=''){
     const before=this.state.brain.xp;
