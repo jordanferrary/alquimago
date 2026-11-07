@@ -1,9 +1,13 @@
 // Skin manifest: default SVG, a hosted image, or a custom GLB model rendered
 // by an OPTIONAL host adapter. No network libraries are loaded by Alquimago.
 export const DEFAULT_SKIN={type:'svg',src:'',shapeKeys:{
- idle:'Idle',blink:'Blink',happy:'Happy',curious:'Curious',
+ breath:'Breath',idle:'Idle',blink:'Blink',happy:'Happy',curious:'Curious',
  talk:'Talk',sleep:'Sleep',pet:'Pet',surprised:'Surprised',
- focused:'Focused',sad:'Sad'
+ focused:'Focused',sad:'Sad',
+ tired:'Tired',yawn:'Yawn',angry:'Angry',confused:'Confused',
+ excited:'Excited',shy:'Shy',love:'Love',proud:'Proud',
+ thinking:'Thinking',worried:'Worried',laugh:'Laugh',
+ lookleft:'LookLeft',lookright:'LookRight',lookup:'LookUp',lookdown:'LookDown'
 }};
 export function normalizeSkin(value){
  const v=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
