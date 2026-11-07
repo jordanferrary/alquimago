@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_BRAIN, restoreBrain, applyAction, passTime, currentMood, levelFromXp } from '../src/brain.mjs';
+import {writeMemory,readMemory} from '../src/storage.mjs';
 test('default creates a fresh state and preserves original', () => {
   const a = restoreBrain(null), b = restoreBrain(null); a.energy = 1;
   assert.equal(b.energy, 75); assert.equal(DEFAULT_BRAIN.energy, 75);
@@ -60,4 +61,17 @@ test('one published revision rewards once, even after reloading memory',()=>{
  assert.equal(first.xp,10);
  assert.equal(second.xp,10);
  assert.equal(other.xp,20);
+});
+
+test('explicit reset leaves a safe local baseline and cannot resurrect old remote XP',()=>{
+ const values=new Map();
+ const storage={setItem:(key,value)=>values.set(key,String(value)),getItem:key=>values.get(key)??null};
+ writeMemory(storage,{brain:{...restoreBrain(null),xp:142}},'studio');
+ assert.equal(readMemory(storage,'studio').brain.xp,142);
+ // Clearing a key would re-enable remoteSnapshot restoration; replace it instead.
+ writeMemory(storage,{brain:restoreBrain(null),position:null},'studio');
+ const fresh=readMemory(storage,'studio');
+ assert.equal(fresh.brain.xp,0);
+ assert.equal(fresh.position,null);
+ assert.ok(Object.keys(fresh.brain).length>0);
 });
