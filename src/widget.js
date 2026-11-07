@@ -167,7 +167,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
-    this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.studioInfo=null;
+    this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -207,6 +207,13 @@ class AlquimagoFamiliar extends HTMLElement {
       this.inspectPage(true);
     };
     window.addEventListener('alquimago:studio-context',this.studioHandler);
+    this.activityHandler=event=>{
+      const data=event?.detail;
+      if(data?.type==='published'&&typeof data.revision==='string'){
+        this.action('publish','pub-'+encodeURIComponent(data.revision).slice(0,100));
+      }
+    };
+    window.addEventListener('alquimago:activity',this.activityHandler);
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
@@ -239,6 +246,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.observer)this.observer.disconnect();
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
+    if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   startObservation(){
@@ -316,12 +324,12 @@ class AlquimagoFamiliar extends HTMLElement {
     else this.action('pet');
     if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
   }
-  action(name){
+  action(name,detail=''){
     const before=this.state.brain.xp;
-    const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):'';
+    const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):name==='publish'?detail:'';
     this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
     const earned=this.state.brain.xp-before;
-    const messages={stroke:'Hmm… mais um carinho no chapéu! ✧',brew:'Elixir alquímico preparado! ✨',explore:'Nova rota estudada. ✦'};
+    const messages={stroke:'Hmm… mais um carinho no chapéu! ✧',brew:'Elixir alquímico preparado! ✨',explore:'Nova rota estudada. ✦',publish:'Projeto publicado! Magia de verdade. ✦'};
     this.message=(this.config.messages[name]||messages[name]||'Runas reorganizadas.')+(earned?' +'+earned+' XP':'');
     this.save();this.render();
   }
