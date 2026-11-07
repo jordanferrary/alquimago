@@ -73,3 +73,29 @@ O pacote compilado inclui pesos pré-treinados para evitar repetir milhares de c
 6. Ao ativar uma IA remota, a interface pede consentimento, e o backend exige uma sessão autenticada.
 7. Publicar atualiza a base pública; recarregar sem publicar descarta o rascunho de XP e aprendizado do Studio.
 8. O workflow deve falhar se a distribuição instalada tiver versão/hash incorretos.
+
+
+## Atualização v0.10 — Gemini como professor, não como memória automática
+
+O único provedor opcional de linguagem definido nesta versão é o **Google Gemini**. A Cloudflare continua sendo somente uma infraestrutura possível para proteger as credenciais e verificar a autenticação; **não fornece o modelo da conversa**.
+
+### Ensinar de maneira verificável
+
+O módulo \`src/learning.mjs\` oferece um pequeno banco pessoal de até 64 lições:
+
+- Antes de responder, o Alquimago consulta perguntas e respostas **aprovadas manualmente**.
+- Quando o Gemini estiver ativado, a resposta do professor aparece como **rascunho**, não como fato aprendido.
+- Em **Conversar → Ensinar um conhecimento verdadeiro**, revise pergunta e resposta e clique **Aprovar e aprender**.
+- O conhecimento fica em \`localStorage\`, com uma chave baseada no namespace do projeto e na origem do site. Sobrevive a recarregamentos e atualizações do JavaScript.
+- O usuário pode apagar lições. Elas **não entram no snapshot público**, nas páginas do repositório, nos commits de publicação nem nas conversas enviadas sem autorização.
+- Essa memória recuperável não altera automaticamente pesos do Gemini e não permite que uma resposta imprecisa vire conhecimento sem avaliação.
+
+### Explicações de arquivos sem risco de edição
+
+Arquivos públicos só são lidos se previamente listados pela configuração e se o usuário usar **Ler arquivos**. O resumo estrutural identifica exports/imports e nomes. Mesmo quando o usuário marca a autorização separada para compartilhar esse resumo com o Gemini, **o conteúdo bruto do código não é enviado**. O professor não recebe uma ferramenta de edição, terminal ou API GitHub.
+
+### Como o modo opcional é ativado
+
+O administrador elegível deve disponibilizar um backend seguro compatível com \`/api/assistant\`, com autorização e credencial Gemini guardada exclusivamente no servidor. O JavaScript público não contém chaves da API. Sem backend e sem consentimento, o Alquimago continua usando a base de projetos e lições locais. A modalidade gratuita pode ter limites, mudanças de disponibilidade e políticas específicas de tratamento de conteúdo; não enviar informações confidenciais.
+
+A documentação do Worker está no repositório do site, \`auth-worker/README.md\`. Nesta versão, a conexão em produção permanece **desativada** até que o responsável configure e autorize o serviço de acordo com os termos do Google.
