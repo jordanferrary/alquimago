@@ -4,18 +4,18 @@
 export const INTENTS=['greeting','identity','status','pet','play','brew','rest','navigate','insight','help','mood','thanks'];
 const INPUTS=96,HIDDEN=24,OUTPUTS=INTENTS.length;
 const samples={
- greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend'],
- identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia'],
- status:['qual meu xp','quanto xp eu tenho','meu nivel','qual o nivel','quanta energia','meu progresso','status','quanto de xp tenho'],
- pet:['carinho','quero fazer carinho','como faço carinho','passar a mao na cabeca','posso te acariciar','afagar o mago'],
- play:['vamos brincar','quero brincar','brincadeira','jogar um joguinho','brincar com voce'],
- brew:['pocao','poção','faz poção','criar elixir','mistura magica','alquimia','preparar pocao'],
- rest:['dormir','descansa','vai descansar','meditar','hora de dormir','ta com sono','recarregar energia'],
- navigate:['abra a galeria','abre a galeria','ir para contato','navegar para sobre','abrir portfólio','vai para inicio','mostra a home','abrir a pagina contato'],
- insight:['ideias para o site','me da sugestoes','sugestão pro site','analise esta pagina','como melhorar meu site','ache erros no projeto','dica de design'],
- help:['ajuda','preciso de ajuda','o que voce faz','quais comandos','como funciona','comandos','ajude-me'],
- mood:['como esta seu humor','ta feliz','se sente bem','voce ta triste','qual seu humor','ta animado'],
- thanks:['obrigado','valeu','muito obrigado','brigado','agradeco','thanks','obg']
+ greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend','oi maguinho como vai','e aí tudo bem','salvee','ola alquimago','bom dia alquimago','boa noite mago','eae parceiro','saudacoes','opa tudo certo','e aí mago'],
+ identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia','pra que voce serve','me conta quem voce e','me diz seu nome','voce tem cerebro','qual e sua funcao','o que voce consegue fazer','que tipo de familiar voce e','o que e alquimago'],
+ status:['qual meu xp','quanto xp eu tenho','meu nivel','qual o nivel','quanta energia','meu progresso','status','quanto de xp tenho','como estou de xp','mostre meu progresso','to em qual nivel','quanta energia voce tem','quanto falta pra subir de nivel','quais os seus atributos','me mostra as estatisticas','quantos pontos eu tenho'],
+ pet:['carinho','quero fazer carinho','como faço carinho','passar a mao na cabeca','posso te acariciar','afagar o mago','quer um carinho','posso passar a mao na sua cabeca','como dar carinho','vou fazer cafune','voce gosta de cafune','passa a mao no chapeu','como acariciar o maguinho','quero te fazer cafune'],
+ play:['vamos brincar','quero brincar','brincadeira','jogar um joguinho','brincar com voce','quer brincar comigo','bora brincar','brincar agora','vamos jogar a bolinha','brincar de novo','quero jogar com voce','comeca uma brincadeira','ta afim de brincar'],
+ brew:['pocao','poção','faz poção','criar elixir','mistura magica','alquimia','preparar pocao','bora fazer uma pocao','prepare um elixir','pode criar uma pocao','vamos misturar ingredientes','quero fazer magia','pocao de criatividade','quero mexer no caldeirao','me ajuda com alquimia'],
+ rest:['dormir','descansa','vai descansar','meditar','hora de dormir','ta com sono','recarregar energia','voce precisa descansar','vai dormir mago','descansa um pouco','quero que voce medite','medite um pouco','precisa de energia','dorme um pouquinho','pausa para descanso'],
+ navigate:['abra a galeria','abre a galeria','ir para contato','navegar para sobre','abrir portfólio','vai para inicio','mostra a home','abrir a pagina contato','vamos para galeria','me mostra a pagina de contato','quero entrar na home','como vou pra sobre','ir na area de projetos','abre os trabalhos','leva ate meu portfolio','quero ver a pagina inicial'],
+ insight:['ideias para o site','me da sugestoes','sugestão pro site','analise esta pagina','como melhorar meu site','ache erros no projeto','dica de design','me da um feedback da obra','analise o projeto que estou vendo','o que achou desse projeto','quais pontos eu posso melhorar','me de uma critica construtiva','tem alguma dica de composicao','me da sugestoes de design','o que falta nessa pagina'],
+ help:['ajuda','preciso de ajuda','o que voce faz','quais comandos','como funciona','comandos','ajude-me','me ajuda com isso','me explica seus recursos','me ensine como funciona','quais funcoes voce tem','me conta seus comandos','do que e capaz','como posso falar com voce','como voce aprende'],
+ mood:['como esta seu humor','ta feliz','se sente bem','voce ta triste','qual seu humor','ta animado','como voce esta hoje','qual e seu estado atual','voce esta contente','ta de bom humor','como anda sua curiosidade','ta animadinho','como se sente','qual e a sua energia emocional'],
+ thanks:['obrigado','valeu','muito obrigado','brigado','agradeco','thanks','obg','obrigada','obg mago','valeu demais','vlw','agradecido','brigada','muito grato','obrigado pela ajuda']
 };
 const neuralClamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
 function canon(input){
@@ -45,7 +45,7 @@ export function newNeuralModel(){
   hiddenBias:Array(HIDDEN).fill(0),
   hiddenOutput:Array.from({length:HIDDEN*OUTPUTS},(_,i)=>deterministic(i+3000)),
   outputBias:Array(OUTPUTS).fill(0),
-  learned:0,prototypes:[]
+  learned:0,prototypes:[],seedVersion:2
  };
 }
 export function neuralForward(model,text){
@@ -146,7 +146,8 @@ export function restoreNeuralModel(value){
    entry.features.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1)
   ).map(entry=>({intent:entry.intent,features:[...entry.features]})):[];
  return {...Object.fromEntries(arrays.map(([key])=>[key,[...value[key]]])),version:1,
-  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0,prototypes};
+  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0,prototypes,
+  seedVersion:Number.isSafeInteger(value.seedVersion)?Math.max(1,Math.min(2,value.seedVersion)):1};
 }
 export function serializeNeuralModel(model){
  const clean=restoreNeuralModel(model);
@@ -162,11 +163,26 @@ export function serializeNeuralModel(model){
 export function neuralKey(namespace='default'){
  return 'alquimago:neural:v1:'+(/^[A-Za-z0-9_-]{1,48}$/.test(namespace)?namespace:'default');
 }
+export function upgradeNeuralSeed(model){
+ const restored=restoreNeuralModel(model);
+ if(!restored)return seedNeuralModel();
+ if(restored.seedVersion>=2)return restored;
+ const current=restored.learned,prototypes=restored.prototypes;
+ // Teach the new, curated PT-BR examples without resetting personalized weights.
+ for(let round=0;round<12;round++){
+  for(const [intent,phrases] of Object.entries(samples))
+   for(const sentence of phrases)trainNeural(restored,sentence,intent,.065);
+ }
+ restored.learned=current;
+ restored.prototypes=prototypes;
+ restored.seedVersion=2;
+ return restored;
+}
 export function readNeural(storage,namespace='default'){
  try{
   const raw=storage.getItem(neuralKey(namespace));
   if(!raw||raw.length>180000)return null;
-  return restoreNeuralModel(JSON.parse(raw));
+  return upgradeNeuralSeed(JSON.parse(raw));
  }catch{return null;}
 }
 export function writeNeural(storage,namespace,model){
