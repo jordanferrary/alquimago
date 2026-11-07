@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.7.0 • MIT */
+/* ALQUIMAGO v0.8.1 • MIT */
 (() => {
 "use strict";
 // Alquimago 0.3 — symbolic familiar brain, not a language model.
@@ -91,6 +91,7 @@ const DEFAULT_CONFIG = Object.freeze({
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
   behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:true},
+  commands:{publishPhrase:'vai comprar pão'},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
@@ -105,7 +106,7 @@ function normalizeConfig(input){
   const id=obj(data.identity), app=obj(data.appearance), features=obj(data.features);
   const memory=obj(data.memory), project=obj(data.project), messages=obj(data.messages), agent=obj(data.assistant);
   const language=obj(data.language),proactive=obj(data.proactive);
-  const behavior=obj(data.behavior);
+  const behavior=obj(data.behavior),commands=obj(data.commands);
   const skins=Array.isArray(app.skins)?app.skins.slice(0,12).filter(entry=>
     entry&&typeof entry==='object'&&!Array.isArray(entry)&&
     typeof entry.id==='string'&&/^[a-zA-Z0-9_-]{1,35}$/.test(entry.id)
@@ -134,6 +135,7 @@ function normalizeConfig(input){
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
     memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):'',mode:memory.mode==='publish'?'publish':'local'},
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
+    commands:{publishPhrase:txt(commands.publishPhrase,d.commands.publishPhrase,80)},
     messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
     assistant:{
       projectContext:typeof agent.projectContext==='string'?agent.projectContext.trim().slice(0,700):'',
@@ -335,6 +337,7 @@ function updateHeadStroke(previous,point){
  return {state,triggered:false};
 }
 
+
 // Local, transparent conversation engine. Not a model of language or remote chat API.
 // It only reads text the visitor explicitly enters into the familiar's own chat.
 function safeChatText(input){
@@ -352,8 +355,13 @@ function respondToChat(input,context={}){
  const tips=Array.isArray(context.suggestions)?context.suggestions:[];
  if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
  if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
+ // Handle a user's answer BEFORE unrelated neural intent classification.
+ const followup=answerFollowUp(raw,context.pending,{suggestions:context.suggestions});
+ if(followup)return followup;
+ const calculation=calculateBasic(raw);
+ if(calculation)return {reply:'O resultado é '+calculation.text+'. ✦',intent:'math'};
  if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
-  return {reply:'Saudações! Sou '+name+'. Minha poção está borbulhando e estou '+mood+'. Quer conversar, brincar ou analisar esta página?',intent:'greeting'};
+  return {reply:'Saudações! Sou '+name+'. Minha poção está borbulhando e estou '+mood+'. Quer que eu analise a estrutura pública desta página? Responda sim ou não.',intent:'greeting',pending:{kind:'page-insight'}};
  if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
   return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
  if(context.neuralIntent==='status'||/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
@@ -361,7 +369,7 @@ function respondToChat(input,context={}){
  if(context.neuralIntent==='pet'||/\b(carinho|acariciar|afagar|cabeca|cabecinha)\b/.test(q))
   return {reply:'Passe o mouse suavemente de um lado para o outro sobre meu chapéu, sem clicar! Também pode arrastar o dedo sobre minha cabeça no celular. ✧',intent:'pet'};
  if(context.neuralIntent==='play'||/\b(brincar|brincadeira|jogar|bolinha)\b/.test(q))
-  return {reply:'Uma brincadeira arcana! Vou gastar um pouco de energia e ganhar curiosidade. Vamos?',intent:'play',action:'play'};
+  return {reply:'Uma brincadeira arcana! Quer que eu comece? Responda sim ou não.',intent:'play',pending:{kind:'play'}};
  if(context.neuralIntent==='brew'||/\b(pocao|elixir|alquimia|mistura)\b/.test(q))
   return {reply:'Misturei três gotas de luar, uma runa violeta e muita curiosidade. Poção concluída! ⚗',intent:'brew',action:'brew'};
  if(context.neuralIntent==='rest'||/\b(descansar|dormir|sono|meditar)\b/.test(q))
@@ -372,15 +380,15 @@ function respondToChat(input,context={}){
  }
  if(context.neuralIntent==='insight'||/\b(sugestao|melhorar|analisar|erro|problema|site|pagina|projeto)\b/.test(q)){
   const tip=tips.find(t=>!['route','studio'].includes(t.id))||tips[0];
-  return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer levar isso para uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight'};
+  return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer que eu mostre como continuar com uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight',...(tip?{pending:{kind:'ai-handoff'}}:{})};
  }
  if(context.neuralIntent==='help'||/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
-  return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também posso listar rotas do projeto e preparar um resumo para ChatGPT ou Gemini.',intent:'help'};
+  return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também sei responder sim ou não conforme a pergunta anterior e calcular contas como 2 + 2 ou 12 dividido por 4.',intent:'help'};
  if(context.neuralIntent==='mood'||/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
   return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
  if(context.neuralIntent==='thanks'||/\b(obrigado|valeu|agradeco)\b/.test(q))
   return {reply:'Sempre um prazer ajudar nas suas criações. ✦',intent:'thanks'};
- return {reply:'Essa pergunta vai além das respostas locais que conheço. Posso analisar a estrutura do site ou preparar sua pergunta para um modelo de IA, com sua autorização.',intent:'unknown'};
+ return {reply:'Ainda não sei responder diretamente a isso. Quer que eu procure uma sugestão na estrutura pública desta página? Responda sim ou não.',intent:'unknown',pending:{kind:'page-insight'}};
 }
 
 function dialogueKey(namespace='default'){
@@ -411,18 +419,18 @@ function writeDialogue(storage,namespace='default',history=[]){
 const INTENTS=['greeting','identity','status','pet','play','brew','rest','navigate','insight','help','mood','thanks'];
 const INPUTS=96,HIDDEN=24,OUTPUTS=INTENTS.length;
 const samples={
- greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend'],
- identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia'],
- status:['qual meu xp','quanto xp eu tenho','meu nivel','qual o nivel','quanta energia','meu progresso','status','quanto de xp tenho'],
- pet:['carinho','quero fazer carinho','como faço carinho','passar a mao na cabeca','posso te acariciar','afagar o mago'],
- play:['vamos brincar','quero brincar','brincadeira','jogar um joguinho','brincar com voce'],
- brew:['pocao','poção','faz poção','criar elixir','mistura magica','alquimia','preparar pocao'],
- rest:['dormir','descansa','vai descansar','meditar','hora de dormir','ta com sono','recarregar energia'],
- navigate:['abra a galeria','abre a galeria','ir para contato','navegar para sobre','abrir portfólio','vai para inicio','mostra a home','abrir a pagina contato'],
- insight:['ideias para o site','me da sugestoes','sugestão pro site','analise esta pagina','como melhorar meu site','ache erros no projeto','dica de design'],
- help:['ajuda','preciso de ajuda','o que voce faz','quais comandos','como funciona','comandos','ajude-me'],
- mood:['como esta seu humor','ta feliz','se sente bem','voce ta triste','qual seu humor','ta animado'],
- thanks:['obrigado','valeu','muito obrigado','brigado','agradeco','thanks','obg']
+ greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend','oi maguinho como vai','e aí tudo bem','salvee','ola alquimago','bom dia alquimago','boa noite mago','eae parceiro','saudacoes','opa tudo certo','e aí mago'],
+ identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia','pra que voce serve','me conta quem voce e','me diz seu nome','voce tem cerebro','qual e sua funcao','o que voce consegue fazer','que tipo de familiar voce e','o que e alquimago'],
+ status:['qual meu xp','quanto xp eu tenho','meu nivel','qual o nivel','quanta energia','meu progresso','status','quanto de xp tenho','como estou de xp','mostre meu progresso','to em qual nivel','quanta energia voce tem','quanto falta pra subir de nivel','quais os seus atributos','me mostra as estatisticas','quantos pontos eu tenho'],
+ pet:['carinho','quero fazer carinho','como faço carinho','passar a mao na cabeca','posso te acariciar','afagar o mago','quer um carinho','posso passar a mao na sua cabeca','como dar carinho','vou fazer cafune','voce gosta de cafune','passa a mao no chapeu','como acariciar o maguinho','quero te fazer cafune'],
+ play:['vamos brincar','quero brincar','brincadeira','jogar um joguinho','brincar com voce','quer brincar comigo','bora brincar','brincar agora','vamos jogar a bolinha','brincar de novo','quero jogar com voce','comeca uma brincadeira','ta afim de brincar'],
+ brew:['pocao','poção','faz poção','criar elixir','mistura magica','alquimia','preparar pocao','bora fazer uma pocao','prepare um elixir','pode criar uma pocao','vamos misturar ingredientes','quero fazer magia','pocao de criatividade','quero mexer no caldeirao','me ajuda com alquimia'],
+ rest:['dormir','descansa','vai descansar','meditar','hora de dormir','ta com sono','recarregar energia','voce precisa descansar','vai dormir mago','descansa um pouco','quero que voce medite','medite um pouco','precisa de energia','dorme um pouquinho','pausa para descanso'],
+ navigate:['abra a galeria','abre a galeria','ir para contato','navegar para sobre','abrir portfólio','vai para inicio','mostra a home','abrir a pagina contato','vamos para galeria','me mostra a pagina de contato','quero entrar na home','como vou pra sobre','ir na area de projetos','abre os trabalhos','leva ate meu portfolio','quero ver a pagina inicial'],
+ insight:['ideias para o site','me da sugestoes','sugestão pro site','analise esta pagina','como melhorar meu site','ache erros no projeto','dica de design','me da um feedback da obra','analise o projeto que estou vendo','o que achou desse projeto','quais pontos eu posso melhorar','me de uma critica construtiva','tem alguma dica de composicao','me da sugestoes de design','o que falta nessa pagina'],
+ help:['ajuda','preciso de ajuda','o que voce faz','quais comandos','como funciona','comandos','ajude-me','me ajuda com isso','me explica seus recursos','me ensine como funciona','quais funcoes voce tem','me conta seus comandos','do que e capaz','como posso falar com voce','como voce aprende'],
+ mood:['como esta seu humor','ta feliz','se sente bem','voce ta triste','qual seu humor','ta animado','como voce esta hoje','qual e seu estado atual','voce esta contente','ta de bom humor','como anda sua curiosidade','ta animadinho','como se sente','qual e a sua energia emocional'],
+ thanks:['obrigado','valeu','muito obrigado','brigado','agradeco','thanks','obg','obrigada','obg mago','valeu demais','vlw','agradecido','brigada','muito grato','obrigado pela ajuda']
 };
 const neuralClamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
 function canon(input){
@@ -452,7 +460,7 @@ function newNeuralModel(){
   hiddenBias:Array(HIDDEN).fill(0),
   hiddenOutput:Array.from({length:HIDDEN*OUTPUTS},(_,i)=>deterministic(i+3000)),
   outputBias:Array(OUTPUTS).fill(0),
-  learned:0,prototypes:[]
+  learned:0,prototypes:[],seedVersion:2
  };
 }
 function neuralForward(model,text){
@@ -553,7 +561,8 @@ function restoreNeuralModel(value){
    entry.features.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1)
   ).map(entry=>({intent:entry.intent,features:[...entry.features]})):[];
  return {...Object.fromEntries(arrays.map(([key])=>[key,[...value[key]]])),version:1,
-  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0,prototypes};
+  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0,prototypes,
+  seedVersion:Number.isSafeInteger(value.seedVersion)?Math.max(1,Math.min(2,value.seedVersion)):1};
 }
 function serializeNeuralModel(model){
  const clean=restoreNeuralModel(model);
@@ -569,11 +578,26 @@ function serializeNeuralModel(model){
 function neuralKey(namespace='default'){
  return 'alquimago:neural:v1:'+(/^[A-Za-z0-9_-]{1,48}$/.test(namespace)?namespace:'default');
 }
+function upgradeNeuralSeed(model){
+ const restored=restoreNeuralModel(model);
+ if(!restored)return seedNeuralModel();
+ if(restored.seedVersion>=2)return restored;
+ const current=restored.learned,prototypes=restored.prototypes;
+ // Teach the new, curated PT-BR examples without resetting personalized weights.
+ for(let round=0;round<12;round++){
+  for(const [intent,phrases] of Object.entries(samples))
+   for(const sentence of phrases)trainNeural(restored,sentence,intent,.065);
+ }
+ restored.learned=current;
+ restored.prototypes=prototypes;
+ restored.seedVersion=2;
+ return restored;
+}
 function readNeural(storage,namespace='default'){
  try{
   const raw=storage.getItem(neuralKey(namespace));
   if(!raw||raw.length>180000)return null;
-  return restoreNeuralModel(JSON.parse(raw));
+  return upgradeNeuralSeed(JSON.parse(raw));
  }catch{return null;}
 }
 function writeNeural(storage,namespace,model){
@@ -1149,6 +1173,167 @@ function tossOrb(state,x=3,y=-7){
  return o;
 }
 
+/**
+ * Exact owner-initiated Studio commands. A spoken phrase is a convenience
+ * shortcut, NEVER a password, authorization proof, or autonomous permission.
+ */
+function normalizeCommand(text){
+ if(typeof text!=='string')return '';
+ return text.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+  .toLocaleLowerCase('pt-BR')
+  .replace(/[.!?,;:]+$/g,'')
+  .trim().replace(/\s+/g,' ').slice(0,100);
+}
+function recognizeStudioCommand(text,phrase='vai comprar pão'){
+ const normalized=normalizeCommand(text),target=normalizeCommand(phrase);
+ if(!normalized||!target)return null;
+ return normalized===target?'prepare-publish':null;
+}
+
+/**
+ * Portuguese conversation context and deterministic arithmetic.
+ * Not an LLM: intended to cover dependable everyday interactions without
+ * pretending that a small neural intent classifier can reason freely.
+ */
+const languageText=value=>String(value||'').normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()
+ .replace(/[!?.,;:]+$/g,'').replace(/\s+/g,' ').slice(0,240);
+const AFFIRM=new Set(['sim','ss','sss','s','claro','claro que sim','isso','isso mesmo','pode','pode sim','pode ser','bora','vamos','vamos sim','com certeza','com ctz','comcerteza','positivo','quero','quero sim','aham','aham sim','uhum','uhum sim','beleza','ok','okay','fechou','ta bom','tá bom','faz','faz sim','por favor','pfv']);
+const NEGATE=new Set(['nao','nn','n','nope','nops','negativo','de jeito nenhum','agora nao','hoje nao','melhor nao','nao quero','nao obrigado','nao obrigada','nem','nem pensar','deixa','deixa pra la','prefiro nao','dispenso','nao precisa','nao valeu']);
+function yesNoIntent(value){
+ const text=languageText(value);
+ if(AFFIRM.has(text))return 'yes';
+ if(NEGATE.has(text))return 'no';
+ return null;
+}
+const NUMBERS={
+ zero:0,um:1,uma:1,dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,
+ sete:7,oito:8,nove:9,dez:10,onze:11,doze:12,treze:13,
+ quatorze:14,catorze:14,quinze:15,dezesseis:16,dezessete:17,
+ dezoito:18,dezenove:19,vinte:20,trinta:30,quarenta:40,
+ cinquenta:50,sessenta:60,setenta:70,oitenta:80,noventa:90,
+ cem:100,cento:100,duzentos:200,trezentos:300,quatrocentos:400,quinhentos:500,
+ mil:1000
+};
+function wordsToNumber(value){
+ const chunks=value.split(/\s+e\s+/);
+ if(chunks.length>4)return null;
+ let total=0;
+ for(const part of chunks){
+  let segment=0;
+  const words=part.split(/\s+/);
+  for(const word of words){
+   if(!Object.prototype.hasOwnProperty.call(NUMBERS,word))return null;
+   if(word==='mil')segment=(segment||1)*1000;
+   else segment+=NUMBERS[word];
+  }
+  total+=segment;
+ }
+ return Number.isFinite(total)&&total<=1e6?total:null;
+}
+function arithmeticText(value){
+ let v=languageText(value).replace(/^(?:quanto e|quanto da|qual e o resultado de|qual o resultado de|calcule|calcula|resolva|resolva a conta|me diga quanto e)\s+/,'')
+  .replace(/\s*(?:=)\s*$/,'').trim();
+ // Recognizable, bounded word-number and arithmetic operators. Do not
+ // accidentally calculate the XP, ID, year or unrelated strings.
+ v=v.replace(/\b(?:vezes|multiplicado por)\b/g,' * ')
+  .replace(/\b(?:dividido por|dividido|sobre)\b/g,' / ')
+  .replace(/\b(?:mais|somado com)\b/g,' + ')
+  .replace(/\b(?:menos|subtraido de)\b/g,' - ')
+  .replace(/\b(?:elevado a|potencia de)\b/g,' ^ ')
+  .replace(/(?<=[\d)])\s*[x×]\s*(?=[\d(])/g,' * ')
+  .replace(/÷/g,' / ')
+  .replace(/,/g,'.');
+ v=v.replace(/\b(?:mil|cento|cem|noventa|oitenta|setenta|sessenta|cinquenta|quarenta|trinta|vinte|dezenove|dezoito|dezessete|dezesseis|quinze|quatorze|catorze|treze|doze|onze|dez|nove|oito|sete|seis|cinco|quatro|tres|dois|duas|uma|um|zero)(?:\s+e\s+(?:noventa|oitenta|setenta|sessenta|cinquenta|quarenta|trinta|vinte|dezenove|dezoito|dezessete|dezesseis|quinze|quatorze|catorze|treze|doze|onze|dez|nove|oito|sete|seis|cinco|quatro|tres|dois|duas|uma|um|zero))*/g,
+  segment=>{const number=wordsToNumber(segment);return number===null?segment:String(number)});
+ return v;
+}
+function calculateBasic(input){
+ if(typeof input!=='string'||input.length>140)return null;
+ const expr=arithmeticText(input);
+ if(!expr||expr.length>100||!/[+\-*/^]/.test(expr))return null;
+ if(/[^0-9.+\-*/^()\s]/.test(expr))return null;
+ const raw=expr.match(/\d+(?:\.\d+)?|\.\d+|[+\-*/^()]/g);
+ if(!raw||raw.length>45||raw.join('')!==expr.replace(/\s+/g,''))return null;
+ let cursor=0,depth=0;
+ function factor(){
+  if(depth++>10)throw Error('complexity');
+  const token=raw[cursor++];
+  let value;
+  if(token==='+'||token==='-'){
+   value=(token==='-'?-1:1)*factor();
+  }else if(token==='('){
+   value=expression();
+   if(raw[cursor++]!==')')throw Error('missing bracket');
+  }else if(token&&/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(token)){
+   value=Number(token);
+  }else throw Error('invalid number');
+  depth--;
+  if(!Number.isFinite(value)||Math.abs(value)>1e12)throw Error('overflow');
+  return value;
+ }
+ function power(){
+  let x=factor();
+  if(raw[cursor]==='^'){cursor++;const exponent=power();if(Math.abs(exponent)>12)throw Error('exponent');x=x**exponent;}
+  return x;
+ }
+ function term(){
+  let v=power();
+  while(raw[cursor]==='*'||raw[cursor]==='/'){
+   const op=raw[cursor++],next=power();
+   if(op==='/'&&next===0)throw Error('division by zero');
+   v=op==='*'?v*next:v/next;
+   if(!Number.isFinite(v)||Math.abs(v)>1e12)throw Error('overflow');
+  }
+  return v;
+ }
+ function expression(){
+  let v=term();
+  while(raw[cursor]==='+'||raw[cursor]==='-'){
+   const op=raw[cursor++],next=term();
+   v=op==='+'?v+next:v-next;
+   if(!Number.isFinite(v)||Math.abs(v)>1e12)throw Error('overflow');
+  }
+  return v;
+ }
+ try{
+  const value=expression();
+  if(cursor!==raw.length||!Number.isFinite(value))return null;
+  const rounded=Number(value.toPrecision(12));
+  return {expression:expr,value:rounded,text:String(rounded).replace('.',',')};
+ }catch{return null;}
+}
+/**
+ * Only a validated pending question can authorize a local safe action.
+ * 'yes' on its own never navigates, publishes, logs in, or modifies files.
+ */
+function answerFollowUp(text,pending,context={}){
+ const polarity=yesNoIntent(text);
+ if(!polarity)return null;
+ if(!pending||!['play','page-insight','ai-handoff','chat-or-insight'].includes(pending.kind)||
+  !Number.isFinite(pending.at)||Date.now()-pending.at>5*60*1000)
+  return {reply:'Entendi sua resposta, mas não tenho uma pergunta de sim ou não pendente. Pode me dizer a que você está respondendo?',intent:'clarify',pending:null};
+ if(polarity==='no')
+  return {reply:'Tudo bem! Não vou iniciar essa ação. Podemos continuar conversando ou escolher outra atividade.',intent:'decline',pending:null};
+ if(pending.kind==='play')
+  return {reply:'Combinado! Vamos brincar. ✦',intent:'followup',action:'play',pending:null};
+ if(pending.kind==='page-insight'){
+  const suggestions=Array.isArray(context.suggestions)?context.suggestions:[];
+  const tip=suggestions.find(x=>x?.title&&x?.description);
+  return {reply:tip?'Encontrei isto na página pública: '+String(tip.title).slice(0,80)+'. '+String(tip.description).slice(0,180):
+   'Posso verificar títulos, imagens e navegação pública. Nesta página não encontrei um alerta específico.',intent:'followup',pending:null};
+ }
+ if(pending.kind==='ai-handoff')
+  return {reply:'Certo! A opção “Continuar com IA” fica em Interagir → Ajustes e ferramentas. A escolha do serviço e o envio são feitos por você.',intent:'followup',pending:null};
+ return {reply:'Claro! Posso ajudar com conversa, projetos, XP e pequenas contas. Sobre o que vamos falar?',intent:'followup',pending:null};
+}
+function pendingFromReply(reply,now=Date.now()){
+ if(!reply||!['play','page-insight','ai-handoff','chat-or-insight'].includes(reply.pending?.kind))return null;
+ return {kind:reply.pending.kind,at:now};
+}
+
+
+
 
 
 
@@ -1484,7 +1669,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.timer = null;
     this.pointerStart = null;
     this.hoverStroke=freshStroke();this.dialogue=[];
-    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
+    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
@@ -1637,7 +1822,7 @@ class AlquimagoFamiliar extends HTMLElement {
           if(published.behavior)loadedCortex=cleanCortex(published.behavior);
           if(published.neural){
             const restored=restoreNeuralModel(published.neural);
-            if(restored)this.neural=restored;
+            if(restored)this.neural=upgradeNeuralSeed(restored);
           }
         }
       }
@@ -1719,6 +1904,8 @@ class AlquimagoFamiliar extends HTMLElement {
       acolher:'Se precisar, estou por aqui para sugerir melhorias.'
     };
     this.lastAutoDecision={action,context:info.route,at:now,used:false};
+    if(['dica','brincar'].includes(action))
+      this.pendingQuestion={kind:action==='brincar'?'play':'page-insight',at:now};
     this.lastSpoken=lines[action]||outcome.reason||'Um novo pensamento arcano.';
     this.lastSpokenAt=now;
     this.message=this.lastSpoken;
@@ -1977,14 +2164,36 @@ class AlquimagoFamiliar extends HTMLElement {
     this.lastUserActivity=Date.now();
     const user=safeChatText(text);
     if(!user)return;
+    const command=recognizeStudioCommand(user,this.config.commands.publishPhrase);
+    if(command==='prepare-publish'){
+      // Only an explicit submit inside the familiar can request the existing
+      // publisher. The phrase is never an authentication factor or approval.
+      const allowed=!this.desktop&&this.config.memory.mode==='publish'&&this.studioInfo?.editing===true;
+      const reply=allowed?
+        'Encontrei o comando! ⚗ Vou abrir a revisão da publicação. Confira as alterações e confirme no Studio. A frase não substitui sua autorização GitHub.':
+        'Esse comando está disponível apenas no Local Studio desbloqueado. Ele não publica sozinho.';
+      this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:reply}].slice(-24);
+      this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;
+      this.message=reply;this.lastSpoken=reply;this.lastSpokenAt=Date.now();
+      this.state.tab=5;this.state.open=true;this.render();
+      if(allowed)window.dispatchEvent(new CustomEvent('alquimago:request-publish',{
+        detail:{source:'chat',action:'review-only'}
+      }));
+      return;
+    }
     const prediction=neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=respondToChat(user,{
+      pending:this.pendingQuestion,
       neuralIntent:prediction.confidence>=.55?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    this.pendingQuestion=pendingFromReply(response);
+    if(['math','followup','decline','clarify'].includes(response.intent)){
+      this.lastUserText='';this.lastNeuralIntent='';
+    }
     if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
       response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
         name:this.config.identity.name,xp:String(this.state.brain.xp),
@@ -2038,7 +2247,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.7';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.8.1';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -2176,7 +2385,11 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       this.$content.appendChild(history);
       add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
-      add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
+      if(this.pendingQuestion&&Date.now()-this.pendingQuestion.at<300000){
+        add('<div class="chat-suggestions" aria-label="Responder à pergunta"><button type="button" data-say="sim">✓ Sim</button><button type="button" data-say="não">✕ Não</button></div>');
+      }else{
+        add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Quanto é 2 + 2?">Matemática</button></div>');
+      }
       const teacher=document.createElement('div');teacher.className='neural-teach';
       const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
       const chooser=document.createElement('select');chooser.id='alquimago-teach';
@@ -2349,6 +2562,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
+      this.pendingQuestion=null;
       this.preferences=blankPreferences();
       this.cortex=createCortexRuntime(createCortex());this.lastAutoDecision=null;
       this.lastUserText='';this.lastNeuralIntent='';
@@ -2431,7 +2645,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.7.0',
+    version: '0.8.1',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
