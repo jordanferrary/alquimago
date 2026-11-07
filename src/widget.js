@@ -406,6 +406,10 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
     if(this.publishDialogHandler)window.removeEventListener('alquimago:publish-dialog',this.publishDialogHandler);
+    if(this.pointerOverHandler)document.removeEventListener('pointerover',this.pointerOverHandler);
+    if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
+    this.cancelProjectHover();
+    if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
@@ -423,9 +427,76 @@ class AlquimagoFamiliar extends HTMLElement {
     const spoken=pool[this.idleCycle++%pool.length];
     this.lastSpoken=spoken;this.lastSpokenAt=now;
   }
+  applySkin(){
+    const skin=this.skin||normalizeSkin(null);
+    const url=skin.src?safeSkinUrl(skin,location.href):null;
+    if(this.skinAdapter?.dispose){try{this.skinAdapter.dispose()}catch{/* optional renderer */}}
+    this.skinAdapter=null;
+    this.$character.replaceChildren();
+    if(skin.type==='image'&&url){
+      const img=document.createElement('img');
+      img.src=url;img.alt='';
+      img.className='arcane-skin-image';
+      img.decoding='async';
+      this.$character.appendChild(img);
+      return;
+    }
+    if(skin.type==='model3d'&&url){
+      // The host (React/desktop) may register a Three.js renderer that accepts
+      // glTF/GLB and uses named morph targets. No library is loaded implicitly.
+      const adapter=window.AlquimagoSkinRenderers?.model3d;
+      if(typeof adapter==='function'){
+        try{
+          const instance=adapter({host:this.$character,url,shapeKeys:skin.shapeKeys});
+          if(instance&&typeof instance==='object')this.skinAdapter=instance;
+          return;
+        }catch{/* fall back to built-in SVG */ }
+      }
+    }
+    this.$character.innerHTML=SVG;
+  }
+  projectPointerOver(e){
+    if(this.desktop||!this.observeProjects||!this.config.features.pageAudit)return;
+    const target=e.target;
+    if(!(target instanceof Element))return;
+    const card=target.closest('[data-alquimago-project]');
+    if(!card||card===this.hoverSeen)return;
+    if(card.closest('alquimago-familiar')||target.closest('input,textarea,[contenteditable="true"]'))return;
+    this.cancelProjectHover();
+    const meta=projectMeta(card);
+    if(!meta)return;
+    const key=projectIdentity(meta);
+    if(!shouldCommentProject(this.hoverCount,key,Date.now(),{cooldownMs:this.config.proactive.cooldownMs}))return;
+    this.hoverSeen=card;
+    this.hoverStart=setTimeout(()=>{
+      this.hoverStart=null;
+      if(!this.isConnected||!card.isConnected||document.hidden)return;
+      const advice=projectAdvice(meta);if(!advice)return;
+      this.selectedProject=advice;
+      this.hoverCount[key]=Date.now();
+      this.lastSpoken=advice.comment;
+      this.lastSpokenAt=Date.now();
+      this.message='Dica sobre '+advice.title;
+      this.updateThought();
+      if(this.state.open&&this.state.tab===1)this.render();
+    },this.config.proactive.delayMs);
+  }
+  cancelProjectHover(){
+    if(this.hoverStart){clearTimeout(this.hoverStart);this.hoverStart=null;}
+    this.hoverSeen=null;
+  }
+  projectPointerOut(e){
+    if(!(e.target instanceof Element))return;
+    const card=e.target.closest('[data-alquimago-project]');
+    if(card&&card===this.hoverSeen&&!card.contains(e.relatedTarget))this.cancelProjectHover();
+  }
   startObservation(){
     if(this.desktop||!this.isConnected)return;
     this.routeHandler=()=>this.inspectPage(true);
+    this.pointerOverHandler=e=>this.projectPointerOver(e);
+    this.pointerOutHandler=e=>this.projectPointerOut(e);
+    document.addEventListener('pointerover',this.pointerOverHandler,{passive:true});
+    document.addEventListener('pointerout',this.pointerOutHandler,{passive:true});
     window.addEventListener('hashchange',this.routeHandler);
     window.addEventListener('popstate',this.routeHandler);
     if(typeof MutationObserver!=='undefined'){
@@ -576,6 +647,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('mood').textContent = mood;
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
+    if(this.skinAdapter?.setExpression){try{this.skinAdapter.setExpression(skinExpression(mood))}catch{/* optional 3D adapter */}}
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
   }
