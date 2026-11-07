@@ -66,7 +66,7 @@ const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
-  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true},
+  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true},
   memory:{namespace:'default'},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',play:'Prepare-se: poção de diversão!',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
@@ -184,6 +184,7 @@ async function inspectProjectFiles(list,{pageUrl,fetcher,maxBytes=64000}={}){
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
+:host([data-position="bottom-left"]){right:auto;left:22px}
 .tabs{overflow-x:auto}.tab{min-width:46px;padding:7px 4px}
 :host{all:initial;position:fixed;z-index:2147483000;right:22px;bottom:20px;color:#f5eaff;font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;--violet:#b58aff;--ink:#17101f;--gold:#f9d891;user-select:none;box-sizing:border-box}
 :host([data-mode="desktop"]){position:relative;right:auto;bottom:auto;display:block;width:100%;height:100%}
@@ -369,9 +370,13 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$feedback.textContent = this.message || MOODS[mood];
   }
   render() {
+    const flags=this.config.features;
+    const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants];
+    if(!allowed[this.state.tab])this.state.tab=Math.max(0,allowed.indexOf(true));
+    this.setAttribute('data-position',this.config.appearance.position);
     this.$panel.classList.toggle('open', this.state.open);
     this.renderHeader();
-    this.$tabs.innerHTML = TABS.map((tab, index) => `<button type="button" class="tab ${index === this.state.tab ? 'selected' : ''}" data-tab="${index}" aria-pressed="${index === this.state.tab}">${tab}</button>`).join('');
+    this.$tabs.innerHTML=TABS.map((tab,index)=>allowed[index]?'<button type="button" class="tab '+(index===this.state.tab?'selected':'')+'" data-tab="'+index+'" aria-pressed="'+(index===this.state.tab)+'">'+tab+'</button>':'').join('');
     this.$content.replaceChildren();
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
@@ -412,6 +417,7 @@ class AlquimagoFamiliar extends HTMLElement {
       add('<p class="muted">Um resumo de tarefa pode ser copiado para continuar no ChatGPT ou no Gemini. Não há automação de login, coleta de conversas nem acesso a tokens.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
     }
   }
+    // Configuration may disable portable-memory controls without removing local persistence.
   createPrompt() {
     const a = this.desktop ? null : auditPage();
     return ['Sou o Alquimago, um familiar digital local. Preciso de assistência para o projeto do usuário.',
