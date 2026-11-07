@@ -8,7 +8,7 @@ export function cleanMemory(value){
   const data=memoryObject(value),raw=memoryObject(data.brain),p=memoryObject(data.position),brain={};
   for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil','lastRewardAt'])
     if(num(raw[k]))brain[k]=Math.max(0,Math.min(1e12,raw[k]));
-  if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','publish','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
   if(typeof raw.lastRewardAction==='string'&&raw.lastRewardAction.length<40)brain.lastRewardAction=raw.lastRewardAction;
   if(raw.rewardedPages&&typeof raw.rewardedPages==='object'){
     brain.rewardedPages=Object.fromEntries(Object.entries(raw.rewardedPages).filter(([key,value])=>/^[A-Za-z0-9_.#%-]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)).slice(-80));
