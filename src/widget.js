@@ -196,6 +196,7 @@ const STYLE = `
 
 
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
+#arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
 .tab{flex:1 1 0;min-width:0!important;text-overflow:ellipsis;overflow:hidden;font-size:12px!important}
 .arcane-advanced{margin-top:12px;padding:9px;border:1px solid #845ba353;border-radius:12px;background:#241630}
@@ -447,6 +448,8 @@ class AlquimagoFamiliar extends HTMLElement {
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
+    if(this.speechTimer)clearTimeout(this.speechTimer);
+    if(this.expressionTimer)clearTimeout(this.expressionTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
@@ -685,6 +688,11 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     this.message=response.reply;
     this.lastSpoken=response.reply;this.lastSpokenAt=Date.now();
+    if(this.skinAdapter?.setExpression){
+      this.skinAdapter.setExpression('talk');
+      clearTimeout(this.speechTimer);
+      this.speechTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),850);
+    }
     this.state.tab=5;this.state.open=true;this.render();
     const log=this.$content.querySelector('.chat-history');
     if(log)log.scrollTop=log.scrollHeight;
@@ -699,6 +707,11 @@ class AlquimagoFamiliar extends HTMLElement {
     const messages={stroke:'Hmm… mais um carinho no chapéu! ✧',brew:'Elixir alquímico preparado! ✨',explore:'Nova rota estudada. ✦',publish:'Projeto publicado! Magia de verdade. ✦'};
     this.message=(this.config.messages[name]||messages[name]||'Runas reorganizadas.')+(earned?' +'+earned+' XP':'');
     this.save();this.render();
+    if(['pet','stroke'].includes(name)&&this.skinAdapter?.setExpression){
+      this.skinAdapter.setExpression('pet');
+      clearTimeout(this.expressionTimer);
+      this.expressionTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),900);
+    }
   }
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
