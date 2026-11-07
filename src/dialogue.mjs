@@ -41,3 +41,25 @@ export function respondToChat(input,context={}){
   return {reply:'Sempre um prazer ajudar nas suas criações. ✦',intent:'thanks'};
  return {reply:'Essa pergunta vai além das respostas locais que conheço. Posso analisar a estrutura do site ou preparar sua pergunta para um modelo de IA, com sua autorização.',intent:'unknown'};
 }
+
+export function dialogueKey(namespace='default'){
+ const safe=/^[A-Za-z0-9_-]{1,48}$/.test(namespace)?namespace:'default';
+ return 'alquimago:dialogue:v1:'+safe;
+}
+export function readDialogue(storage,namespace='default'){
+ try{
+  const raw=JSON.parse(storage.getItem(dialogueKey(namespace))||'[]');
+  if(!Array.isArray(raw))return [];
+  return raw.slice(-24).filter(item=>
+   item && ['user','familiar'].includes(item.role) &&
+   typeof item.text==='string' && !sensitiveChatText(item.text)
+  ).map(item=>({role:item.role,text:safeChatText(item.text)}));
+ }catch{return [];}
+}
+export function writeDialogue(storage,namespace='default',history=[]){
+ const safe=Array.isArray(history)?history.slice(-24).filter(item=>
+  item && ['user','familiar'].includes(item.role)&&typeof item.text==='string'&&!sensitiveChatText(item.text)
+ ).map(item=>({role:item.role,text:safeChatText(item.text)})):[];
+ try{storage.setItem(dialogueKey(namespace),JSON.stringify(safe));return true;}
+ catch{return false;}
+}
