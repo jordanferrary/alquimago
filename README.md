@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.4.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.4.1 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
 ## Recursos
 
@@ -120,9 +120,23 @@ O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini.
 Coloque a distribuição atualizada em `public/alquimago/alquimago.js` e mude o identificador de versão da URL quando atualizar:
 
 ```html
-<script defer data-config="/alquimago/config.json?v=0.4.0" src="/alquimago/alquimago.js?v=0.4.0"></script>
+<script defer data-config="/alquimago/config.json?v=0.4.1" src="/alquimago/alquimago.js?v=0.4.1"></script>
 ```
 
 Em apps hospedados em subpastas, ajuste as URLs ao caminho base do deploy. Se o mascote é exibido somente quando um editor está desbloqueado, recarregar a página pode fechar esse editor; reabra-o para verificar a versão. A publicação do arquivo no GitHub não prova que o GitHub Pages compilou e entregou a atualização. Confira as execuções de Actions e valide no navegador.
 
 Os gestos foram reimplementados independentemente, inspirados pela documentação do [Pestinha original](https://github.com/mille-okws/pestinha); nenhum asset ou trecho do seu código foi incorporado.
+
+### Reset local seguro (v0.4.1)
+
+No grimório, abra **Cuidado → Reiniciar dados locais** e confirme para zerar
+XP, atributos, posição e conversa **somente neste navegador e nesta instalação**.
+As configurações do projeto, seus arquivos e o repositório GitHub permanecem intactos.
+A memória é sobrescrita por uma base inicial, em vez de apagar a chave, para que
+um snapshot público anterior não ressurja automaticamente após o reset.
+
+**Ctrl + F5** e **Ctrl + Shift + R** solicitam novamente arquivos de página/cache;
+**não** apagam `localStorage` nem o progresso do familiar. Isso é proposital,
+porque atualizações de sites não devem destruir a memória de visitantes.
+Para embutir o Alquimago num app Vite, um identificador de build na URL do script
+(como `?v=<commit>`) evita servir uma versão JavaScript já obsoleta.
