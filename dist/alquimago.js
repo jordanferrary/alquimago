@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.6.0 • MIT */
+/* ALQUIMAGO v0.7.0 • MIT */
 (() => {
 "use strict";
 // Alquimago 0.3 — symbolic familiar brain, not a language model.
@@ -90,6 +90,7 @@ const DEFAULT_CONFIG = Object.freeze({
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
+  behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:true},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
@@ -104,6 +105,7 @@ function normalizeConfig(input){
   const id=obj(data.identity), app=obj(data.appearance), features=obj(data.features);
   const memory=obj(data.memory), project=obj(data.project), messages=obj(data.messages), agent=obj(data.assistant);
   const language=obj(data.language),proactive=obj(data.proactive);
+  const behavior=obj(data.behavior);
   const skins=Array.isArray(app.skins)?app.skins.slice(0,12).filter(entry=>
     entry&&typeof entry==='object'&&!Array.isArray(entry)&&
     typeof entry.id==='string'&&/^[a-zA-Z0-9_-]{1,35}$/.test(entry.id)
@@ -122,6 +124,13 @@ function normalizeConfig(input){
     appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position,skin:obj(app.skin),skins:validSkins,selectedSkin},
     language:{code:txt(language.code,'pt-BR',32),file:typeof language.file==='string'?language.file.trim().slice(0,500):''},
     proactive:{projectHover:proactive.projectHover!==false,delayMs:typeof proactive.delayMs==='number'?Math.max(550,Math.min(4000,proactive.delayMs)):1000,cooldownMs:typeof proactive.cooldownMs==='number'?Math.max(20000,Math.min(600000,proactive.cooldownMs)):45000},
+    behavior:{
+      enabled:behavior.enabled!==false,
+      mode:['silencioso','equilibrado','brincalhao'].includes(behavior.mode)?behavior.mode:'equilibrado',
+      minIntervalMs:typeof behavior.minIntervalMs==='number'&&Number.isFinite(behavior.minIntervalMs)?Math.max(45000,Math.min(900000,behavior.minIntervalMs)):120000,
+      maxPerDay:typeof behavior.maxPerDay==='number'&&Number.isFinite(behavior.maxPerDay)?Math.max(0,Math.min(8,Math.floor(behavior.maxPerDay))):4,
+      toy:behavior.toy!==false
+    },
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
     memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):'',mode:memory.mode==='publish'?'publish':'local'},
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
@@ -825,6 +834,323 @@ function writePreferences(storage,namespace,preferences){
  }catch{return false;}
 }
 
+/**
+ * Independent behavioral cortex for Alquimago.
+ *
+ * 512 leaky integrate-and-fire cells / 16,384 deterministic sparse synapses.
+ * 32 opt-in, privacy-preserving sensor channels and 16 action motor neurons.
+ * Plasticity: reward-modulated motor value learning, bounded contextual
+ * conditioning and synaptic traces for 128 eligible connections.
+ *
+ * This is a tiny decision network, not an LLM. It does not observe keystrokes,
+ * other tabs, private window content or text typed into the host website.
+ */
+const CORTEX_CELLS=512;
+const CORTEX_SYNAPSES=16384;
+const CORTEX_SENSORS=32;
+const CORTEX_MOTORS=16;
+const CORTEX_ACTIONS=[
+  'quieto','observar','dica','investigar','acenar','brilhar','brincar','meditar',
+  'celebrar','curiosidade','pensar','estudar','poção','alongar','descansar','acolher'
+];
+const bClamp=(v,a=0,b=100)=>Math.max(a,Math.min(b,Number.isFinite(v)?v:a));
+const bObject=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+const bHash=x=>{let h=2166136261;for(const c of String(x))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0;};
+const B_BUCKETS=['home','gallery','project','contact','about','custom','desktop'];
+const bContext=x=>B_BUCKETS.includes(x)?x:'home';
+const B_REASON={
+ quieto:'Descansando em silêncio.',
+ observar:'Observando a organização pública desta página.',
+ dica:'Encontrei uma possibilidade de melhoria acessível.',
+ investigar:'Há uma seção nova para explorar.',
+ acenar:'Uma saudação discreta.',
+ brilhar:'Um pequeno efeito arcano.',
+ brincar:'Momento para uma brincadeira opcional.',
+ meditar:'Recuperando energia.',
+ celebrar:'Uma nova etapa do projeto foi concluída.',
+ curiosidade:'Há algo interessante na composição.',
+ pensar:'Refletindo sobre as alternativas.',
+ estudar:'Analisando o contexto público.',
+ poção:'Uma pequena animação alquímica.',
+ alongar:'Movimento curto e discreto.',
+ descansar:'Recuperando energia.',
+ acolher:'Um comentário amigável, sem interrupções.'
+};
+const DEFAULT_CORTEX=Object.freeze({
+  schema:1,seed:77,energy:75,stimulation:42,curiosity:55,trust:45,
+  rewardBias:Array(CORTEX_MOTORS).fill(0),
+  contextWeights:{},adaptation:{},episodes:[],lastAction:'quieto',
+  lastActionAt:0,lastDecisionAt:0,lastCue:'',feedbackCount:0,
+  lastRewardAt:0,autonomousCount:0,lastActiveDay:-1,
+  synapses:{}
+});
+function createCortex(seed=77){
+ const s=Number.isSafeInteger(seed)?bClamp(seed,1,2147483647):77;
+ return {...DEFAULT_CORTEX,seed:s,rewardBias:Array(CORTEX_MOTORS).fill(0),
+  contextWeights:{},adaptation:{},episodes:[],synapses:{}};
+}
+function cleanCortex(value){
+ const d=bObject(value);
+ const state=createCortex(Number.isSafeInteger(d.seed)?d.seed:77);
+ for(const key of ['energy','stimulation','curiosity','trust'])
+  if(typeof d[key]==='number'&&Number.isFinite(d[key]))state[key]=bClamp(d[key]);
+ for(const key of ['lastActionAt','lastDecisionAt','lastRewardAt','autonomousCount','feedbackCount'])
+  if(typeof d[key]==='number'&&Number.isFinite(d[key]))state[key]=bClamp(d[key],0,1e13);
+ if(Number.isInteger(d.lastActiveDay))state.lastActiveDay=bClamp(d.lastActiveDay,-1,1e9);
+ if(CORTEX_ACTIONS.includes(d.lastAction))state.lastAction=d.lastAction;
+ if(typeof d.lastCue==='string'&&d.lastCue.length<60)state.lastCue=d.lastCue;
+ if(Array.isArray(d.rewardBias))
+  state.rewardBias=d.rewardBias.slice(0,CORTEX_MOTORS)
+   .map(x=>bClamp(x,-4,4));
+ while(state.rewardBias.length<CORTEX_MOTORS)state.rewardBias.push(0);
+ const contexts=bObject(d.contextWeights);
+ for(const name of B_BUCKETS)if(Array.isArray(contexts[name])){
+  state.contextWeights[name]=Array.from({length:CORTEX_MOTORS},(_,i)=>
+   bClamp(contexts[name][i]||0,-3,3));
+ }
+ for(const [name,n] of Object.entries(bObject(d.adaptation)).slice(0,16))
+  if(CORTEX_ACTIONS.includes(name)&&Number.isFinite(n))
+   state.adaptation[name]=bClamp(n,0,1);
+ const events=Array.isArray(d.episodes)?d.episodes.slice(-32):[];
+ state.episodes=events.filter(x=>x&&CORTEX_ACTIONS.includes(x.action)&&
+  B_BUCKETS.includes(x.context)&&[-1,0,1].includes(x.reward)&&
+  Number.isFinite(x.at)).map(x=>({
+   action:x.action,context:x.context,reward:x.reward,
+   at:bClamp(x.at,0,1e13)
+  }));
+ for(const [i,v] of Object.entries(bObject(d.synapses)).slice(-128)){
+  const key=Number(i);
+  if(Number.isInteger(key)&&key>=0&&key<CORTEX_SYNAPSES&&Number.isFinite(v))
+   state.synapses[key]=bClamp(v,-.45,.45);
+ }
+ return state;
+}
+function behaviorSense(info={},brain={}){
+ const p=bObject(info),b=bObject(brain),v=Array(CORTEX_SENSORS).fill(0);
+ const put=(i,x)=>v[i]=bClamp(Number(x)||0,0,1);
+ const route=bContext(p.route);
+ B_BUCKETS.forEach((x,i)=>put(i,x===route?1:0));
+ put(7,bClamp(p.issues||0,0,12)/12);
+ put(8,!!p.projectHover);
+ put(9,!!p.routeChanged);
+ put(10,!!p.publishConfirmed);
+ put(11,!!p.userInteracted);
+ put(12,bClamp((p.idleSeconds||0)/90,0,1));
+ put(13,!!p.editorVisible);
+ put(14,!!p.panelOpen);
+ put(15,!!p.hidden);
+ put(16,!!p.reducedMotion);
+ put(17,bClamp((b.energy??75)/100,0,1));
+ put(18,bClamp((b.curiosity??55)/100,0,1));
+ put(19,bClamp((b.focus??40)/100,0,1));
+ put(20,bClamp((b.affinity??45)/100,0,1));
+ put(21,bClamp((p.mouseMoves||0)/20,0,1));
+ put(22,!!p.visibleProject);
+ put(23,!!p.hasBrokenMedia);
+ put(24,!!p.hasAccessibilityIssue);
+ put(25,!!p.hasNewProject);
+ put(26,!!p.playful);
+ put(27,!!p.quiet);
+ put(28,!!p.working);
+ put(29,!!p.nightMode);
+ put(30,!!p.tutorial);
+ put(31,1);
+ return v;
+}
+/** The fixed topology is regenerable from the seed: no massive JSON file. */
+function createCortexRuntime(state){
+ const saved=cleanCortex(state),pre=new Uint16Array(CORTEX_SYNAPSES),
+  post=new Uint16Array(CORTEX_SYNAPSES),weights=new Float32Array(CORTEX_SYNAPSES);
+ let seed=(saved.seed^0xA53C7D21)>>>0;
+ const random=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return(seed>>>0)/4294967296;};
+ for(let i=0;i<CORTEX_SYNAPSES;i++){
+  pre[i]=i%CORTEX_CELLS;
+  post[i]=i%31===0?CORTEX_CELLS-CORTEX_MOTORS+(i%CORTEX_MOTORS):
+   Math.floor(random()*CORTEX_CELLS);
+  const inhibitory=pre[i]%6===0;
+  weights[i]=(inhibitory?-.30:.48)*(0.6+random()*.8);
+  if(saved.synapses[i]!==undefined)weights[i]+=saved.synapses[i];
+ }
+ return {state:saved,pre,post,weights,
+  voltage:new Float32Array(CORTEX_CELLS),spikes:new Uint8Array(CORTEX_CELLS),
+  recentMotors:new Float32Array(CORTEX_MOTORS),lastContext:'home'};
+}
+/** Six short LIF iterations: integrates, leaks, fires and records motor spikes. */
+function pulseCortex(engine,senses){
+ const signal=Array.isArray(senses)&&senses.length===CORTEX_SENSORS?senses:Array(CORTEX_SENSORS).fill(0);
+ const {pre,post,weights,voltage,spikes,recentMotors}=engine;
+ recentMotors.fill(0);
+ for(let tick=0;tick<6;tick++){
+  const incoming=new Float32Array(CORTEX_CELLS);
+  for(let i=0;i<CORTEX_SYNAPSES;i++)if(spikes[pre[i]])
+   incoming[post[i]]+=weights[i];
+  for(let n=0;n<CORTEX_CELLS;n++){
+   // Deterministic background fluctuations; sensor evidence receives stronger input.
+   const sensor=n<CORTEX_SENSORS?(.30+signal[n]*1.25):0;
+   voltage[n]=bClamp(voltage[n]*.78+incoming[n]+sensor,-3,3);
+   spikes[n]=voltage[n]>=1?1:0;
+   if(spikes[n])voltage[n]=0;
+   if(n>=CORTEX_CELLS-CORTEX_MOTORS)
+    recentMotors[n-(CORTEX_CELLS-CORTEX_MOTORS)]+=spikes[n];
+  }
+ }
+ for(let m=0;m<CORTEX_MOTORS;m++)recentMotors[m]/=6;
+ return Array.from(recentMotors);
+}
+function planCortexAlternatives(state,info={},motors=[]){
+ const s=cleanCortex(state),context=bContext(info.route),
+  issues=Math.max(0,Number(info.issues)||0),
+  changes=!!info.routeChanged;
+ const scores=CORTEX_ACTIONS.map((name,i)=>{
+  let weight=(s.rewardBias[i]||0)+(s.contextWeights[context]?.[i]||0);
+  weight+=(motors[i]||0)*.35;
+  if(name==='quieto')weight+=.8;
+  if(name==='dica')weight+=issues>0?1.8+Math.min(issues,10)*.12:-.8;
+  if(name==='investigar')weight+=changes?2:-.65;
+  if(name==='observar')weight+=info.visibleProject?1.4:.2;
+  if(name==='curiosidade')weight+=s.curiosity>65?1.2:0;
+  if(name==='meditar'||name==='descansar')weight+=s.energy<30?2.2:-.45;
+  if(name==='celebrar')weight+=info.publishConfirmed?3.5:-2;
+  if(name==='brincar'||name==='poção')weight+=info.playful&&s.energy>38?1:-.7;
+  if(name==='acenar'||name==='brilhar')weight+=.2;
+  if(name==='pensar'||name==='estudar')weight+=info.working?.7:0;
+  if(name==='acolher')weight+=s.trust>55?.3:0;
+  if(info.quiet&&name!=='quieto')weight-=8;
+  if(info.reducedMotion&&['brincar','brilhar','alongar','poção'].includes(name))weight-=4;
+  if(info.panelOpen&&name!=='quieto')weight-=3;
+  if(info.editorVisible&&['brincar','poção','alongar','acenar','brilhar'].includes(name))weight-=3;
+  weight-=((s.adaptation[name]||0)*.8);
+  return {action:name,score:weight,reason:B_REASON[name]};
+ });
+ return scores.sort((a,b)=>b.score-a.score);
+}
+function tickCortex(engine,info={},now=Date.now()){
+ const state=engine.state,day=Math.floor(now/86400000);
+ if(state.lastActiveDay!==day){
+  state.autonomousCount=0;state.lastActiveDay=day;
+ }
+ const sensory=behaviorSense(info,info.brain||state);
+ const motorSignals=pulseCortex(engine,sensory);
+ state.stimulation=bClamp(state.stimulation+(sensory[8]+sensory[9]+sensory[10]?2:-.25));
+ state.curiosity=bClamp(state.curiosity+(sensory[9]?2:-.08));
+ state.energy=bClamp(state.energy+(info.working?-.35:.15));
+ for(const name of CORTEX_ACTIONS)state.adaptation[name]=
+  bClamp((state.adaptation[name]||0)*.92,0,1);
+ const alternatives=planCortexAlternatives(state,info,motorSignals);
+ const interval=Math.max(45000,Math.min(900000,Number(info.cooldownMs)||120000));
+ const maxActions=Math.max(0,Math.min(8,Number.isFinite(info.dailyLimit)?info.dailyLimit:4));
+ // Do not interrupt people typing, navigating, using the editor, watching a
+ // dialog, or while this tab is hidden. The cortex still observes safe signals.
+ const permitted=info.enabled===true&&!info.hidden&&!info.panelOpen&&
+  !info.userBusy&&!info.quiet&&
+  now-state.lastDecisionAt>=interval&&state.autonomousCount<maxActions;
+ const best=alternatives.find(x=>x.action!=='quieto'&&x.score>1.2);
+ const chosen=permitted&&best?best:null;
+ if(chosen){
+  state.lastAction=chosen.action;
+  state.lastDecisionAt=now;
+  state.autonomousCount++;
+  state.adaptation[chosen.action]=1;
+  state.lastCue=bContext(info.route);
+ }
+ engine.lastContext=bContext(info.route);
+ return {action:chosen?.action||null,reason:chosen?.reason||null,
+  alternatives:alternatives.slice(0,3),state,permitted,sensoryCount:CORTEX_SENSORS,
+  motorSignals};
+}
+/** Reward-modulated conditioning, numeric episodes, no personal content. */
+function rewardCortex(engine,action,context,reward,now=Date.now()){
+ if(!CORTEX_ACTIONS.includes(action)||!Number.isFinite(reward))return engine.state;
+ const s=engine.state,index=CORTEX_ACTIONS.indexOf(action),
+  bucket=bContext(context),r=bClamp(reward,-1,1);
+ s.rewardBias[index]=bClamp((s.rewardBias[index]||0)+r*.13,-4,4);
+ const table=s.contextWeights[bucket]||Array(CORTEX_MOTORS).fill(0);
+ table[index]=bClamp((table[index]||0)+r*.18,-3,3);
+ s.contextWeights[bucket]=table;s.feedbackCount++;
+ s.lastRewardAt=now;
+ s.episodes.push({action,context:bucket,reward:r>0?1:r<0?-1:0,at:now});
+ s.episodes=s.episodes.slice(-32);
+ s.trust=bClamp(s.trust+r*1.5);
+ // Only recently active, eligible synapses are adjusted. Persist a sparse,
+ // bounded set instead of leaking the whole 16K connection graph to GitHub.
+ if(r!==0){
+  let written=0;
+  for(let i=0;i<engine.pre.length&&written<128;i++){
+   const pre=engine.pre[i],post=engine.post[i];
+   if(post!==CORTEX_CELLS-CORTEX_MOTORS+index||!engine.spikes[pre])continue;
+   const old=s.synapses[i]||0,delta=bClamp(old+r*.012,-.45,.45);
+   s.synapses[i]=delta;engine.weights[i]=bClamp(engine.weights[i]+r*.012,-2,2);
+   written++;
+  }
+  const keys=Object.keys(s.synapses);
+  if(keys.length>128){for(const key of keys.slice(0,keys.length-128))delete s.synapses[key];}
+ }
+ return s;
+}
+function cortexSummary(state){
+ const s=cleanCortex(state);
+ return {neurons:CORTEX_CELLS,synapses:CORTEX_SYNAPSES,sensors:CORTEX_SENSORS,
+  motors:CORTEX_MOTORS,learnedEpisodes:s.episodes.length,feedback:s.feedbackCount,
+  preferred:CORTEX_ACTIONS[s.rewardBias.indexOf(Math.max(...s.rewardBias))]};
+}
+
+const cortexKey=(namespace='default')=>'alquimago:cortex:v1:'+
+ (/^[a-zA-Z0-9_-]{1,48}$/.test(namespace)?namespace:'default');
+function readCortex(storage,namespace='default'){
+ try{
+  const raw=storage?.getItem(cortexKey(namespace));
+  if(!raw||raw.length>45000)return null;
+  return cleanCortex(JSON.parse(raw));
+ }catch{return null;}
+}
+function writeCortex(storage,namespace,state){
+ try{
+  if(!storage)return false;
+  const text=JSON.stringify(cleanCortex(state));
+  if(text.length>45000)return false;
+  storage.setItem(cortexKey(namespace),text);
+  return true;
+ }catch{return false;}
+}
+
+/**
+ * Small self-contained physics toy in a bounded Shadow DOM playfield.
+ * No interaction with OS windows or user files.
+ */
+const pClamp=(n,min,max)=>Math.max(min,Math.min(max,Number.isFinite(n)?n:min));
+function createOrb({x=75,y=24,vx=2.3,vy=-1.5,radius=11}={}){
+ return {x,y,vx,vy,radius:pClamp(radius,6,24),sleeping:false,contacts:0};
+}
+function stepOrb(state,width=165,height=112,elapsed=1){
+ const o={...state},r=pClamp(o.radius,6,24);
+ const w=Math.max(r*2+2,width),h=Math.max(r*2+2,height);
+ const dt=pClamp(elapsed,0,3);
+ if(o.sleeping)return o;
+ o.vy=pClamp(o.vy+.29*dt,-14,14);
+ o.x+=o.vx*dt;
+ o.y+=o.vy*dt;
+ o.vx*=Math.pow(.995,dt);
+ if(o.x<r){o.x=r;o.vx=Math.abs(o.vx)*.78;o.contacts++;}
+ if(o.x>w-r){o.x=w-r;o.vx=-Math.abs(o.vx)*.78;o.contacts++;}
+ if(o.y<r){o.y=r;o.vy=Math.abs(o.vy)*.74;o.contacts++;}
+ if(o.y>h-r){
+  o.y=h-r;
+  o.vy=-Math.abs(o.vy)*.75;
+  o.vx*=.985;
+  o.contacts++;
+  if(Math.abs(o.vy)<.38&&Math.abs(o.vx)<.14){o.vy=0;o.vx=0;o.sleeping=true;}
+ }
+ return o;
+}
+function tossOrb(state,x=3,y=-7){
+ const o={...state};
+ o.vx=pClamp(x,-11,11);o.vy=pClamp(y,-13,9);
+ o.sleeping=false;
+ return o;
+}
+
+
+
 
 
 
@@ -1026,6 +1352,32 @@ const STYLE = `
 .neural-lesson{margin:9px 0;padding:8px 10px;background:#24172f;border:1px solid #8b65af70;border-radius:10px}
 .neural-lesson summary{color:#ead6ff;font-size:12px;font-weight:600;cursor:pointer}
 .neural-lesson .neural-teach{margin-top:8px}
+
+.arcane-orb-field{
+ position:absolute;right:2px;bottom:160px;width:165px;height:112px;
+ border:1px solid #9269c884;background:#1c1231e9;border-radius:14px;
+ z-index:3;overflow:hidden;box-shadow:0 8px 32px #11051c99;
+ pointer-events:auto;touch-action:none;
+}
+.arcane-orb{
+ position:absolute;top:0;left:0;width:22px;height:22px;padding:0;border:0;
+ border-radius:50%;color:#261340;font:16px system-ui;font-weight:bold;
+ background:radial-gradient(circle at 30% 25%,#fff6c3,#dab3ff 50%,#8754e9);
+ box-shadow:0 0 15px #b46dff,0 3px 8px #06031388;
+ cursor:grab;touch-action:none;will-change:transform;z-index:1;
+}
+.arcane-orb:active{cursor:grabbing}
+.orb-close{position:absolute;top:2px;right:3px;width:24px;height:24px;
+ border:0;border-radius:8px;background:#39224cd9;color:#f0dcff;
+ font:17px system-ui;cursor:pointer;z-index:2}
+
+
+.arcane-cortex{border-color:#ae83d375}
+.arcane-control-label{display:flex;flex-direction:column;gap:6px;margin:10px 0;color:#e3ccf4;font-size:11px}
+.arcane-control-label select{background:#21132f;color:#fff;border:1px solid #8763a8;
+ border-radius:8px;padding:8px;font:12px system-ui}
+.arcane-cortex .action:disabled{opacity:.45;cursor:not-allowed}
+
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
 #arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
@@ -1137,6 +1489,10 @@ class AlquimagoFamiliar extends HTMLElement {
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
     this.preferences=blankPreferences();
+    this.cortex=createCortexRuntime(createCortex());this.cortexStart=Date.now();
+    this.behaviorAllowed=false;this.behaviorMode='equilibrado';
+    this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
+    this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -1184,6 +1540,18 @@ class AlquimagoFamiliar extends HTMLElement {
         if(chosen){
           this.selectedSkin=chosen.id;this.skin=normalizeSkin(chosen);this.applySkin();
           this.message='Skin "'+chosen.label+'" selecionada. '+(this.config.memory.mode==='publish'?'Publique para salvar.':'');
+          this.renderHeader();
+        }
+      }
+      if(e.target?.id==='toggle-cortex'){
+        this.behaviorAllowed=!!e.target.checked;
+        this.message=this.behaviorAllowed?'Iniciativas ativadas.':'Iniciativas pausadas.';
+        this.renderHeader();
+      }
+      if(e.target?.id==='cortex-mode'){
+        if(['silencioso','equilibrado','brincalhao'].includes(e.target.value)){
+          this.behaviorMode=e.target.value;
+          this.message='Temperamento ajustado para '+this.behaviorMode+'.';
           this.renderHeader();
         }
       }
@@ -1235,6 +1603,7 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.behaviorAllowed=config.behavior.enabled;this.behaviorMode=config.behavior.mode;
       this.observeProjects=config.proactive.projectHover;
       this.skinProfiles=config.appearance.skins;
       this.selectedSkin=config.appearance.selectedSkin;
@@ -1257,6 +1626,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
       this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
+      let loadedCortex=config.memory.mode==='publish'?null:readCortex(storage(),config.memory.namespace);
       // The Studio always starts from its last published snapshot; no local drafts
       // survive a refresh unless the user explicitly publishes via GitHub.
       if(config.memory.remoteSnapshot&&(config.memory.mode==='publish'||!Object.keys(saved.brain).length)){
@@ -1264,6 +1634,7 @@ class AlquimagoFamiliar extends HTMLElement {
         if(published?.brain&&typeof published.brain==='object'){
           saved=cleanMemory(published);
           if(published.preferences)this.preferences=cleanPreferences(published.preferences);
+          if(published.behavior)loadedCortex=cleanCortex(published.behavior);
           if(published.neural){
             const restored=restoreNeuralModel(published.neural);
             if(restored)this.neural=restored;
@@ -1272,6 +1643,8 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       if(!this.isConnected)return;
       this.configReady=true;
+      this.cortex=createCortexRuntime(loadedCortex||createCortex());
+      this.cortexStart=Date.now();
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
       this.applySkin();
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
@@ -1294,22 +1667,131 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
     this.cancelProjectHover();
     if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
+    this.closeOrb();
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
-    if(this.state.open||typeof document!=='undefined'&&document.hidden)return;
-    const now=Date.now();
-    if(now-this.lastIdleSpeech<55000)return;
-    this.lastIdleSpeech=now;
-    const pool=[
-      'Um pouco de magia melhora qualquer dia. ✦',
-      'Psst! Posso analisar a estrutura desta página.',
-      'Minha poção está quase pronta. ⚗',
-      'Se passar o mouse sobre meu chapéu, receberei carinho.',
-      'Ainda há runas escondidas neste projeto…'
-    ];
-    const spoken=pool[this.idleCycle++%pool.length];
-    this.lastSpoken=spoken;this.lastSpokenAt=now;
+    if(!this.configReady||!this.isConnected)return;
+    const now=Date.now(),page=this.activePage||{};
+    const issues=this.suggestions.filter(x=>!['route','studio','editor'].includes(x.id));
+    const active=document.activeElement;
+    const typing=active instanceof Element&&!!active.closest('input,textarea,select,[contenteditable="true"]');
+    const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const info={
+      route:this.desktop?'desktop':page.route||'home',
+      issues:issues.length,
+      hasBrokenMedia:(page.brokenImages||0)>0,
+      hasAccessibilityIssue:(page.missingAlt||0)>0,
+      visibleProject:!!this.selectedProject,
+      working:!!this.studioInfo?.editing,
+      editorVisible:!!this.studioInfo?.editing,
+      panelOpen:this.state.open,
+      userBusy:typing||now-this.lastUserActivity<25000,
+      idleSeconds:(now-this.lastUserActivity)/1000,
+      hidden:document.hidden,
+      reducedMotion:reduced,
+      playful:this.behaviorMode==='brincalhao',
+      quiet:this.behaviorMode==='silencioso',
+      brain:this.state.brain,
+      enabled:this.behaviorAllowed&&now-this.cortexStart>45000,
+      cooldownMs:this.config.behavior.minIntervalMs,
+      dailyLimit:this.config.behavior.maxPerDay
+    };
+    const outcome=tickCortex(this.cortex,info,now);
+    if(!outcome.action)return;
+    const action=outcome.action;
+    const topic=issues[0]?.title||'a apresentação do projeto';
+    const lines={
+      dica:'Percebi algo sobre '+topic+'. Posso mostrar uma sugestão.',
+      observar:'Estou observando a estrutura pública desta página.',
+      investigar:'Esta seção tem detalhes que podemos explorar juntos.',
+      acenar:'Saudações do seu familiar arcano! ✧',
+      brilhar:'Uma pequena runa se acendeu. ✦',
+      brincar:'Que tal brincar com o orbe arcano?',
+      meditar:'Vou recuperar um pouco de energia arcana.',
+      celebrar:'Uma etapa concluída merece uma pequena celebração. ✦',
+      curiosidade:'Encontrei uma ideia que vale investigar.',
+      pensar:'Tenho algumas alternativas para a próxima melhoria.',
+      estudar:'Vou observar o que já está apresentado publicamente.',
+      poção:'Uma poção de criatividade está borbulhando. ⚗',
+      alongar:'Uma pequena pausa entre projetos pode ser interessante.',
+      descansar:'Vou repousar um instante.',
+      acolher:'Se precisar, estou por aqui para sugerir melhorias.'
+    };
+    this.lastAutoDecision={action,context:info.route,at:now,used:false};
+    this.lastSpoken=lines[action]||outcome.reason||'Um novo pensamento arcano.';
+    this.lastSpokenAt=now;
+    this.message=this.lastSpoken;
+    this.updateThought();
+    this.save();
+  }
+  closeOrb(){
+    if(this.orbFrame)cancelAnimationFrame(this.orbFrame);
+    this.orbFrame=0;this.orbState=null;
+    if(this.orbField)this.orbField.remove();
+    this.orbField=null;this.orbElement=null;
+  }
+  startOrb(){
+    if(this.orbField){this.closeOrb();return;}
+    if(!this.config.behavior.toy)return;
+    const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const field=document.createElement('div');field.className='arcane-orb-field';
+    field.setAttribute('aria-label','Área de brincadeira do orbe arcano');
+    const ball=document.createElement('button');ball.type='button';
+    ball.className='arcane-orb';ball.setAttribute('aria-label','Arremessar o orbe arcano');
+    ball.textContent='✦';
+    const close=document.createElement('button');close.type='button';
+    close.className='orb-close';close.textContent='×';close.setAttribute('aria-label','Guardar orbe');
+    close.addEventListener('click',()=>this.closeOrb());
+    field.append(ball,close);this.shadowRoot.querySelector('.shell').appendChild(field);
+    this.orbField=field;this.orbElement=ball;this.orbState=createOrb();
+    this.orbStopAt=performance.now()+20000;
+    const render=()=>{if(this.orbElement&&this.orbState)
+      this.orbElement.style.transform='translate('+Math.round(this.orbState.x-11)+'px,'+
+      Math.round(this.orbState.y-11)+'px)';};
+    render();
+    let down=null;
+    ball.addEventListener('pointerdown',e=>{
+      e.preventDefault();e.stopPropagation();
+      ball.setPointerCapture(e.pointerId);
+      const rect=field.getBoundingClientRect();
+      down={x:e.clientX,y:e.clientY,t:performance.now(),rect};
+    });
+    ball.addEventListener('pointermove',e=>{
+      if(!down||!this.orbState)return;
+      e.preventDefault();e.stopPropagation();
+      this.orbState.x=Math.max(this.orbState.radius,Math.min(165-this.orbState.radius,e.clientX-down.rect.left));
+      this.orbState.y=Math.max(this.orbState.radius,Math.min(112-this.orbState.radius,e.clientY-down.rect.top));
+      render();
+    });
+    ball.addEventListener('pointercancel',()=>{down=null;});
+    ball.addEventListener('pointerup',e=>{
+      e.preventDefault();e.stopPropagation();
+      if(down&&this.orbState){
+        const elapsed=Math.max(40,performance.now()-down.t);
+        const velocityX=(e.clientX-down.x)/elapsed*18;
+        const velocityY=(e.clientY-down.y)/elapsed*18;
+        this.orbState=tossOrb(this.orbState,
+          Math.abs(velocityX)<.5?4:velocityX,
+          Math.abs(velocityY)<.5?-7:velocityY);
+        this.orbStopAt=performance.now()+18000;
+      }
+      down=null;
+    });
+    let previous=performance.now();
+    const frame=now=>{
+      if(!this.orbField||!this.isConnected)return;
+      if(now>=this.orbStopAt){this.closeOrb();return;}
+      if(!document.hidden&&!reduced&&!down){
+        const dt=Math.min(2,(now-previous)/16.667);
+        this.orbState=stepOrb(this.orbState,165,112,dt);
+        render();
+      }
+      previous=now;this.orbFrame=requestAnimationFrame(frame);
+    };
+    this.orbFrame=requestAnimationFrame(frame);
+    this.message='Orbe arcano invocado! Arraste e solte para arremessar.';
+    this.renderHeader();
   }
   applySkin(){
     const skin=this.skin||normalizeSkin(null);
@@ -1349,6 +1831,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.cancelProjectHover();
     const meta=projectMeta(card);
     if(!meta)return;
+    this.lastUserActivity=Date.now();
     const key=projectIdentity(meta);
     if(!shouldCommentProject(this.hoverCount,key,Date.now(),{cooldownMs:this.config.proactive.cooldownMs}))return;
     this.hoverSeen=card;
@@ -1436,8 +1919,9 @@ class AlquimagoFamiliar extends HTMLElement {
   save(){
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
+    writeCortex(storage(),this.config.memory.namespace,this.cortex.state);
   }
-  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),preferences:cleanPreferences(this.preferences),selectedSkin:this.selectedSkin}:null;}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),preferences:cleanPreferences(this.preferences),behavior:cleanCortex(this.cortex.state),selectedSkin:this.selectedSkin}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -1446,6 +1930,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   onPointerDown(e) {
     if (e.button !== 0) return;
+    this.lastUserActivity=Date.now();
     const box=this.getBoundingClientRect();
     this.pointerStart={x:e.clientX,y:e.clientY,left:box.left,top:box.top,dx:0,dy:0,moved:false};
     if(this.desktop&&e.altKey){
@@ -1489,6 +1974,7 @@ class AlquimagoFamiliar extends HTMLElement {
     setTimeout(()=>node.remove(),950);
   }
   sendMessage(text){
+    this.lastUserActivity=Date.now();
     const user=safeChatText(text);
     if(!user)return;
     const prediction=neuralPredict(this.neural,user);
@@ -1535,6 +2021,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(destination&&new URL(destination.href).origin===location.origin)location.assign(destination.href);
   }
     action(name,detail=''){
+    this.lastUserActivity=Date.now();
     const before=this.state.brain.xp;
     const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):name==='publish'?detail:'';
     this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
@@ -1551,7 +2038,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.6';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.7';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1584,7 +2071,19 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><details class="arcane-advanced"><summary>⚙ Ajustes e ferramentas</summary>
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button><button class="action" data-action="orb-toy">◉ Orbe arcano</button></div>
+      <details class="arcane-advanced arcane-cortex">
+      <summary>🧠 Cérebro e autonomia</summary>
+      <p class="muted" id="cortex-summary">Rede pulsada local, com decisões e memória comportamental.</p>
+      <label class="arcane-toggle"><input type="checkbox" id="toggle-cortex"> Permitir iniciativas discretas</label>
+      <label class="arcane-control-label">Temperamento
+        <select id="cortex-mode"><option value="silencioso">Silencioso</option><option value="equilibrado">Equilibrado</option><option value="brincalhao">Brincalhão</option></select>
+      </label>
+      <p class="muted" id="cortex-last">Nenhuma iniciativa recente.</p>
+      <div class="actions"><button class="action" data-action="cortex-like">✓ Gostei</button>
+      <button class="action" data-action="cortex-dislike">✕ Menos disso</button></div>
+      <p class="muted">Sem controlar navegação, publicação ou campos do site. Pausado quando há interação ativa.</p>
+      </details><details class="arcane-advanced"><summary>⚙ Ajustes e ferramentas</summary>
       <div class="actions"><button class="action" data-action="go-routes">Rotas internas</button>
       <button class="action" data-action="go-files">Arquivos públicos</button>
       <button class="action" data-action="go-ai">Continuar com IA</button></div>
@@ -1698,6 +2197,27 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
     }
+    const cortexToggle=this.$content.querySelector('#toggle-cortex');
+    if(cortexToggle)cortexToggle.checked=this.behaviorAllowed;
+    const cortexMode=this.$content.querySelector('#cortex-mode');
+    if(cortexMode)cortexMode.value=this.behaviorMode;
+    const cortexStats=this.$content.querySelector('#cortex-summary');
+    if(cortexStats){
+      const stats=cortexSummary(this.cortex.state);
+      cortexStats.textContent=stats.neurons+' neurônios • '+stats.synapses.toLocaleString('pt-BR')+
+        ' conexões • '+stats.sensors+' sensores • '+stats.motors+' ações. '+stats.feedback+' aprendizados.';
+    }
+    const last=this.$content.querySelector('#cortex-last');
+    if(last)last.textContent=this.lastAutoDecision?
+      'Última iniciativa: '+this.lastAutoDecision.action+'. '+(this.lastAutoDecision.used?'Feedback registrado.':'Diga se foi útil.') :
+      'O cérebro ainda não tomou nenhuma iniciativa nesta sessão.';
+    const orbButton=this.$content.querySelector('[data-action="orb-toy"]');
+    if(orbButton){
+      orbButton.textContent=this.orbField?'Guardar orbe':'◉ Orbe arcano';
+      if(!this.config.behavior.toy)orbButton.remove();
+    }
+    for(const button of this.$content.querySelectorAll('[data-action="cortex-like"],[data-action="cortex-dislike"]'))
+      button.disabled=!this.lastAutoDecision||this.lastAutoDecision.used;
     const proactivity=this.$content.querySelector('#toggle-proactive');
     if(proactivity)proactivity.checked=this.observeProjects;
     const skinLabel=this.$content.querySelector('#arcane-skin-label');
@@ -1773,6 +2293,21 @@ class AlquimagoFamiliar extends HTMLElement {
       this.selectedProject.orderedTips=rankTips(this.selectedProject.tips,this.selectedProject.category,this.preferences);
       this.render();return;
     }
+    if(button.dataset.action==='cortex-like'||button.dataset.action==='cortex-dislike'){
+      const choice=this.lastAutoDecision;
+      if(!choice||choice.used)return;
+      const positive=button.dataset.action==='cortex-like';
+      rewardCortex(this.cortex,choice.action,choice.context,positive?1:-1,Date.now());
+      choice.used=true;
+      this.lastUserActivity=Date.now();
+      this.save();
+      this.message=positive?'Aprendi: mais iniciativas como essa.':'Aprendi: menos desse comportamento.';
+      this.render();return;
+    }
+    if(button.dataset.action==='orb-toy'){
+      this.lastUserActivity=Date.now();
+      this.startOrb();this.render();return;
+    }
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
@@ -1815,6 +2350,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
       this.preferences=blankPreferences();
+      this.cortex=createCortexRuntime(createCortex());this.lastAutoDecision=null;
       this.lastUserText='';this.lastNeuralIntent='';
       this.state.position=null;
       this.dialogue=[];
@@ -1853,6 +2389,7 @@ class AlquimagoFamiliar extends HTMLElement {
         const imported=JSON.parse(raw);
         this.state.brain=restoreBrain(state.brain);this.state.position=state.position;
         this.neural=restoreNeuralModel(imported.neural)||seedNeuralModel();
+        this.cortex=createCortexRuntime(imported.behavior||createCortex());
         this.save();
         if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
         this.message=this.config.memory.mode==='publish'?'Memória importada para o rascunho. Publique para manter.':'Memória e aprendizado restaurados neste dispositivo.';
@@ -1894,7 +2431,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.6.0',
+    version: '0.7.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
