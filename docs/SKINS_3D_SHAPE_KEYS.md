@@ -145,3 +145,44 @@ Fontes técnicas:
 **Organização do produto:** O Local Studio inclui uma área **Familiar**, com acesso direto ao Grimório e ao Ateliê, e uma busca por ferramentas. O Grimório foi organizado como conversa principal com os recursos de treinamento e mentor em uma seção recolhível. O **mascote é exibido no portfólio público**, onde pode reagir e ser visualizado; o **chat de IA generativa aparece somente com o Local Studio desbloqueado**. Isto é uma separação de interface, não autenticação do endpoint Cloudflare: a rota /api/assistant continua pública e pode consumir a cota Gemini.
 
 Não publique um novo GLB sem testar as Shape Keys, o posicionamento em celular e a operação do mascote depois de recarregar. O formato recomendado continua glTF Binary 2.0 (.glb).
+
+
+## Interações ambientais — direção de comportamento
+
+O Alquimago deixou de depender de minigames com XP para demonstrar personalidade. O modo público apresenta apenas o personagem e reações discretas; o Grimório com Gemini e ferramentas continua no Local Studio desbloqueado.
+
+| Sinal da página | Emoção | Shape Key | Duração ou regra |
+|---|---|---|---|
+| Mouse sai da área da página | Tristeza | Sad | Permanece enquanto estiver fora |
+| Mouse retorna após breve ausência | Alegria | Happy | Cerca de 1,7 s |
+| Texto é selecionado na página pública | Descontentamento lúdico | Angry | Cerca de 2,5 s; não impede copiar |
+| Carinho na cabeça / clique no personagem | Carinho | Pet, opcionalmente Love | Cerca de 1,5 s |
+| Cursor move-se bruscamente perto do personagem | Surpresa | Surprised | Cerca de 1,1 s, com intervalo de segurança |
+| Mais de 65 s sem interação | Cansaço | Tired / Yawn | Episódico, não interrompe o usuário |
+| Rolagem, navegação entre páginas | Curiosidade | Curious | Curta e com cooldown |
+| Clique em projeto/link/botão | Atenção | Focused | Curta e com cooldown |
+
+As reações possuem prioridades, tempo mínimo entre repetições e retorno à emoção normal quando terminam. A prioridade reduz conflitos: carinho e retorno à página podem superar uma reação breve de curiosidade.
+
+### Privacidade, acessibilidade e limites
+
+- A seleção de texto é detectada apenas pelo estado de seleção (isCollapsed), sem leitura ou envio do texto selecionado.
+- Campos de formulários, áreas editáveis e controles do Local Studio são ignorados pela reação à seleção.
+- Posição e velocidade do mouse são apenas usadas na sessão para detecção local; não são armazenadas como histórico, nem passadas ao Gemini.
+- Nenhuma ação bloqueia copiar ou selecionar conteúdo, rolar ou navegar.
+- Reações funcionam com a skin SVG e usam os Morph Targets correspondentes no GLB; Shape Keys não existentes simplesmente não produzem a deformação solicitada.
+- Quando não há mouse, como em muitos dispositivos móveis, carinho por toque e as demais interações disponíveis continuam funcionando; não há simulação de saída do cursor.
+- O sistema de sentimentos é uma camada visual de comportamento, não evidência de consciência ou intenção real.
+
+A orbe arcana e botões de brincadeiras sem função foram removidos da interface; o arquivo antigo da biblioteca pode manter código não acionado por compatibilidade. O painel de ferramentas público, a etiqueta inferior fixa e o balão de saudação automática foram ocultados para que o mascote não obstrua o portfólio.
+
+### Testes recomendados
+
+- [ ] Abrir o site público e confirmar que só o personagem aparece, sem faixa inferior e sem orbe.
+- [ ] Retirar o cursor da janela e retornar; verificar Sad → Happy.
+- [ ] Selecionar texto de um projeto; verificar Angry sem impedir a seleção.
+- [ ] Selecionar texto dentro de um formulário do Studio; verificar que não aciona Angry.
+- [ ] Acariciar a cabeça; confirmar a expressão Pet sem corações/partículas extras.
+- [ ] Mover rapidamente o cursor perto dele; verificar surpresa discreta.
+- [ ] Desbloquear o Local Studio e confirmar que Grimório, Gemini e o Ateliê continuam funcionando.
+- [ ] Testar o GLB com suas Shape Keys e verificar a transição sem tremulação.
