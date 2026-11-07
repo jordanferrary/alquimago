@@ -3,6 +3,8 @@ import {normalizeConfig,loadConfig} from './config.mjs';
 import {readMemory,writeMemory,parseBackup,exportBackup} from './storage.mjs';
 import {inspectProjectFiles} from './project.mjs';
 import {readPublicPage,suggestionsFromPage,samePageSignature,routeSignature} from './awareness.mjs';
+import {freshStroke,updateHeadStroke} from './gestures.mjs';
+import {respondToChat,readDialogue,writeDialogue,safeChatText} from './dialogue.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -123,7 +125,7 @@ const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.
 <path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
 <circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
 </svg>`;
-const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA'];
+const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA', 'conversar'];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
 const storage=()=>{try{return window.localStorage;}catch{return null;}};
@@ -159,7 +161,7 @@ class AlquimagoFamiliar extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this.state = { brain: restoreBrain(null), tab: 0, open: false, position: null };
+    this.state = { brain: restoreBrain(null), tab: 5, open: false, position: null };
     this.config=normalizeConfig(null);
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
@@ -167,11 +169,13 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
+    this.hoverStroke=freshStroke();this.dialogue=[];
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
     const saved=readMemory(storage());
+    this.dialogue=readDialogue(storage());
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
@@ -185,6 +189,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
     this.$character.addEventListener('pointerdown', e => this.onPointerDown(e));
     this.$character.addEventListener('pointermove', e => this.onPointerMove(e));
+    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};});
     this.$character.addEventListener('pointerup', e => this.onPointerUp(e));
     this.$character.addEventListener('pointercancel', () => { this.pointerStart = null; });
     this.$tabs.addEventListener('click', e => {
@@ -192,6 +197,13 @@ class AlquimagoFamiliar extends HTMLElement {
       if (button) { this.state.tab = Number(button.dataset.tab); this.render(); }
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
+    this.$content.addEventListener('submit',e=>{
+      if(e.target?.id!=='alquimago-chat-form')return;
+      e.preventDefault();
+      const input=e.target.querySelector('input[name="message"]');
+      if(!input)return;
+      this.sendMessage(input.value);
+    });
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
     this.startObservation();
@@ -217,6 +229,7 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.dialogue=readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       let saved=readMemory(storage(),config.memory.namespace);
       // A public, site-owned baseline is used only if the device has no progress.
@@ -309,7 +322,20 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.setPointerCapture(e.pointerId);
   }
   onPointerMove(e) {
-    if(!this.pointerStart)return;
+    if(!this.pointerStart){
+      if(e.pointerType==='mouse'&&e.buttons===0){
+        const rect=this.$character.getBoundingClientRect();
+        const result=updateHeadStroke(this.hoverStroke,{
+          x:e.clientX-rect.left,
+          head:e.clientY-rect.top<rect.height*.71,
+          pressed:false,
+          time:Date.now()
+        });
+        this.hoverStroke=result.state;
+        if(result.triggered){this.action('stroke');this.spawnAffection();}
+      }
+      return;
+    }
     const dx=e.clientX-this.pointerStart.x,dy=e.clientY-this.pointerStart.y;
     this.pointerStart.dx=dx;this.pointerStart.dy=dy;
     // Short strokes are caresses. Intentional longer drags relocate the mascot.
@@ -320,11 +346,38 @@ class AlquimagoFamiliar extends HTMLElement {
     const data = this.pointerStart; this.pointerStart = null;
     if (!data) return;
     if(data.moved){if(!this.desktop)this.save();}
-    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58)this.action('stroke');
-    else this.action('pet');
+    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58){this.action('stroke');this.spawnAffection();}
+    else {this.action('pet');this.spawnAffection();}
     if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
   }
-  action(name,detail=''){
+  spawnAffection(){
+    const node=document.createElement('span');
+    node.className='affection-burst';node.textContent='♥ ✦ ♥';
+    this.$character.appendChild(node);
+    setTimeout(()=>node.remove(),950);
+  }
+  sendMessage(text){
+    const user=safeChatText(text);
+    if(!user)return;
+    const response=respondToChat(user,{
+      name:this.config.identity.name,mood:currentMood(this.state.brain),
+      level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
+      page:this.activePage?.route||'desktop',suggestions:this.suggestions
+    });
+    if(response.action)this.action(response.action);
+    if(response.store!==false){
+      this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:response.reply}].slice(-24);
+      writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+    }else{
+      this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
+    }
+    this.message=response.reply;
+    this.state.tab=5;this.state.open=true;this.render();
+    const log=this.$content.querySelector('.chat-history');
+    if(log)log.scrollTop=log.scrollHeight;
+    this.$content.querySelector('input[name="message"]')?.focus();
+  }
+    action(name,detail=''){
     const before=this.state.brain.xp;
     const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):name==='publish'?detail:'';
     this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
@@ -336,7 +389,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ Grimório de '+this.config.identity.name;
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.4';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle;
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -349,7 +402,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   render() {
     const flags=this.config.features;
-    const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants];
+    const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
     if(!allowed[this.state.tab])this.state.tab=Math.max(0,allowed.indexOf(true));
     this.setAttribute('data-position',this.config.appearance.position);
     this.$panel.classList.toggle('open', this.state.open);
@@ -493,7 +546,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.3.0',
+    version: '0.4.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
