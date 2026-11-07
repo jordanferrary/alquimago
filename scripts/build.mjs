@@ -11,4 +11,5 @@ const widget=(await load('widget.js')).replace(/^import .*?;\s*$/gm,'');
 const bundle=['/* ALQUIMAGO v0.2 • MIT */','(() => {','"use strict";',brain,config,storage,project,widget,'})();',''].join('\n');
 await mkdir(path.join(root,'dist'),{recursive:true});
 await writeFile(path.join(root,'dist/alquimago.js'),bundle);
+await writeFile(path.join(root,'dist/alquimago.config.json'),await readFile(path.join(root,'alquimago.config.json'),'utf8'));
 console.log('Alquimago: '+(bundle.length/1024).toFixed(1)+' KiB');
