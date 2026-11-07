@@ -8,7 +8,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:true},
   commands:{publishPhrase:'vai comprar pão'},
   knowledge:{file:''},
-  llm:{enabled:false,endpoint:'',consentRequired:true},
+  llm:{provider:'gemini',enabled:false,endpoint:'',consentRequired:true},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
@@ -55,7 +55,7 @@ export function normalizeConfig(input){
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
     commands:{publishPhrase:txt(commands.publishPhrase,d.commands.publishPhrase,80)},
     knowledge:{file:typeof knowledge.file==='string'?knowledge.file.trim().slice(0,500):''},
-    llm:{enabled:llm.enabled===true,endpoint:typeof llm.endpoint==='string'?llm.endpoint.trim().slice(0,500):'',consentRequired:true},
+    llm:{provider:'gemini',enabled:llm.enabled===true,endpoint:typeof llm.endpoint==='string'?llm.endpoint.trim().slice(0,500):'',consentRequired:true},
     messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
     assistant:{
       projectContext:typeof agent.projectContext==='string'?agent.projectContext.trim().slice(0,700):'',
