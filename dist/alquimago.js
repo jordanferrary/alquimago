@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.4 • MIT */
+/* ALQUIMAGO v0.4.1 • MIT */
 (() => {
 "use strict";
 // Alquimago 0.3 — symbolic familiar brain, not a language model.
@@ -809,7 +809,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.4';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.4.1';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle;
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -832,7 +832,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button></div>`);
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -894,7 +894,7 @@ class AlquimagoFamiliar extends HTMLElement {
       add('<p class="muted">Diálogo local: respostas programadas e contexto público. Não é uma IA generativa, não lê campos do site e não envia mensagens para servidores.</p>');
       history.scrollTop=history.scrollHeight;
     }
-    if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"]').forEach(button=>button.remove());
+    if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"],[data-action="reset-memory"]').forEach(button=>button.remove());
   }
   createPrompt() {
     const a = this.desktop ? null : auditPage();
@@ -933,6 +933,31 @@ class AlquimagoFamiliar extends HTMLElement {
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(action==='reset-memory'){
+      // Hard reloads must keep persistent progress. Reset is always deliberate.
+      const allowed=typeof window.confirm==='function'&&window.confirm(
+        'Reiniciar XP, atributos e conversa deste Alquimago? Apenas os dados deste navegador e desta instalação serão redefinidos. O portfólio e o GitHub não serão alterados.'
+      );
+      if(!allowed)return;
+      this.state.brain=restoreBrain(null);
+      this.state.position=null;
+      this.dialogue=[];
+      this.lastSpoken=null;
+      this.lastSpokenAt=0;
+      this.hoverStroke=freshStroke();
+      this.style.left='';
+      this.style.top='';
+      this.style.right='';
+      this.style.bottom='';
+      // Write a fresh memory rather than deleting the key; otherwise a
+      // public project-memory snapshot would immediately restore old XP.
+      this.save();
+      writeDialogue(storage(),this.config.memory.namespace,[]);
+      this.message='Memória local reiniciada. O projeto não foi alterado.';
+      this.state.tab=0;
+      this.render();
+      return;
+    }
     if(action==='export-memory'){
       const blob=new Blob([exportBackup(this.snapshot())],{type:'application/json'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -984,7 +1009,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.4.0',
+    version: '0.4.1',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
