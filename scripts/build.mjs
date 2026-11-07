@@ -1,5 +1,6 @@
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
+import {seedNeuralModel as generateSeed,serializeNeuralModel as serializeSeed} from '../src/neural.mjs';
 const root=process.cwd();
 const load=async name=>(await readFile(path.join(root,'src',name),'utf8'));
 const clean=code=>code.replace(/^import .*?;\s*$/gm,'').replace(/\bexport (const|function|async function)\b/g,'$1');
@@ -23,7 +24,8 @@ const conversation=clean(await load('conversation.mjs'));
 const knowledge=clean(await load('knowledge.mjs'));
 const llm=clean(await load('llm.mjs'));
 const widget=(await load('widget.js')).replace(/^import .*?;\s*$/gm,'');
-const bundle=['/* ALQUIMAGO v0.9.0 • MIT */','(() => {','"use strict";',brain,config,storage,project,awareness,gestures,dialogue,neural,insight,imageInsight,language,skin,episodic,behavior,physics,commands,conversation,knowledge,llm,widget,'})();',''].join('\n');
+const pretrain='const ALQUIMAGO_PRETRAINED='+JSON.stringify(serializeSeed(generateSeed()))+';';
+const bundle=['/* ALQUIMAGO v0.9.0 • MIT */','(() => {','"use strict";',pretrain,brain,config,storage,project,awareness,gestures,dialogue,neural,insight,imageInsight,language,skin,episodic,behavior,physics,commands,conversation,knowledge,llm,widget,'})();',''].join('\n');
 await mkdir(path.join(root,'dist'),{recursive:true});
 await writeFile(path.join(root,'dist/alquimago.js'),bundle);
 await writeFile(path.join(root,'dist/alquimago.config.json'),await readFile(path.join(root,'alquimago.config.json'),'utf8'));
