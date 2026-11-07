@@ -80,6 +80,26 @@ const STYLE = `
 @keyframes twinkle{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.12)}}
 @media(max-width:460px){:host{right:8px;bottom:9px}.panel{width:min(315px,calc(100vw - 16px))}.character{width:100px;height:128px}.character svg{width:100px;height:128px}}
 
+
+/* Conversa local e gestos de afeto — sem dependências externas */
+.content .chat-history{
+ display:flex;flex-direction:column;gap:8px;min-height:125px;
+ max-height:200px;overflow-y:auto;padding:4px 2px 11px;scrollbar-width:thin;
+}
+.chat-bubble{max-width:93%;font-size:12px;line-height:1.55;padding:9px 11px;border-radius:13px;overflow-wrap:anywhere;user-select:text}
+.chat-bubble.from-user{align-self:flex-end;background:#67419d;border:1px solid #9a6fc5;color:#fff}
+.chat-bubble.from-familiar{align-self:flex-start;background:#332243;border:1px solid #634a7f;color:#ecdcff}
+.chat-form{display:flex;align-items:center;gap:6px;margin-top:7px}
+.chat-form input{min-width:0;width:100%;flex:1;background:#140d22;border:1px solid #72548f;border-radius:11px;color:#fff;padding:10px 9px;font:inherit;font-size:12px;user-select:text}
+.chat-form input:focus-visible{outline:2px solid var(--violet);outline-offset:1px}
+.chat-send{min-width:37px;height:37px;border:1px solid #af83dc;background:#6a3f9b;color:#fff;border-radius:11px;cursor:pointer}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
+.chat-suggestions button{font:inherit;font-size:10px;color:#f8e8ff;background:#4b305f;border:1px solid #8563a3;border-radius:15px;padding:6px 9px;cursor:pointer}
+.thought{color:#f2e5ff;text-align:left;cursor:pointer;max-width:205px;font:inherit;font-size:11px}
+.affection-burst{pointer-events:none;position:absolute;top:14%;left:20%;font-size:19px;letter-spacing:8px;color:#ffacd8;animation:affection-rise .95s ease-out forwards;text-shadow:0 0 10px #f394f3}
+@keyframes affection-rise{0%{opacity:0;transform:translateY(10px) scale(.8)}25%{opacity:1}100%{opacity:0;transform:translateY(-40px) scale(1.3)}}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -179,11 +199,12 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><div class="thought" id="thought" aria-hidden="true"></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
+    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=5;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
@@ -192,6 +213,16 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};});
     this.$character.addEventListener('pointerup', e => this.onPointerUp(e));
     this.$character.addEventListener('pointercancel', () => { this.pointerStart = null; });
+    this.$character.addEventListener('contextmenu',e=>{e.preventDefault();this.state.open=true;this.state.tab=0;this.render();});
+    this.$character.addEventListener('wheel',e=>{
+      e.preventDefault();
+      const sprite=this.$character.querySelector('svg');
+      if(!sprite)return;
+      this.wheelAngle=(this.wheelAngle||0)+(e.deltaY>0?20:-20);
+      sprite.style.transform='rotate('+this.wheelAngle+'deg)';
+      clearTimeout(this.wheelTimer);
+      this.wheelTimer=setTimeout(()=>{sprite.style.transform='';this.wheelAngle=0;},750);
+    },{passive:false});
     this.$tabs.addEventListener('click', e => {
       const button = e.target.closest('button[data-tab]');
       if (button) { this.state.tab = Number(button.dataset.tab); this.render(); }
@@ -255,6 +286,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
+    if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
@@ -301,8 +333,9 @@ class AlquimagoFamiliar extends HTMLElement {
   updateThought(){
     if(!this.$thought)return;
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
-    this.$thought.textContent=tip?'✦ '+tip.title:'';
-    this.$thought.hidden=!!this.state.open||!tip;
+    const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<6500?this.lastSpoken:null;
+    this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
+    this.$thought.hidden=!!this.state.open&&this.state.tab===5||(!spoken&&!tip);
   }
   save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
   snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
@@ -372,6 +405,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
+    this.lastSpoken=response.reply;this.lastSpokenAt=Date.now();
     this.state.tab=5;this.state.open=true;this.render();
     const log=this.$content.querySelector('.chat-history');
     if(log)log.scrollTop=log.scrollHeight;
@@ -454,8 +488,25 @@ class AlquimagoFamiliar extends HTMLElement {
         const result=document.createElement('small');result.textContent=entry.status==='read'?String(entry.bytes)+' bytes':entry.status;
         item.append(label,result);this.$content.appendChild(item);
       }
-    } else {
-      add('<p class="muted">Um resumo de tarefa pode ser copiado para continuar no ChatGPT ou no Gemini. Não há automação de login, coleta de conversas nem acesso a tokens.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
+    } else if(this.state.tab===4){
+      add('<p class="muted">Para questões que ultrapassem meu diálogo local, posso preparar um resumo e abrir ChatGPT ou Gemini, sempre por escolha do usuário.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
+    } else if(this.state.tab===5){
+      const history=document.createElement('div');
+      history.className='chat-history';
+      history.setAttribute('role','log');
+      history.setAttribute('aria-label','Diálogo local');
+      const lines=this.dialogue.length?this.dialogue:[{role:'familiar',text:this.config.identity.greeting}];
+      for(const item of lines){
+        const bubble=document.createElement('div');
+        bubble.className='chat-bubble '+(item.role==='user'?'from-user':'from-familiar');
+        bubble.textContent=item.text;
+        history.appendChild(bubble);
+      }
+      this.$content.appendChild(history);
+      add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
+      add('<div class="chat-suggestions"><button type="button" data-say="Oi!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
+      add('<p class="muted">Diálogo local: respostas programadas e contexto público. Não é uma IA generativa, não lê campos do site e não envia mensagens para servidores.</p>');
+      history.scrollTop=history.scrollHeight;
     }
     if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"]').forEach(button=>button.remove());
   }
@@ -484,6 +535,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(link && new URL(link.href).origin===location.origin){location.assign(link.href);this.message='Abrindo '+link.label+'…';this.renderHeader();}
       return;
     }
+    if(button.dataset.say){this.sendMessage(button.dataset.say);return;}
     if(button.dataset.insight!==undefined){
       const tip=this.suggestions[Number(button.dataset.insight)];
       if(tip){
