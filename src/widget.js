@@ -1,10 +1,11 @@
 import { restoreBrain, applyAction, passTime, currentMood, levelFromXp } from './brain.mjs';
 import {normalizeConfig,loadConfig} from './config.mjs';
-import {readMemory,writeMemory,parseBackup,exportBackup} from './storage.mjs';
-import {inspectProjectFiles} from './project.mjs';
+import {readMemory,writeMemory,parseBackup,exportBackup,cleanMemory} from './storage.mjs';
+import {inspectProjectFiles,readPublicSnapshot} from './project.mjs';
 import {readPublicPage,suggestionsFromPage,samePageSignature,routeSignature} from './awareness.mjs';
 import {freshStroke,updateHeadStroke} from './gestures.mjs';
 import {respondToChat,readDialogue,writeDialogue,safeChatText} from './dialogue.mjs';
+import {INTENTS,seedNeuralModel,trainNeural,neuralPredict,serializeNeuralModel,restoreNeuralModel,readNeural,writeNeural} from './neural.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -189,7 +190,8 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
-    this.hoverStroke=freshStroke();this.dialogue=[];this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
+    this.hoverStroke=freshStroke();this.dialogue=[];
+    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
@@ -199,12 +201,13 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
     this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=5;this.render();});
+    this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
@@ -261,22 +264,21 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
-      this.dialogue=readDialogue(storage(),config.memory.namespace);
+      this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
-      let saved=readMemory(storage(),config.memory.namespace);
-      // A public, site-owned baseline is used only if the device has no progress.
-      // It never overwrites existing progress and never accesses a private URL.
-      if(!Object.keys(saved.brain).length && config.memory.remoteSnapshot){
-        const result=await inspectProjectFiles([config.memory.remoteSnapshot],{pageUrl:location.href});
-        if(result[0]?.status==='read'){
-          try{
-            const published=JSON.parse(result[0].excerpt);
-            if(published?.schema===2 && published.brain && typeof published.brain==='object'){
-              saved={...saved,brain:published.brain};
-              writeMemory(storage(),saved,config.memory.namespace);
-            }
-          }catch{/* Invalid public snapshot does not discard local progress. */}
+      this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
+      let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
+      // The Studio always starts from its last published snapshot; no local drafts
+      // survive a refresh unless the user explicitly publishes via GitHub.
+      if(config.memory.remoteSnapshot&&(config.memory.mode==='publish'||!Object.keys(saved.brain).length)){
+        const published=await readPublicSnapshot(config.memory.remoteSnapshot,{pageUrl:location.href});
+        if(published?.brain&&typeof published.brain==='object'){
+          saved=cleanMemory(published);
+          if(published.neural){
+            const restored=restoreNeuralModel(published.neural);
+            if(restored)this.neural=restored;
+          }
         }
       }
       if(!this.isConnected)return;
@@ -354,8 +356,11 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
     this.$thought.hidden=!!this.state.open&&this.state.tab===5||(!spoken&&!tip);
   }
-  save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
-  snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
+  save(){
+    if(this.config.memory.mode==='publish')return;
+    writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
+  }
+  snapshot(){return {...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural)};}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -409,7 +414,10 @@ class AlquimagoFamiliar extends HTMLElement {
   sendMessage(text){
     const user=safeChatText(text);
     if(!user)return;
+    const prediction=neuralPredict(this.neural,user);
+    this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=respondToChat(user,{
+      neuralIntent:prediction.confidence>=.55?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
@@ -425,7 +433,7 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     if(response.store!==false){
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:response.reply}].slice(-24);
-      writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+      if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
     }else{
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
@@ -449,9 +457,9 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.4.1';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.5';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
-    this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle;
+    this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
     this.style.setProperty('--gold',this.config.appearance.gold);
     this.shadowRoot.getElementById('mood').textContent = mood;
@@ -649,7 +657,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.4.1',
+    version: '0.5.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
