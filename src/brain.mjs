@@ -27,7 +27,7 @@ export function restoreBrain(raw){
  if(typeof data.lastRewardAction==='string')result.lastRewardAction=data.lastRewardAction.slice(0,40);
  const pages=data.rewardedPages&&typeof data.rewardedPages==='object'?data.rewardedPages:{};
  for(const [key,value] of Object.entries(pages).slice(-80)){
-  if(/^[-\w/#.]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value))
+  if(/^[A-Za-z0-9_.#%-]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value))
    result.rewardedPages[key]=clamp(value,0,1e12);
  }
  return result;
@@ -42,7 +42,7 @@ export function applyAction(brain,name,now=Date.now(),detail=''){
  // No XP for petting, rest or passive UI changes. Other actions have cooldown.
  let earned=0;
  if(name==='explore'){
-  const safe=typeof detail==='string'&&/^[A-Za-z0-9_./#-]{1,120}$/.test(detail)?detail:'';
+  const safe=typeof detail==='string'&&/^[A-Za-z0-9_.#%-]{1,120}$/.test(detail)?detail:'';
   // First deliberate exploration of each route per day.
   const day=Math.floor(now/86400000);
   if(safe&&next.rewardedPages[safe]!==day){earned=action.xp;next.rewardedPages[safe]=day;}
