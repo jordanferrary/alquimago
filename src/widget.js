@@ -15,6 +15,7 @@ import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cor
 import {createOrb,stepOrb,tossOrb} from './physics.mjs';
 import {recognizeStudioCommand} from './commands.mjs';
 import {pendingFromReply} from './conversation.mjs';
+import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -331,6 +332,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.config=normalizeConfig(null);
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
+    this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
     this.links = [];
     this.audit = null;
     this.timer = null;
@@ -455,6 +457,10 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      if(config.knowledge.file){
+        try{this.knowledge=await loadKnowledge(config.knowledge.file,{pageUrl:location.href});}
+        catch{this.knowledge=normalizeKnowledge(null);}
+      }
       this.behaviorAllowed=config.behavior.enabled;this.behaviorMode=config.behavior.mode;
       this.observeProjects=config.proactive.projectHover;
       this.skinProfiles=config.appearance.skins;
@@ -475,7 +481,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
-      this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
+      this.neural=config.memory.mode==='publish'?this.neural:(readNeural(storage(),config.memory.namespace)||this.neural);
       this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
       let loadedCortex=config.memory.mode==='publish'?null:readCortex(storage(),config.memory.namespace);
@@ -852,12 +858,15 @@ class AlquimagoFamiliar extends HTMLElement {
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=respondToChat(user,{
       pending:this.pendingQuestion,
+      knowledge:this.knowledge,lastProjectId:this.lastProjectId,
+      focusTitle:this.selectedProject?.title||'',
       neuralIntent:prediction.confidence>=.55?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     this.pendingQuestion=pendingFromReply(response);
+    if(response.projectId)this.lastProjectId=response.projectId;
     if(['math','followup','decline','clarify'].includes(response.intent)){
       this.lastUserText='';this.lastNeuralIntent='';
     }
@@ -1229,7 +1238,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
-      this.pendingQuestion=null;
+      this.lastProjectId=null;this.pendingQuestion=null;
       this.preferences=blankPreferences();
       this.cortex=createCortexRuntime(createCortex());this.lastAutoDecision=null;
       this.lastUserText='';this.lastNeuralIntent='';
