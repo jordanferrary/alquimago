@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.5.0 • MIT */
+/* ALQUIMAGO v0.6.0 • MIT */
 (() => {
 "use strict";
 // Alquimago 0.3 — symbolic familiar brain, not a language model.
@@ -87,7 +87,9 @@ function levelFromXp(xp){return Math.max(1,Math.floor(Math.sqrt(Math.max(0,xp)/8
 const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
-  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
+  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
+  language:{code:'pt-BR',file:''},
+  proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
@@ -101,10 +103,25 @@ function normalizeConfig(input){
   const data=obj(input), d=DEFAULT_CONFIG;
   const id=obj(data.identity), app=obj(data.appearance), features=obj(data.features);
   const memory=obj(data.memory), project=obj(data.project), messages=obj(data.messages), agent=obj(data.assistant);
+  const language=obj(data.language),proactive=obj(data.proactive);
+  const skins=Array.isArray(app.skins)?app.skins.slice(0,12).filter(entry=>
+    entry&&typeof entry==='object'&&!Array.isArray(entry)&&
+    typeof entry.id==='string'&&/^[a-zA-Z0-9_-]{1,35}$/.test(entry.id)
+  ).map(entry=>({
+    id:entry.id,
+    label:txt(entry.label,entry.id,60),
+    type:['svg','image','model3d'].includes(entry.type)?entry.type:'svg',
+    src:typeof entry.src==='string'?entry.src.slice(0,500):'',
+    shapeKeys:obj(entry.shapeKeys)
+  })):[];
+  const validSkins=skins.length?skins:d.appearance.skins;
+  const selectedSkin=validSkins.some(x=>x.id===app.selectedSkin)?app.selectedSkin:validSkins[0].id;
   return {
     schemaVersion:1,
     identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
-    appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position},
+    appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position,skin:obj(app.skin),skins:validSkins,selectedSkin},
+    language:{code:txt(language.code,'pt-BR',32),file:typeof language.file==='string'?language.file.trim().slice(0,500):''},
+    proactive:{projectHover:proactive.projectHover!==false,delayMs:typeof proactive.delayMs==='number'?Math.max(550,Math.min(4000,proactive.delayMs)):1000,cooldownMs:typeof proactive.cooldownMs==='number'?Math.max(20000,Math.min(600000,proactive.cooldownMs)):45000},
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
     memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):'',mode:memory.mode==='publish'?'publish':'local'},
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
@@ -426,7 +443,7 @@ function newNeuralModel(){
   hiddenBias:Array(HIDDEN).fill(0),
   hiddenOutput:Array.from({length:HIDDEN*OUTPUTS},(_,i)=>deterministic(i+3000)),
   outputBias:Array(OUTPUTS).fill(0),
-  learned:0
+  learned:0,prototypes:[]
  };
 }
 function neuralForward(model,text){
@@ -484,6 +501,15 @@ function seedNeuralModel(){
 }
 function neuralPredict(model,text){
  const result=neuralForward(model,text);
+ const profiles=Array.isArray(model.prototypes)?model.prototypes:[];
+ let best=null,similarityToTaught=0;
+ for(const entry of profiles){
+  if(!entry||!Array.isArray(entry.features)||entry.features.length!==96||!INTENTS.includes(entry.intent))continue;
+  const score=entry.features.reduce((total,n,i)=>total+n*result.x[i],0);
+  if(score>similarityToTaught){similarityToTaught=score;best=entry.intent;}
+ }
+ // Explicit user teaching wins for the same phrase and very close variants.
+ if(best&&similarityToTaught>=.90)return {intent:best,confidence:Math.min(.99,similarityToTaught),similarity:similarityToTaught,taught:true};
  // A softmax can be overconfident on unknown sentences. The nearest known
  // phrase provides an additional out-of-distribution similarity gate.
  const similarity=Math.max(0,...Object.values(samples).flat().map(sample=>{
@@ -492,13 +518,33 @@ function neuralPredict(model,text){
  }));
  return {intent:result.intent,confidence:result.confidence*similarity,similarity};
 }
+function teachNeural(model,text,intent){
+ if(!INTENTS.includes(intent)||!String(text||'').trim())return false;
+ const before=Math.max(0,Number(model.learned)||0);
+ for(let n=0;n<32;n++)trainNeural(model,text,intent,.065);
+ const vector=neuralFeatures(text);
+ const profiles=Array.isArray(model.prototypes)?model.prototypes:[];
+ // Numerical features only, no raw chat content. One prototype per corrected
+ // phrasing. Keep the last 24 to bound file size and learning complexity.
+ const features=vector.map(n=>Number(n.toFixed(5)));
+ const existing=profiles.findIndex(entry=>entry?.features?.every((n,i)=>Math.abs(n-features[i])<.00001));
+ if(existing>=0)profiles.splice(existing,1);
+ profiles.push({intent,features});
+ model.prototypes=profiles.slice(-24);
+ model.learned=before+1;
+ return true;
+}
 function restoreNeuralModel(value){
  if(!value||value.version!==1)return null;
  const arrays=[['inputHidden',INPUTS*HIDDEN],['hiddenBias',HIDDEN],['hiddenOutput',HIDDEN*OUTPUTS],['outputBias',OUTPUTS]];
  for(const [key,length] of arrays)
   if(!Array.isArray(value[key])||value[key].length!==length||!value[key].every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=5))return null;
+ const prototypes=Array.isArray(value.prototypes)?value.prototypes.slice(-24).filter(entry=>
+   entry&&INTENTS.includes(entry.intent)&&Array.isArray(entry.features)&&entry.features.length===INPUTS&&
+   entry.features.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1)
+  ).map(entry=>({intent:entry.intent,features:[...entry.features]})):[];
  return {...Object.fromEntries(arrays.map(([key])=>[key,[...value[key]]])),version:1,
-  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0};
+  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0,prototypes};
 }
 function serializeNeuralModel(model){
  const clean=restoreNeuralModel(model);
@@ -506,7 +552,8 @@ function serializeNeuralModel(model){
   inputHidden:clean.inputHidden.map(n=>Number(n.toFixed(5))),
   hiddenOutput:clean.hiddenOutput.map(n=>Number(n.toFixed(5))),
   hiddenBias:clean.hiddenBias.map(n=>Number(n.toFixed(5))),
-  outputBias:clean.outputBias.map(n=>Number(n.toFixed(5)))
+  outputBias:clean.outputBias.map(n=>Number(n.toFixed(5))),
+  prototypes:clean.prototypes.map(entry=>({intent:entry.intent,features:entry.features.map(n=>Number(n.toFixed(5)))}))
  }:null;
 }
 
@@ -528,6 +575,204 @@ function writeNeural(storage,namespace,model){
   return true;
  }catch{return false;}
 }
+
+// Advisory commentary on PUBLIC PROJECT METADATA. Never claims to have inspected
+// artwork pixels, and never reads form fields or private editor data.
+const trim=(v,n=150)=>typeof v==='string'?v.trim().slice(0,n):'';
+const unique=x=>[...new Set(x)];
+function projectMeta(element){
+ if(!element||typeof element.getAttribute!=='function')return null;
+ const title=trim(element.getAttribute('data-alquimago-project'),100);
+ if(!title)return null;
+ return {
+  title,
+  category:trim(element.getAttribute('data-alquimago-category'),70),
+  year:trim(element.getAttribute('data-alquimago-year'),6),
+  tools:trim(element.getAttribute('data-alquimago-tools'),150)
+ };
+}
+const matches=(text,words)=>words.some(w=>text.includes(w));
+function projectAdvice(meta){
+ if(!meta?.title)return null;
+ const category=(meta.category||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ const title=meta.title;
+ const tips=[];
+ if(matches(category,['character','personagem','criatura','sculpt','character design']))
+  tips.push('Confira a leitura da silhueta, a expressão facial e o equilíbrio entre detalhes grandes e pequenos.');
+ if(matches(category,['environment','ambiente','cenario','world','scene']))
+  tips.push('Uma boa apresentação destaca hierarquia visual, iluminação e profundidade entre primeiro plano e fundo.');
+ if(matches(category,['game','jogo','interactive','interativo']))
+  tips.push('Vale mostrar o ativo funcionando na engine, além da modelagem e do orçamento técnico quando relevante.');
+ if(matches(category,['stylized','estilizado','handpaint','hand-painted','asset','prop']))
+  tips.push('Teste se o material e as cores reforçam a leitura de formas antes dos microdetalhes.');
+ if(matches(category,['motion','animation','anima']))
+  tips.push('Mostrar breakdowns e timing ajuda a revelar as decisões de movimento por trás do resultado.');
+ if(meta.tools)tips.push('Ferramentas informadas: '+meta.tools+'. Uma pequena nota sobre o processo agrega contexto técnico.');
+ if(!tips.length)tips.push('Eu incluiria um detalhe de processo, desafios e decisões de direção de arte na página completa.');
+ if(!meta.year)tips.push('Uma data de criação ajuda a mostrar a evolução dos projetos ao longo do portfólio.');
+ const primary=tips[0];
+ return {
+  title,
+  label:'Sobre '+title,
+  comment:'Estou vendo o projeto "'+title+'" ('+(meta.category||'arte')+'). '+primary,
+  tips:unique(tips).slice(0,3),
+  disclaimer:'Opinião baseada nos metadados da obra, não na análise visual dos pixels.',
+  category:meta.category
+ };
+}
+function projectIdentity(meta){
+ if(!meta?.title)return '';
+ const str=[meta.title,meta.category,meta.year].join('|');
+ let h=2166136261;
+ for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,16777619);}
+ return (h>>>0).toString(36);
+}
+function shouldCommentProject(history,key,now,{cooldownMs=45000,maxPerSession=8}={}){
+ if(!key)return false;
+ const records=history&&typeof history==='object'?history:{};
+ const last=records[key]||0;
+ const count=Object.keys(records).length;
+ return count<maxPerSession && (!last||now-last>=cooldownMs);
+}
+
+// Lightweight color/contrast assessment of PUBLIC same-origin portfolio covers.
+// No remote inference, face detection, identification or hidden image uploads.
+const imageClamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+function imageMetrics(pixels){
+ if(!pixels||!pixels.data||!pixels.width||!pixels.height)return null;
+ const d=pixels.data,w=pixels.width,h=pixels.height,total=Math.min(w*h,4096);
+ let sum=0,sumSq=0,dark=0,bright=0,colors=0,saturation=0;
+ const bins=new Set();
+ for(let i=0;i<total;i++){
+  const pos=i*4,r=d[pos],g=d[pos+1],b=d[pos+2],alpha=d[pos+3];
+  if(alpha<40)continue;
+  const light=.2126*r+.7152*g+.0722*b;
+  sum+=light;sumSq+=light*light;
+  if(light<45)dark++;if(light>210)bright++;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  saturation+=(max-min)/255;
+  bins.add((r>>5)+'-'+(g>>5)+'-'+(b>>5));
+  colors++;
+ }
+ if(!colors)return null;
+ const mean=sum/colors;
+ const deviation=Math.sqrt(Math.max(0,sumSq/colors-mean*mean));
+ return {
+  brightness:Math.round(mean/255*100),
+  luminanceVariation:Math.round(deviation/255*100),
+  darkPercent:Math.round(dark/colors*100),
+  brightPercent:Math.round(bright/colors*100),
+  colorGroups:bins.size,
+  saturation:Math.round(saturation/colors*100)
+ };
+}
+function imageMetricAdvice(metric){
+ if(!metric)return '';
+ if(metric.luminanceVariation<12)return 'A capa tem pouca variação de luminosidade. Vale conferir o contraste e a leitura da silhueta em miniatura.';
+ if(metric.darkPercent>78)return 'A capa tem predominância de tons escuros. Confira se o assunto principal continua legível em telas pequenas.';
+ if(metric.brightPercent>72)return 'A capa tem muitas áreas claras. Verifique se detalhes e texto mantêm contraste suficiente.';
+ if(metric.saturation<13)return 'A paleta é pouco saturada. Se essa for a intenção, confira se luz e volume ainda definem bem as formas.';
+ if(metric.colorGroups>95)return 'A capa tem diversidade de cores. Um ponto focal claro pode ajudar a organizar a leitura visual.';
+ return 'A distribuição geral de luz e cor parece equilibrada nesta amostra; observe a leitura do tema em tamanho reduzido.';
+}
+async function inspectCover(image,{pageUrl,scale=48}={}){
+ if(!image||!image.complete||!image.naturalWidth)return null;
+ try{
+  const base=pageUrl||globalThis.location?.href;
+  if(!base)return null;
+  const src=image.currentSrc||image.src;
+  const resolved=new URL(src,base),origin=new URL(base).origin;
+  if(resolved.origin!==origin)return null;
+  const side=imageClamp(scale,16,64);
+  const canvas=document.createElement('canvas');
+  canvas.width=side;canvas.height=side;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx)return null;
+  ctx.drawImage(image,0,0,side,side);
+  return imageMetrics(ctx.getImageData(0,0,side,side));
+ }catch{return null;}
+}
+
+// Portuguese is the only built-in language. Other languages require a
+// site-owned same-origin JSON pack; no automatic translation or external API.
+const PT_BR={
+ code:'pt-BR',
+ tabs:{chat:'Conversar',insights:'Observar',actions:'Interagir'},
+ ui:{
+  close:'Fechar',send:'Enviar',message:'Escreva para o familiar...',
+  learn:'Ensinar',learnTitle:'Qual era o significado da última mensagem?',
+  learnSuccess:'Aprendi. Teste novamente essa frase.',
+  publish:'Publicar alterações',cancel:'Descartar ao recarregar',
+  projectTitle:'Análise de projeto',settings:'Ajustes',back:'Voltar',
+  privacy:'Somente informações públicas da página são observadas.',
+  status:'Memória temporária até publicar',
+  autonomous:'Observação proativa',
+  customSkin:'Aparência',
+  copy:'Copiar para IA',
+  noPreview:'Nenhum projeto observado ainda.'
+ }
+};
+const plainObject=v=>v&&typeof v==='object'&&!Array.isArray(v)?v:{};
+function normalizeLanguage(input){
+ const d=plainObject(input),labels=plainObject(d.ui),tabs=plainObject(d.tabs);
+ const safe=(value,fallback)=>typeof value==='string'&&value.trim()?value.trim().slice(0,140):fallback;
+ return {
+  code:safe(d.code,'pt-BR'),
+  tabs:Object.fromEntries(Object.entries(PT_BR.tabs).map(([k,v])=>[k,safe(tabs[k],v)])),
+  ui:Object.fromEntries(Object.entries(PT_BR.ui).map(([k,v])=>[k,safe(labels[k],v)])),
+  intentLabels:Object.fromEntries(Object.entries(plainObject(d.intentLabels)).filter(([k,v])=>
+    /^[a-z]{3,15}$/.test(k)&&typeof v==='string'&&v.length<=80)),
+  responses:Object.fromEntries(Object.entries(plainObject(d.responses)).filter(([k,v])=>
+    /^[a-z]{3,15}$/.test(k)&&typeof v==='string'&&v.length<=500)),
+  intentSamples:Object.fromEntries(Object.entries(plainObject(d.intentSamples)).filter(([k,v])=>
+    /^[a-z]{3,15}$/.test(k)&&Array.isArray(v)).map(([k,v])=>[k,v.filter(x=>typeof x==='string'&&x.length<=120).slice(0,12)]))
+ };
+}
+async function loadLanguage(path,{pageUrl,fetcher}={}){
+ if(!path)return normalizeLanguage(null);
+ const base=pageUrl||globalThis.location?.href;
+ if(!base)throw Error('URL da página indisponível');
+ const href=new URL(path,base);
+ if(href.origin!==new URL(base).origin || !/\.json$/i.test(href.pathname))throw Error('Idioma deve ser JSON público da mesma origem');
+ const response=await (fetcher||globalThis.fetch)(href.href,{credentials:'same-origin',redirect:'error',cache:'no-store'});
+ if(!response.ok)throw Error('Idioma indisponível');
+ const raw=await response.text();if(raw.length>25000)throw Error('Idioma muito grande');
+ return normalizeLanguage(JSON.parse(raw));
+}
+
+// Skin manifest: default SVG, a hosted image, or a custom GLB model rendered
+// by an OPTIONAL host adapter. No network libraries are loaded by Alquimago.
+const DEFAULT_SKIN={type:'svg',src:'',shapeKeys:{
+ idle:'Idle',blink:'Blink',happy:'Happy',curious:'Curious',
+ talk:'Talk',sleep:'Sleep',pet:'Pet',surprised:'Surprised',
+ focused:'Focused',sad:'Sad'
+}};
+function normalizeSkin(value){
+ const v=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+ const type=['svg','image','model3d'].includes(v.type)?v.type:'svg';
+ const source=typeof v.src==='string'&&v.src.length<500?v.src.trim():'';
+ const shapes=v.shapeKeys&&typeof v.shapeKeys==='object'&&!Array.isArray(v.shapeKeys)?v.shapeKeys:{};
+ const shapeKeys=Object.fromEntries(Object.entries(DEFAULT_SKIN.shapeKeys).map(([key,fallback])=>[
+  key,typeof shapes[key]==='string'&&/^[\w .-]{1,64}$/.test(shapes[key])?shapes[key]:fallback
+ ]));
+ return {type,src:source,shapeKeys};
+}
+function safeSkinUrl(skin,pageUrl){
+ try{
+  const u=new URL(skin.src,pageUrl),p=new URL(pageUrl);
+  if(!['https:','http:'].includes(u.protocol)||u.origin!==p.origin||u.username||u.password)return null;
+  const image=/\.(png|jpe?g|webp|avif|gif|svg)$/i.test(u.pathname);
+  const model=/\.(glb|gltf)$/i.test(u.pathname);
+  return skin.type==='image'&&image||skin.type==='model3d'&&model?u.href:null;
+ }catch{return null;}
+}
+function skinExpression(mood){
+ return ({feliz:'happy',animado:'happy',curioso:'curious',meditando:'sleep',sonolento:'sleep',concentrado:'focused',triste:'sad'})[mood]||'idle';
+}
+
+
+
+
 
 
 
@@ -720,6 +965,27 @@ const STYLE = `
  .feedback{padding:5px 10px;min-height:20px}
 }
 
+
+/* Teaching is discoverable but does not crowd the conversation. */
+.neural-lesson{margin:9px 0;padding:8px 10px;background:#24172f;border:1px solid #8b65af70;border-radius:10px}
+.neural-lesson summary{color:#ead6ff;font-size:12px;font-weight:600;cursor:pointer}
+.neural-lesson .neural-teach{margin-top:8px}
+/* Three clear tabs and an internal, unobtrusive settings disclosure. */
+#arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
+.tabs{justify-content:stretch;gap:4px;padding:7px 8px}
+.tab{flex:1 1 0;min-width:0!important;text-overflow:ellipsis;overflow:hidden;font-size:12px!important}
+.arcane-advanced{margin-top:12px;padding:9px;border:1px solid #845ba353;border-radius:12px;background:#241630}
+.arcane-advanced summary{font-size:11px;font-weight:600;cursor:pointer;color:#ead3f5;list-style:revert}
+.arcane-advanced .actions{margin-top:10px}
+.arcane-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;margin-top:12px;color:#e5d2f2}
+.arcane-toggle input{accent-color:#ae77e4;width:15px;height:15px}
+.panel,.content,.chat-history,.tabs{scrollbar-color:#8654b4 #21152e;scrollbar-width:thin}
+.panel ::-webkit-scrollbar{width:8px;height:6px}
+.panel ::-webkit-scrollbar-track{background:#21152e;border-radius:999px}
+.panel ::-webkit-scrollbar-thumb{background:#8054ab;border:2px solid #21152e;border-radius:999px}
+.panel ::-webkit-scrollbar-thumb:hover{background:#ba89df}
+.arcane-skin-image{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 13px #07020e88)}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -765,7 +1031,7 @@ const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.
 <path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
 <circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
 </svg>`;
-const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA', 'conversar'];
+const MAIN_TABS=[{index:5,key:'chat'},{index:1,key:'insights'},{index:0,key:'actions'}];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
 const storage=()=>{try{return window.localStorage;}catch{return null;}};
@@ -813,6 +1079,10 @@ class AlquimagoFamiliar extends HTMLElement {
     this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
+    this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
+    this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
+    this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
+    this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -826,7 +1096,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
-    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=5;this.render();});
+    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
     this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
@@ -851,6 +1121,22 @@ class AlquimagoFamiliar extends HTMLElement {
       if (button) { this.state.tab = Number(button.dataset.tab); this.render(); }
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
+    this.$content.addEventListener('change',e=>{
+      if(e.target?.id==='alquimago-skin-choice'){
+        const chosen=this.skinProfiles.find(x=>x.id===e.target.value);
+        if(chosen){
+          this.selectedSkin=chosen.id;this.skin=normalizeSkin(chosen);this.applySkin();
+          this.message='Skin "'+chosen.label+'" selecionada. '+(this.config.memory.mode==='publish'?'Publique para salvar.':'');
+          this.renderHeader();
+        }
+      }
+      if(e.target?.id==='toggle-proactive'){
+        this.observeProjects=!!e.target.checked;
+        if(!this.observeProjects)this.cancelProjectHover();
+        this.message=this.observeProjects?'Observação de projetos ativada.':'Observação proativa pausada.';
+        this.renderHeader();
+      }
+    });
     this.$content.addEventListener('submit',e=>{
       if(e.target?.id!=='alquimago-chat-form')return;
       e.preventDefault();
@@ -892,6 +1178,22 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.observeProjects=config.proactive.projectHover;
+      this.skinProfiles=config.appearance.skins;
+      this.selectedSkin=config.appearance.selectedSkin;
+      this.skin=normalizeSkin(this.skinProfiles.find(entry=>entry.id===this.selectedSkin)||config.appearance.skin);
+      if(config.language.file){
+        try{
+          this.language=await loadLanguage(config.language.file,{pageUrl:location.href});
+          const samples=this.language.intentSamples||{};
+          for(const [intent,phrases] of Object.entries(samples)){
+            if(!INTENTS.includes(intent)||!Array.isArray(phrases))continue;
+            for(const example of phrases.slice(0,12))
+              if(typeof example==='string'&&example.length<=120)teachNeural(this.neural,example,intent);
+          }
+          this.neural.learned=0;
+        }catch{this.language=normalizeLanguage(null)}
+      }
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
@@ -912,6 +1214,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!this.isConnected)return;
       this.configReady=true;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
+      this.applySkin();
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
@@ -920,12 +1223,18 @@ class AlquimagoFamiliar extends HTMLElement {
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
+    if(this.speechTimer)clearTimeout(this.speechTimer);
+    if(this.expressionTimer)clearTimeout(this.expressionTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
     if(this.publishDialogHandler)window.removeEventListener('alquimago:publish-dialog',this.publishDialogHandler);
+    if(this.pointerOverHandler)document.removeEventListener('pointerover',this.pointerOverHandler);
+    if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
+    this.cancelProjectHover();
+    if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
@@ -943,9 +1252,87 @@ class AlquimagoFamiliar extends HTMLElement {
     const spoken=pool[this.idleCycle++%pool.length];
     this.lastSpoken=spoken;this.lastSpokenAt=now;
   }
+  applySkin(){
+    const skin=this.skin||normalizeSkin(null);
+    const url=skin.src?safeSkinUrl(skin,location.href):null;
+    if(this.skinAdapter?.dispose){try{this.skinAdapter.dispose()}catch{/* optional renderer */}}
+    this.skinAdapter=null;
+    this.$character.replaceChildren();
+    if(skin.type==='image'&&url){
+      const img=document.createElement('img');
+      img.src=url;img.alt='';
+      img.className='arcane-skin-image';
+      img.decoding='async';
+      this.$character.appendChild(img);
+      return;
+    }
+    if(skin.type==='model3d'&&url){
+      // The host (React/desktop) may register a Three.js renderer that accepts
+      // glTF/GLB and uses named morph targets. No library is loaded implicitly.
+      const adapter=window.AlquimagoSkinRenderers?.model3d;
+      if(typeof adapter==='function'){
+        try{
+          const instance=adapter({host:this.$character,url,shapeKeys:skin.shapeKeys});
+          if(instance&&typeof instance==='object')this.skinAdapter=instance;
+          return;
+        }catch{/* fall back to built-in SVG */ }
+      }
+    }
+    this.$character.innerHTML=SVG;
+  }
+  projectPointerOver(e){
+    if(this.desktop||!this.observeProjects||!this.config.features.pageAudit)return;
+    const target=e.target;
+    if(!(target instanceof Element))return;
+    const card=target.closest('[data-alquimago-project]');
+    if(!card||card===this.hoverSeen)return;
+    if(card.closest('alquimago-familiar')||target.closest('input,textarea,[contenteditable="true"]'))return;
+    this.cancelProjectHover();
+    const meta=projectMeta(card);
+    if(!meta)return;
+    const key=projectIdentity(meta);
+    if(!shouldCommentProject(this.hoverCount,key,Date.now(),{cooldownMs:this.config.proactive.cooldownMs}))return;
+    this.hoverSeen=card;
+    this.hoverStart=setTimeout(async()=>{
+      this.hoverStart=null;
+      if(!this.isConnected||!card.isConnected||document.hidden||!this.observeProjects)return;
+      const advice=projectAdvice(meta);if(!advice)return;
+      const cover=card.querySelector('img');
+      if(cover){
+        const metrics=await inspectCover(cover,{pageUrl:location.href});
+        if(metrics){
+          advice.metrics=metrics;
+          advice.tips=[...new Set([imageMetricAdvice(metrics),...advice.tips])].slice(0,4);
+          advice.comment+=' '+imageMetricAdvice(metrics);
+          advice.disclaimer='Observações de cor/luz por amostragem local e metadados; não há reconhecimento semântico de objetos.';
+        }
+      }
+      if(!this.isConnected||!card.isConnected)return;
+      this.selectedProject=advice;
+      this.hoverCount[key]=Date.now();
+      this.lastSpoken=advice.comment;
+      this.lastSpokenAt=Date.now();
+      this.message='Dica sobre '+advice.title;
+      this.updateThought();
+      if(this.state.open&&this.state.tab===1)this.render();
+    },this.config.proactive.delayMs);
+  }
+  cancelProjectHover(){
+    if(this.hoverStart){clearTimeout(this.hoverStart);this.hoverStart=null;}
+    this.hoverSeen=null;
+  }
+  projectPointerOut(e){
+    if(!(e.target instanceof Element))return;
+    const card=e.target.closest('[data-alquimago-project]');
+    if(card&&card===this.hoverSeen&&!card.contains(e.relatedTarget))this.cancelProjectHover();
+  }
   startObservation(){
     if(this.desktop||!this.isConnected)return;
     this.routeHandler=()=>this.inspectPage(true);
+    this.pointerOverHandler=e=>this.projectPointerOver(e);
+    this.pointerOutHandler=e=>this.projectPointerOut(e);
+    document.addEventListener('pointerover',this.pointerOverHandler,{passive:true});
+    document.addEventListener('pointerout',this.pointerOutHandler,{passive:true});
     window.addEventListener('hashchange',this.routeHandler);
     window.addEventListener('popstate',this.routeHandler);
     if(typeof MutationObserver!=='undefined'){
@@ -990,7 +1377,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
   }
-  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural)}:null;}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),selectedSkin:this.selectedSkin}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -1052,6 +1439,12 @@ class AlquimagoFamiliar extends HTMLElement {
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
+      response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
+        name:this.config.identity.name,xp:String(this.state.brain.xp),
+        page:this.activePage?.route||'desktop',level:String(levelFromXp(this.state.brain.xp))
+      })[key]||'');
+    }
     if(response.action)this.action(response.action);
     let destination=null;
     if(response.intent==='navigate'&&!this.desktop){
@@ -1070,6 +1463,11 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     this.message=response.reply;
     this.lastSpoken=response.reply;this.lastSpokenAt=Date.now();
+    if(this.skinAdapter?.setExpression){
+      this.skinAdapter.setExpression('talk');
+      clearTimeout(this.speechTimer);
+      this.speechTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),850);
+    }
     this.state.tab=5;this.state.open=true;this.render();
     const log=this.$content.querySelector('.chat-history');
     if(log)log.scrollTop=log.scrollHeight;
@@ -1084,11 +1482,16 @@ class AlquimagoFamiliar extends HTMLElement {
     const messages={stroke:'Hmm… mais um carinho no chapéu! ✧',brew:'Elixir alquímico preparado! ✨',explore:'Nova rota estudada. ✦',publish:'Projeto publicado! Magia de verdade. ✦'};
     this.message=(this.config.messages[name]||messages[name]||'Runas reorganizadas.')+(earned?' +'+earned+' XP':'');
     this.save();this.render();
+    if(['pet','stroke'].includes(name)&&this.skinAdapter?.setExpression){
+      this.skinAdapter.setExpression('pet');
+      clearTimeout(this.expressionTimer);
+      this.expressionTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),900);
+    }
   }
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.5';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.6';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1096,22 +1499,41 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('mood').textContent = mood;
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
+    if(this.skinAdapter?.setExpression){try{this.skinAdapter.setExpression(skinExpression(mood))}catch{/* optional 3D adapter */}}
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
   }
   render() {
     const flags=this.config.features;
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
-    if(!allowed[this.state.tab])this.state.tab=Math.max(0,allowed.indexOf(true));
+    if(!allowed[this.state.tab])this.state.tab=[5,1,0].find(index=>allowed[index])??0;
     this.setAttribute('data-position',this.config.appearance.position);
     this.$panel.classList.toggle('open', this.state.open);
     this.renderHeader();
-    this.$tabs.innerHTML=TABS.map((tab,index)=>allowed[index]?'<button type="button" class="tab '+(index===this.state.tab?'selected':'')+'" data-tab="'+index+'" aria-pressed="'+(index===this.state.tab)+'">'+tab+'</button>':'').join('');
+    this.$tabs.replaceChildren();
+    for(const item of MAIN_TABS.filter(item=>allowed[item.index])){
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='tab'+(item.index===this.state.tab?' selected':'');
+      button.dataset.tab=String(item.index);
+      button.setAttribute('aria-pressed',String(item.index===this.state.tab));
+      button.textContent=this.language.tabs[item.key]||item.key;
+      this.$tabs.appendChild(button);
+    }
     this.$content.replaceChildren();
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><details class="arcane-advanced"><summary>⚙ Ajustes e ferramentas</summary>
+      <div class="actions"><button class="action" data-action="go-routes">Rotas internas</button>
+      <button class="action" data-action="go-files">Arquivos públicos</button>
+      <button class="action" data-action="go-ai">Continuar com IA</button></div>
+      <label class="arcane-toggle"><input type="checkbox" id="toggle-proactive"> Comentários proativos em projetos</label>
+      <div class="actions"><button class="action" data-action="export-memory">Exportar memória</button>
+      <button class="action" data-action="import-memory">Restaurar</button>
+      <button class="action" data-action="reset-memory">Zerar dados</button></div>
+      <div class="muted">Aparência: <span id="arcane-skin-label"></span></div>
+      </details>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -1120,6 +1542,21 @@ class AlquimagoFamiliar extends HTMLElement {
         const wrapper = add(`<div class="line"><b>Diagnóstico superficial</b></div><div class="muted" id="page-title"></div><div class="line"><span>Elementos de navegação</span><b>${a.links}</b></div><div class="line"><span>Botões</span><b>${a.buttons}</b></div><div class="line"><span>Imagens sem atributo alt</span><b>${a.missingAlt}</b></div><div class="line"><span>IDs duplicados</span><b>${a.duplicateIds}</b></div><div class="line"><span>Imagens com falha</span><b>${a.brokenImages}</b></div><div class="actions"><button class="action" data-action="audit">↻ Atualizar</button><button class="action primary" data-action="copy-audit">Copiar relatório</button></div>`);
         wrapper.querySelector('#page-title').textContent=a.title;
         const intro=document.createElement('p');intro.className='muted';intro.textContent='Análise contextual: somente estrutura da página e rota atual, nunca valores digitados ou mensagens.';this.$content.appendChild(intro);
+        if(this.selectedProject){
+          const tip=this.selectedProject;
+          const card=document.createElement('section');card.className='insight';
+          const heading=document.createElement('b');heading.textContent='✦ '+tip.label;
+          const explanation=document.createElement('p');explanation.textContent=tip.comment;
+          const details=document.createElement('p');details.className='muted';details.textContent=tip.disclaimer;
+          card.append(heading,explanation,details);
+          for(const point of tip.tips.slice(0,3)){
+            const row=document.createElement('p');row.className='muted';row.textContent='• '+point;card.appendChild(row);
+          }
+          const copy=document.createElement('button');copy.className='action';copy.type='button';
+          copy.dataset.action='copy-project-advice';copy.textContent=this.language.ui.copy;
+          card.appendChild(copy);
+          this.$content.appendChild(card);
+        }
         const title=document.createElement('div');title.className='line';title.innerHTML='<b>Sugestões do familiar</b>';this.$content.appendChild(title);
         for(const [i,tip] of this.suggestions.entries()){
           const box=document.createElement('div');box.className='insight';
@@ -1131,6 +1568,7 @@ class AlquimagoFamiliar extends HTMLElement {
         const explore=document.createElement('button');explore.type='button';explore.className='action primary';explore.dataset.action='explore';explore.textContent='✧ Explorar esta rota';this.$content.appendChild(explore);
       }
     } else if (this.state.tab === 2) {
+      add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       if (this.desktop) add('<p class="muted">Abra a versão web do Alquimago no seu projeto React para navegar pelas páginas desse site.</p>');
       else {
         this.links = findSameOriginLinks();
@@ -1144,6 +1582,7 @@ class AlquimagoFamiliar extends HTMLElement {
         });
       }
     } else if(this.state.tab===3){
+      add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       if(this.desktop)add('<p class="muted">Escolha uma pasta para analisar textos autorizados. Nenhuma pasta é lida automaticamente.</p><div class="actions"><button class="action primary" data-action="choose-folder">Escolher pasta</button></div>');
       else add('<p class="muted">Só os arquivos públicos listados na configuração do projeto são acessados.</p><div class="actions"><button class="action primary" data-action="read-files">Ler arquivos</button></div>');
       if(!this.projectFiles.length)add('<p class="muted">Nenhum arquivo examinado ainda.</p>');
@@ -1154,6 +1593,7 @@ class AlquimagoFamiliar extends HTMLElement {
         item.append(label,result);this.$content.appendChild(item);
       }
     } else if(this.state.tab===4){
+      add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       add('<p class="muted">Para questões que ultrapassem meu diálogo local, posso preparar um resumo e abrir ChatGPT ou Gemini, sempre por escolha do usuário.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
     } else if(this.state.tab===5){
       const history=document.createElement('div');
@@ -1175,18 +1615,48 @@ class AlquimagoFamiliar extends HTMLElement {
       const chooser=document.createElement('select');chooser.id='alquimago-teach';
       const intentLabels={greeting:'Saudação',identity:'Identidade',status:'XP e status',pet:'Carinho',play:'Brincar',brew:'Poção',rest:'Descanso',navigate:'Navegação',insight:'Sugestão',help:'Ajuda',mood:'Humor',thanks:'Agradecimento'};
       for(const intent of INTENTS){
-        const option=document.createElement('option');option.value=intent;option.textContent=intentLabels[intent]||intent;
+        const option=document.createElement('option');option.value=intent;option.textContent=this.language.intentLabels?.[intent]||intentLabels[intent]||intent;
         option.selected=intent===this.lastNeuralIntent;chooser.appendChild(option);
       }
       const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
       teach.disabled=!this.lastUserText;
-      teacher.append(lbl,chooser,teach);this.$content.appendChild(teacher);
+      teacher.append(lbl,chooser,teach);
+      const lesson=document.createElement('details');lesson.className='neural-lesson';
+      const summary=document.createElement('summary');summary.textContent='✦ Ensinar uma frase';
+      lesson.append(summary,teacher);this.$content.appendChild(lesson);
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Rede neural local: 96 entradas · 24 neurônios internos · 12 respostas. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
+      message.textContent='Cérebro local: 96 entradas · 24 neurônios internos · 12 intenções. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
     }
+    const proactivity=this.$content.querySelector('#toggle-proactive');
+    if(proactivity)proactivity.checked=this.observeProjects;
+    const skinLabel=this.$content.querySelector('#arcane-skin-label');
+    if(skinLabel){
+      skinLabel.textContent='';
+      const select=document.createElement('select');
+      select.id='alquimago-skin-choice';
+      select.setAttribute('aria-label','Skin do familiar');
+      for(const entry of this.skinProfiles){
+        const option=document.createElement('option');
+        option.value=entry.id;
+        option.textContent=entry.label;
+        select.appendChild(option);
+      }
+      select.value=this.selectedSkin;
+      skinLabel.appendChild(select);
+    }
+    const chatInput=this.$content.querySelector('input[name="message"]');
+    if(chatInput)chatInput.placeholder=this.language.ui.message;
+    const sendButton=this.$content.querySelector('.chat-send');
+    if(sendButton)sendButton.setAttribute('aria-label',this.language.ui.send);
+    const teachButton=this.$content.querySelector('[data-action="teach-neural"]');
+    if(teachButton)teachButton.textContent=this.language.ui.learn;
+    const teachLabel=this.$content.querySelector('.neural-teach label');
+    if(teachLabel)teachLabel.textContent=this.language.ui.learnTitle;
+    const closeButton=this.shadowRoot.getElementById('close-panel');
+    if(closeButton)closeButton.setAttribute('aria-label',this.language.ui.close);
     if(this.config.memory.mode==='publish'){
       const reset=this.$content.querySelector('[data-action="reset-memory"]');
       if(reset)reset.textContent='Zerar rascunho do mago';
@@ -1230,6 +1700,15 @@ class AlquimagoFamiliar extends HTMLElement {
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
+      const target={ 'go-routes':2,'go-files':3,'go-ai':4,'go-actions':0 }[action];
+      this.state.tab=target;this.render();return;
+    }
+    if(action==='copy-project-advice'){
+      const a=this.selectedProject;
+      if(a)void this.copy(a.label+'\n'+a.comment+'\n'+a.tips.join('\n')+'\n'+a.disclaimer);
+      return;
+    }
     if(action==='open-publish'){
       this.state.open=false;this.render();
       window.dispatchEvent(new Event('alquimago:request-publish'));
@@ -1239,10 +1718,15 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!this.lastUserText)return;
       const selected=this.$content.querySelector('#alquimago-teach')?.value;
       if(!INTENTS.includes(selected))return;
-      for(let n=0;n<25;n++)trainNeural(this.neural,this.lastUserText,selected,.06);
+      if(!teachNeural(this.neural,this.lastUserText,selected))return;
+      const corrected=neuralPredict(this.neural,this.lastUserText);
       if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
       this.lastNeuralIntent=selected;
-      this.message='Aprendi essa associação. '+(this.config.memory.mode==='publish'?'Publique para guardar o aprendizado.':'O aprendizado foi salvo neste dispositivo.');
+      const labels={greeting:'saudação',identity:'identidade',status:'status',pet:'carinho',play:'brincadeira',brew:'poção',rest:'descanso',navigate:'navegação',insight:'sugestão',help:'ajuda',mood:'humor',thanks:'agradecimento'};
+      const reply='Aprendi: agora reconheço essa frase como '+(labels[selected]||selected)+'. Confiança: '+Math.round(corrected.confidence*100)+'%. '+(this.config.memory.mode==='publish'?'Publique para manter esse aprendizado.':'O aprendizado foi salvo.');
+      this.dialogue=[...this.dialogue,{role:'familiar',text:reply}].slice(-24);
+      if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+      this.message=reply;
       this.render();
       return;
     }
@@ -1332,7 +1816,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.5.0',
+    version: '0.6.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
