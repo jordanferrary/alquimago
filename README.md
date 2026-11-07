@@ -2,18 +2,22 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.2.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.3.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
 ## Recursos
 
-- Personagem SVG animado, ações, emoções simbólicas, energia, foco, curiosidade, níveis e XP.
+- Familiar alquimista redesenhado com frasco brilhante, símbolos arcanos, humor visual e gestos de carinho (deslize curto sobre o personagem).
+- XP com regras de anti-repetição: carinho/descanso não concedem XP, habilidades possuem intervalo, exploração de cada rota rende no máximo uma vez ao dia e publicações confirmadas podem conceder XP uma vez por revisão.
+- Personalidade, emoções simbólicas, energia, foco, curiosidade e níveis.
 - Configuração por arquivo `alquimago.config.json`, com nome, paleta, mensagens, recursos e regras de projeto.
 - Memória local separada por origem e namespace, com migração da v0.1, exportação e restauração de backup.
 - Shadow DOM: não modifica estilos nem componentes do site anfitrião.
-- Auditoria simples do DOM e navegação por links da mesma origem.
+- Observação contextual do DOM público e da rota atual, com sugestões acessíveis de conteúdo, imagens e navegação, sem ler valores de inputs, formulários ou conversas.
+- Navegação por links da mesma origem, escolhidos pelo usuário.
+- Ponte opcional de eventos com o editor React: seção ativa e contagem geral de projetos/páginas.
 - Leitura **somente** de arquivos públicos, de texto, explicitamente permitidos no JSON, em resposta ao comando do usuário.
 - No desktop, seleção manual de uma pasta para leitura restrita a textos (dependente do suporte da WebView do sistema).
-- Prepara um contexto para ChatGPT/Gemini, sem automatizar login, extrair conversas nem driblar limites.
+- Prepara sugestões e contexto para ChatGPT/Gemini. O usuário inicia a conversa e cola o texto; não há automação de login, leitura de chats ou contorno de limites.
 
 ## Instalação em um site
 
@@ -75,3 +79,27 @@ npm run build
 Nunca inclua segredos, código privado ou credenciais nos arquivos listados em `project.files`. Tudo o que for servido como público no GitHub Pages pode ser visto por visitantes. O acesso a arquivos do PC exige escolha explícita. Não há envio automático de dados para provedores de IA.
 
 O conceito foi inspirado em mascotes adaptativos de desktop, incluindo [Pestinha](https://github.com/mille-okws/pestinha). O Alquimago foi reimplementado de forma independente; não redistribui código ou artes do Pestinha. Consulte `docs/ORIGEM_E_LICENCAS.md`.
+
+## Integrar observação de um editor React
+
+O mascote funciona sozinho. Para melhorar as sugestões, um editor pode enviar **apenas metadados públicos e seguros**:
+
+```js
+const announce = () => window.dispatchEvent(new CustomEvent('alquimago:studio-context', {
+  detail: { editing: true, section: 'gallery', projects: 6, pages: 2 }
+}));
+window.addEventListener('alquimago:request-context', announce);
+announce();
+```
+
+Retire o listener ao desmontar o editor. Não envie rascunhos, tokens, senhas, valores digitados ou mensagens de usuários. Quando uma publicação autenticada terminar, o aplicativo pode notificar um marco opcional:
+
+```js
+window.dispatchEvent(new CustomEvent('alquimago:activity', {
+  detail: { type: 'published', revision: 'id-publico-da-revisao' }
+}));
+```
+
+Esses eventos são informativos e podem ser emitidos por qualquer código do mesmo site: a recompensa em XP é **cosmética**, não um comprovante de publicação. A integração de produção deve despachar esse evento apenas após a confirmação do backend/GitHub.
+
+O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini. Ele usa um relatório de contexto e uma abertura explícita de sites externos; para automação real entre serviços são necessários conectores e permissões oficiais.
