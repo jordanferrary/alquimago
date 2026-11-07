@@ -339,7 +339,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.setPointerCapture(e.pointerId);
   }
   onPointerMove(e) {
-    if (!this.pointerStart) return;
+    if (!this.pointerStart || !this.config.features.dragging) return;
     const dx = e.clientX - this.pointerStart.x, dy = e.clientY - this.pointerStart.y;
     if (Math.abs(dx) + Math.abs(dy) > 7) this.pointerStart.moved = true;
     if (this.pointerStart.moved && !this.desktop) this.moveTo(this.pointerStart.left + dx, this.pointerStart.top + dy);
@@ -416,8 +416,8 @@ class AlquimagoFamiliar extends HTMLElement {
     } else {
       add('<p class="muted">Um resumo de tarefa pode ser copiado para continuar no ChatGPT ou no Gemini. Não há automação de login, coleta de conversas nem acesso a tokens.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
     }
+    if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"]').forEach(button=>button.remove());
   }
-    // Configuration may disable portable-memory controls without removing local persistence.
   createPrompt() {
     const a = this.desktop ? null : auditPage();
     return ['Sou o Alquimago, um familiar digital local. Preciso de assistência para o projeto do usuário.',
