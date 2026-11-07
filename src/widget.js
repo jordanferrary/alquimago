@@ -16,6 +16,7 @@ import {createOrb,stepOrb,tossOrb} from './physics.mjs';
 import {recognizeStudioCommand} from './commands.mjs';
 import {pendingFromReply} from './conversation.mjs';
 import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
+import {askLanguageModel,validateModelEndpoint} from './llm.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -231,6 +232,14 @@ const STYLE = `
  border-radius:8px;padding:8px;font:12px system-ui}
 .arcane-cortex .action:disabled{opacity:.45;cursor:not-allowed}
 
+
+.arcane-ai-consent{
+ display:flex;gap:10px;align-items:flex-start;padding:10px 12px;margin:10px 0;
+ border:1px solid #9767ba66;border-radius:12px;background:#261831;
+ color:#e6d8ef;font:11px/1.5 system-ui;
+}
+.arcane-ai-consent input{accent-color:#ac78ef;width:15px;height:15px;flex-shrink:0;margin-top:2px}
+
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
 #arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
@@ -333,6 +342,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
+    this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
     this.links = [];
     this.audit = null;
     this.timer = null;
@@ -409,6 +419,11 @@ class AlquimagoFamiliar extends HTMLElement {
           this.renderHeader();
         }
       }
+      if(e.target?.id==='toggle-llm'){
+        this.modelEnabled=this.modelAvailable&&!!e.target.checked;
+        this.message=this.modelEnabled?'IA generativa ativada para esta sessão. Suas próximas perguntas poderão ser enviadas ao serviço autorizado.':'Modo contextual local ativado.';
+        this.renderHeader();
+      }
       if(e.target?.id==='toggle-proactive'){
         this.observeProjects=!!e.target.checked;
         if(!this.observeProjects)this.cancelProjectHover();
@@ -457,6 +472,7 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.modelAvailable=config.llm.enabled&&!!validateModelEndpoint(config.llm.endpoint,{pageUrl:location.href});
       if(config.knowledge.file){
         try{this.knowledge=await loadKnowledge(config.knowledge.file,{pageUrl:location.href});}
         catch{this.knowledge=normalizeKnowledge(null);}
@@ -514,6 +530,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.timer)clearInterval(this.timer);
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.speechTimer)clearTimeout(this.speechTimer);
+    this.modelAbort?.abort();this.modelSequence++;
     if(this.expressionTimer)clearTimeout(this.expressionTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
@@ -865,6 +882,47 @@ class AlquimagoFamiliar extends HTMLElement {
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
+      !['private','math','followup','decline','clarify','navigate','empty','project-fact','project-list','project-info'].includes(response.intent)&&
+      user.length>=3;
+    if(canGenerate){
+      const history=this.dialogue.slice(-8);
+      const project=this.knowledge.projects.find(p=>p.id===(response.projectId||this.lastProjectId))||null;
+      const request=++this.modelSequence;
+      this.modelBusy=true;
+      this.pendingQuestion=null;
+      this.lastUserText='';this.lastNeuralIntent='';
+      this.dialogue=[...this.dialogue,{role:'user',text:user},
+        {role:'familiar',text:'Consultando o modelo de linguagem…'}].slice(-24);
+      this.state.tab=5;this.state.open=true;this.render();
+      this.modelAbort?.abort();
+      const controller=new AbortController();this.modelAbort=controller;
+      const timer=setTimeout(()=>controller.abort(),18000);
+      void askLanguageModel({
+        endpoint:this.config.llm.endpoint,prompt:user,history,project,
+        pageUrl:location.href,signal:controller.signal
+      }).then(answer=>{
+        if(!this.isConnected||request!==this.modelSequence)return;
+        this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
+        this.message=answer.reply;
+        this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
+      }).catch(error=>{
+        if(!this.isConnected||request!==this.modelSequence)return;
+        const reason=error?.name==='AbortError'?
+         'A consulta demorou demais.':error instanceof Error?error.message:'Não consegui conectar à IA.';
+        const fallback=reason+' Resposta local: '+response.reply;
+        this.dialogue[this.dialogue.length-1]={role:'familiar',text:fallback};
+        this.message=fallback;
+      }).finally(()=>{
+        clearTimeout(timer);
+        if(request===this.modelSequence&&this.isConnected){
+          this.modelBusy=false;this.render();
+          const log=this.$content.querySelector('.chat-history');
+          if(log)log.scrollTop=log.scrollHeight;
+        }
+      });
+      return;
+    }
     this.pendingQuestion=pendingFromReply(response);
     if(response.projectId)this.lastProjectId=response.projectId;
     if(['math','followup','decline','clarify'].includes(response.intent)){
@@ -1080,6 +1138,17 @@ class AlquimagoFamiliar extends HTMLElement {
       const lesson=document.createElement('details');lesson.className='neural-lesson';
       const summary=document.createElement('summary');summary.textContent='✦ Ensinar uma frase';
       lesson.append(summary,teacher);this.$content.appendChild(lesson);
+      if(this.modelAvailable){
+        const consent=document.createElement('label');
+        consent.className='arcane-ai-consent';
+        const choice=document.createElement('input');choice.type='checkbox';
+        choice.id='toggle-llm';choice.checked=this.modelEnabled;
+        choice.disabled=this.modelBusy;
+        const details=document.createElement('span');
+        details.textContent='Usar IA generativa (opcional). Cada nova pergunta poderá ser enviada ao serviço configurado. Não envie dados privados.';
+        consent.append(choice,details);
+        this.$content.appendChild(consent);
+      }
       const message=document.createElement('p');message.className='muted';
       message.textContent='Cérebro local: 96 entradas · 24 neurônios internos · 12 intenções. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
       this.$content.appendChild(message);
