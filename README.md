@@ -35,6 +35,8 @@ Para carregar a distribuição pela hospedagem do projeto Alquimago, use o URL d
 
 A memória pessoal de cada visitante é mantida em `localStorage`, isolada pelo domínio e por `memory.namespace`. Ela permanece quando o site recebe um novo deploy **na mesma origem**. Limpar dados do navegador, mudar de domínio ou navegar em outro dispositivo não sincroniza a memória automaticamente; há botões para exportar e restaurar um backup.
 
+Se `memory.remoteSnapshot` indicar um JSON público de memória na mesma origem, uma instalação sem progresso local poderá recuperar esse estado inicial. **O progresso já salvo no dispositivo nunca é substituído pela cópia remota.** A cópia do repositório é uma referência compartilhada do projeto, não um banco de dados individual de visitantes.
+
 Um site estático **não** consegue gravar diretamente em um repositório GitHub sem autenticação. Para versionar dados do mascote, o editor do site precisa adicionar um arquivo JSON ao **fluxo de publicação autenticado que já utiliza**. Não publique dados pessoais dos visitantes nem tokens.
 
 A integração demonstrativa com um editor React/Local Studio usa `public/alquimago/project-context.json` e um resumo numérico público opcional de XP em `public/alquimago/project-memory.json`, no **mesmo commit** de publicação do conteúdo. Isso é um exemplo; não é comportamento automático em todos os sites.
