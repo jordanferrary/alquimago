@@ -856,6 +856,9 @@ class AlquimagoFamiliar extends HTMLElement {
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     this.pendingQuestion=pendingFromReply(response);
+    if(['math','followup','decline','clarify'].includes(response.intent)){
+      this.lastUserText='';this.lastNeuralIntent='';
+    }
     if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
       response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
         name:this.config.identity.name,xp:String(this.state.brain.xp),
@@ -1047,7 +1050,11 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       this.$content.appendChild(history);
       add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
-      add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
+      if(this.pendingQuestion&&Date.now()-this.pendingQuestion.at<300000){
+        add('<div class="chat-suggestions" aria-label="Responder à pergunta"><button type="button" data-say="sim">✓ Sim</button><button type="button" data-say="não">✕ Não</button></div>');
+      }else{
+        add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Quanto é 2 + 2?">Matemática</button></div>');
+      }
       const teacher=document.createElement('div');teacher.className='neural-teach';
       const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
       const chooser=document.createElement('select');chooser.id='alquimago-teach';
