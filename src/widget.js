@@ -9,6 +9,7 @@ import {INTENTS,seedNeuralModel,trainNeural,teachNeural,neuralPredict,serializeN
 import {projectMeta,projectAdvice,projectIdentity,shouldCommentProject} from './project-insight.mjs';
 import {normalizeLanguage,loadLanguage} from './i18n.mjs';
 import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
+import {inspectCover,imageMetricAdvice} from './image-insight.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -514,10 +515,21 @@ class AlquimagoFamiliar extends HTMLElement {
     const key=projectIdentity(meta);
     if(!shouldCommentProject(this.hoverCount,key,Date.now(),{cooldownMs:this.config.proactive.cooldownMs}))return;
     this.hoverSeen=card;
-    this.hoverStart=setTimeout(()=>{
+    this.hoverStart=setTimeout(async()=>{
       this.hoverStart=null;
-      if(!this.isConnected||!card.isConnected||document.hidden)return;
+      if(!this.isConnected||!card.isConnected||document.hidden||!this.observeProjects)return;
       const advice=projectAdvice(meta);if(!advice)return;
+      const cover=card.querySelector('img');
+      if(cover){
+        const metrics=await inspectCover(cover,{pageUrl:location.href});
+        if(metrics){
+          advice.metrics=metrics;
+          advice.tips=[...new Set([imageMetricAdvice(metrics),...advice.tips])].slice(0,4);
+          advice.comment+=' '+imageMetricAdvice(metrics);
+          advice.disclaimer='Observações de cor/luz por amostragem local e metadados; não há reconhecimento semântico de objetos.';
+        }
+      }
+      if(!this.isConnected||!card.isConnected)return;
       this.selectedProject=advice;
       this.hoverCount[key]=Date.now();
       this.lastSpoken=advice.comment;
@@ -736,6 +748,21 @@ class AlquimagoFamiliar extends HTMLElement {
         const wrapper = add(`<div class="line"><b>Diagnóstico superficial</b></div><div class="muted" id="page-title"></div><div class="line"><span>Elementos de navegação</span><b>${a.links}</b></div><div class="line"><span>Botões</span><b>${a.buttons}</b></div><div class="line"><span>Imagens sem atributo alt</span><b>${a.missingAlt}</b></div><div class="line"><span>IDs duplicados</span><b>${a.duplicateIds}</b></div><div class="line"><span>Imagens com falha</span><b>${a.brokenImages}</b></div><div class="actions"><button class="action" data-action="audit">↻ Atualizar</button><button class="action primary" data-action="copy-audit">Copiar relatório</button></div>`);
         wrapper.querySelector('#page-title').textContent=a.title;
         const intro=document.createElement('p');intro.className='muted';intro.textContent='Análise contextual: somente estrutura da página e rota atual, nunca valores digitados ou mensagens.';this.$content.appendChild(intro);
+        if(this.selectedProject){
+          const tip=this.selectedProject;
+          const card=document.createElement('section');card.className='insight';
+          const heading=document.createElement('b');heading.textContent='✦ '+tip.label;
+          const explanation=document.createElement('p');explanation.textContent=tip.comment;
+          const details=document.createElement('p');details.className='muted';details.textContent=tip.disclaimer;
+          card.append(heading,explanation,details);
+          for(const point of tip.tips.slice(0,3)){
+            const row=document.createElement('p');row.className='muted';row.textContent='• '+point;card.appendChild(row);
+          }
+          const copy=document.createElement('button');copy.className='action';copy.type='button';
+          copy.dataset.action='copy-project-advice';copy.textContent=this.language.ui.copy;
+          card.appendChild(copy);
+          this.$content.appendChild(card);
+        }
         const title=document.createElement('div');title.className='line';title.innerHTML='<b>Sugestões do familiar</b>';this.$content.appendChild(title);
         for(const [i,tip] of this.suggestions.entries()){
           const box=document.createElement('div');box.className='insight';
@@ -879,6 +906,11 @@ class AlquimagoFamiliar extends HTMLElement {
     if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
       const target={ 'go-routes':2,'go-files':3,'go-ai':4,'go-actions':0 }[action];
       this.state.tab=target;this.render();return;
+    }
+    if(action==='copy-project-advice'){
+      const a=this.selectedProject;
+      if(a)void this.copy(a.label+'\n'+a.comment+'\n'+a.tips.join('\n')+'\n'+a.disclaimer);
+      return;
     }
     if(action==='open-publish'){
       this.state.open=false;this.render();
