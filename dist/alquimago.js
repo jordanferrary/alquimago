@@ -1,65 +1,87 @@
-/* ALQUIMAGO v0.2 • MIT */
+/* ALQUIMAGO v0.3 • MIT */
 (() => {
 "use strict";
-// ALQUIMAGO • cérebro simbólico adaptativo, sem conexão de rede.
-// Implementação original, NÃO é a rede neural do Pestinha.
-const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, value));
-const DEFAULT_BRAIN = Object.freeze({
-  energy: 75, curiosity: 58, focus: 38, affinity: 45,
-  xp: 0, interactions: 0, lastAction: 'summon', lastSeen: 0,
-  sleepUntil: 0,
+// Alquimago 0.3 — symbolic familiar brain, not a language model.
+// XP rewards exploration/meaningful discovery rather than repetitive clicking.
+const clamp=(n,min=0,max=100)=>Math.max(min,Math.min(max,n));
+const DEFAULT_BRAIN=Object.freeze({
+  energy:75,curiosity:58,focus:38,affinity:45,
+  xp:0,interactions:0,lastAction:'summon',lastSeen:0,sleepUntil:0,
+  lastRewardAt:0,lastRewardAction:'',rewardedPages:{}
 });
-const ACTIONS = {
-  pet:   { energy:  2, curiosity: 0, focus: -2, affinity: 8, xp: 2 },
-  play:  { energy: -9, curiosity: 9, focus: -4, affinity: 3, xp: 3 },
-  focus: { energy: -4, curiosity: -2, focus: 13, affinity: 1, xp: 3 },
-  rest:  { energy: 17, curiosity: 0, focus: -3, affinity: 0, xp: 1 },
-  study: { energy: -2, curiosity: 5, focus: 7, affinity: 0, xp: 2 },
+const ACTIONS={
+ pet:{energy:1,curiosity:0,focus:-1,affinity:3,xp:0},
+ stroke:{energy:2,curiosity:1,focus:-2,affinity:5,xp:0},
+ play:{energy:-8,curiosity:7,focus:-4,affinity:2,xp:2},
+ focus:{energy:-3,curiosity:-1,focus:11,affinity:1,xp:2},
+ rest:{energy:16,curiosity:0,focus:-2,affinity:0,xp:0},
+ study:{energy:-2,curiosity:4,focus:5,affinity:0,xp:2},
+ brew:{energy:-6,curiosity:5,focus:7,affinity:2,xp:3},
+ explore:{energy:-1,curiosity:4,focus:1,affinity:1,xp:4},
+ publish:{energy:-2,curiosity:3,focus:4,affinity:2,xp:10}
 };
-function restoreBrain(value) {
-  if (!value || typeof value !== 'object') return { ...DEFAULT_BRAIN };
-  const clean = { ...DEFAULT_BRAIN };
-  for (const key of ['energy', 'curiosity', 'focus', 'affinity']) {
-    if (typeof value[key] === 'number' && Number.isFinite(value[key])) clean[key] = clamp(value[key]);
+function restoreBrain(raw){
+ const data=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
+ const result={...DEFAULT_BRAIN,rewardedPages:{}};
+ for(const key of ['energy','curiosity','focus','affinity'])
+  if(typeof data[key]==='number'&&Number.isFinite(data[key]))result[key]=clamp(data[key]);
+ for(const key of ['xp','interactions','lastSeen','sleepUntil','lastRewardAt'])
+  if(typeof data[key]==='number'&&Number.isFinite(data[key]))result[key]=clamp(data[key],0,1e12);
+ if(typeof data.lastAction==='string'&&Object.hasOwn(ACTIONS,data.lastAction))result.lastAction=data.lastAction;
+ if(typeof data.lastRewardAction==='string')result.lastRewardAction=data.lastRewardAction.slice(0,40);
+ const pages=data.rewardedPages&&typeof data.rewardedPages==='object'?data.rewardedPages:{};
+ for(const [key,value] of Object.entries(pages).slice(-80)){
+  if(/^[A-Za-z0-9_.#%-]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value))
+   result.rewardedPages[key]=clamp(value,0,1e12);
+ }
+ return result;
+}
+function applyAction(brain,name,now=Date.now(),detail=''){
+ if(!Object.hasOwn(ACTIONS,name))return restoreBrain(brain);
+ const next=restoreBrain(brain),action=ACTIONS[name];
+ for(const key of ['energy','curiosity','focus','affinity'])next[key]=clamp(next[key]+action[key]);
+ next.interactions=clamp(next.interactions+1,0,1e12);
+ next.lastAction=name;next.lastSeen=now;
+ next.sleepUntil=name==='rest'?now+3000:0;
+ // No XP for petting, rest or passive UI changes. Other actions have cooldown.
+ let earned=0;
+ if(name==='explore'||name==='publish'){
+  const safe=typeof detail==='string'&&/^[A-Za-z0-9_.#%-]{1,120}$/.test(detail)?detail:'';
+  // Route XP once per day; each confirmed publication revision rewards once.
+  const day=Math.floor(now/86400000);
+  if(safe&&(name==='publish'?!Object.hasOwn(next.rewardedPages,safe):next.rewardedPages[safe]!==day)){
+    earned=action.xp;next.rewardedPages[safe]=day;
   }
-  for (const key of ['xp', 'interactions', 'lastSeen', 'sleepUntil']) {
-    if (typeof value[key] === 'number' && Number.isFinite(value[key])) clean[key] = clamp(value[key], 0, 1e12);
-  }
-  if (typeof value.lastAction === 'string' && Object.hasOwn(ACTIONS, value.lastAction)) clean.lastAction = value.lastAction;
-  return clean;
+ }else if(action.xp>0){
+  // 60s between rewards of the same action; 20s global spacing.
+  const gap=now-next.lastRewardAt;
+  if(gap>=20000&&(name!==next.lastRewardAction||gap>=60000))earned=action.xp;
+ }
+ if(earned){
+  next.xp=clamp(next.xp+earned,0,1e12);
+  next.lastRewardAt=now;next.lastRewardAction=name;
+ }
+ return next;
 }
-function applyAction(brain, name, now = Date.now()) {
-  if (!Object.hasOwn(ACTIONS, name)) return restoreBrain(brain);
-  const result = restoreBrain(brain);
-  for (const key of ['energy', 'curiosity', 'focus', 'affinity']) result[key] = clamp(result[key] + ACTIONS[name][key]);
-  result.xp = clamp(result.xp + ACTIONS[name].xp, 0, 1e12);
-  result.interactions++;
-  result.lastAction = name;
-  result.lastSeen = now;
-  result.sleepUntil = name === 'rest' ? now + 2700 : 0;
-  return result;
+function passTime(brain,elapsedMs,now=Date.now()){
+ const next=restoreBrain(brain),minutes=clamp(elapsedMs/60000,0,30);
+ next.energy=clamp(next.energy+minutes*.55);
+ next.curiosity=clamp(next.curiosity+minutes*.15);
+ next.focus=clamp(next.focus-minutes*.22);
+ next.lastSeen=now;
+ return next;
 }
-function passTime(brain, elapsedMs, now = Date.now()) {
-  const result = restoreBrain(brain);
-  // A passagem do tempo apenas estabiliza os indicadores. Não penaliza o usuário por sair.
-  const minutes = clamp(elapsedMs / 60000, 0, 30);
-  result.energy = clamp(result.energy + minutes * .65);
-  result.curiosity = clamp(result.curiosity + minutes * .22);
-  result.focus = clamp(result.focus - minutes * .3);
-  result.lastSeen = now;
-  return result;
+function currentMood(brain,now=Date.now()){
+ const b=restoreBrain(brain);
+ if(b.sleepUntil>now)return 'meditando';
+ if(b.energy<=23)return 'sonolento';
+ if(['pet','stroke'].includes(b.lastAction)&&now-b.lastSeen<4500)return 'feliz';
+ if(['play','brew'].includes(b.lastAction)&&now-b.lastSeen<4500)return 'animado';
+ if(b.focus>=65&&b.lastAction==='focus')return 'concentrado';
+ if(b.curiosity>=68)return 'curioso';
+ return 'tranquilo';
 }
-function currentMood(brain, now = Date.now()) {
-  const state = restoreBrain(brain);
-  if (state.sleepUntil > now) return 'meditando';
-  if (state.energy <= 23) return 'sonolento';
-  if (state.lastAction === 'pet' && now - state.lastSeen < 3500) return 'feliz';
-  if (state.lastAction === 'play' && now - state.lastSeen < 3500) return 'animado';
-  if (state.focus >= 65 && state.lastAction === 'focus') return 'concentrado';
-  if (state.curiosity >= 65) return 'curioso';
-  return 'tranquilo';
-}
-function levelFromXp(xp) { return Math.max(1, Math.floor(Math.sqrt(Math.max(0, xp) / 8)) + 1); }
+function levelFromXp(xp){return Math.max(1,Math.floor(Math.sqrt(Math.max(0,xp)/8))+1);}
 
 // Declarative, same-origin public configuration. JSON is never executable.
 const DEFAULT_CONFIG = Object.freeze({
@@ -69,7 +91,7 @@ const DEFAULT_CONFIG = Object.freeze({
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true},
   memory:{namespace:'default',remoteSnapshot:''},
   project:{files:[]},
-  messages:{pet:'Um brilho de amizade arcana! ✧',play:'Prepare-se: poção de diversão!',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
+  messages:{pet:'Um brilho de amizade arcana! ✧',stroke:'Que carinho agradável! ✧',play:'Prepare-se: poção de diversão!',brew:'Elixir mágico concluído! ⚗',explore:'Rota estudada pelo familiar. ✦',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
   assistant:{projectContext:'',guidelines:[]}
 });
 const obj = x => x && typeof x==='object' && !Array.isArray(x) ? x : {};
@@ -117,9 +139,13 @@ const memoryObject=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 const num=x=>typeof x==='number'&&Number.isFinite(x);
 function cleanMemory(value){
   const data=memoryObject(value),raw=memoryObject(data.brain),p=memoryObject(data.position),brain={};
-  for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil'])
+  for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil','lastRewardAt'])
     if(num(raw[k]))brain[k]=Math.max(0,Math.min(1e12,raw[k]));
-  if(typeof raw.lastAction==='string'&&['pet','play','focus','rest','study','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  if(typeof raw.lastRewardAction==='string'&&raw.lastRewardAction.length<40)brain.lastRewardAction=raw.lastRewardAction;
+  if(raw.rewardedPages&&typeof raw.rewardedPages==='object'){
+    brain.rewardedPages=Object.fromEntries(Object.entries(raw.rewardedPages).filter(([key,value])=>/^[A-Za-z0-9_.#%-]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)).slice(-80));
+  }
   return {schema:2,brain,position:num(p.x)&&num(p.y)?{x:Math.max(0,Math.min(10000,p.x)),y:Math.max(0,Math.min(10000,p.y))}:null};
 }
 function readMemory(storage,namespace='default'){
@@ -178,6 +204,62 @@ async function inspectProjectFiles(list,{pageUrl,fetcher,maxBytes=64000}={}){
   return results;
 }
 
+// Privacy-preserving UI awareness: DOM metadata and public routes only.
+// Never inspect input values, textarea contents, credentials or chats.
+function routeSignature(url){
+ try{const u=new URL(url);return (u.pathname+u.hash).slice(0,120);}catch{return '/';}
+}
+function readPublicPage(doc,locationUrl){
+ const u=new URL(locationUrl),ids=[...doc.querySelectorAll('[id]')].map(x=>x.id);
+ const imgs=[...doc.querySelectorAll('img')];
+ const hash=(u.hash||'').toLowerCase();
+ const route=hash.includes('contato')||hash.includes('contact')?'contact':
+  hash.includes('portfolio')||hash.includes('gallery')?'gallery':
+  hash.includes('sobre')||hash.includes('about')?'about':
+  hash.includes('project/')?'project':
+  hash.includes('page/')?'custom':'home';
+ const editorial=!!doc.querySelector('.studio-dock,.studio-dock-root,[data-studio],.editor-overlay,.editor-panel');
+ const heading=doc.querySelector('h1');
+ const labels=[...doc.querySelectorAll('button')].filter(x=>!x.getAttribute('aria-label')&&!x.textContent.trim()).length;
+ const metadata={
+  route,signature:routeSignature(locationUrl),title:String(doc.title||'').slice(0,100),
+  heading:!!heading,images:imgs.length,missingAlt:imgs.filter(i=>!i.hasAttribute('alt')).length,
+  brokenImages:imgs.filter(i=>i.complete&&i.naturalWidth===0&&i.currentSrc).length,
+  duplicateIds:ids.length-new Set(ids).size,unlabeledButtons:labels,
+  links:doc.querySelectorAll('a[href]').length,editorial
+ };
+ return metadata;
+}
+function suggestionsFromPage(page){
+ if(!page)return [];
+ const suggestions=[];
+ const push=(id,title,description)=>suggestions.push({id,title,description});
+ if(page.missingAlt)push('alt','Imagens sem descrição',page.missingAlt+' imagem(ns) sem atributo alt. Revise a acessibilidade.');
+ if(page.brokenImages)push('broken','Imagens com erro',page.brokenImages+' mídia(s) não carregaram corretamente nesta página.');
+ if(page.duplicateIds)push('ids','IDs repetidos',page.duplicateIds+' identificador(es) duplicados podem atrapalhar links e acessibilidade.');
+ if(!page.heading)push('heading','Hierarquia da página','A página atual não possui título principal (h1).');
+ if(page.unlabeledButtons)push('buttons','Botões sem nome',page.unlabeledButtons+' botão(ões) sem rótulo acessível.');
+ const labels={
+  home:['Destaques da página','Confira se a chamada principal conduz à obra certa.'],
+  gallery:['Galeria de projetos','Revise o enquadramento das capas em telas menores.'],
+  project:['Apresentação do projeto','Verifique o ritmo entre imagens, descrição e detalhes da obra.'],
+  contact:['Página de contato','Confira links de redes sociais e o espaço ocupado na tela.'],
+  about:['Página sobre','Reforce o que torna a trajetória e as habilidades relevantes.'],
+  custom:['Página personalizada','Revise se os blocos estão claros e têm bons pontos de ação.']
+ };
+ const [title,description]=labels[page.route]||labels.home;
+ push('route',title,description);
+ if(page.editorial)push('editor','Modo de edição','Há controles do editor na página. Revise a prévia antes de publicar.');
+ return suggestions.slice(0,6);
+}
+function samePageSignature(a,b){
+ return !!a&&!!b&&a.signature===b.signature&&a.images===b.images&&
+ a.missingAlt===b.missingAlt&&a.brokenImages===b.brokenImages&&
+ a.duplicateIds===b.duplicateIds&&a.unlabeledButtons===b.unlabeledButtons&&
+ a.editorial===b.editorial;
+}
+
+
 
 
 
@@ -224,25 +306,84 @@ const STYLE = `
 @keyframes levitate{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-8px) rotate(1deg)}}
 @keyframes blink{0%,44%,48%,100%{transform:scaleY(1)}46%{transform:scaleY(.07)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Arcane familiar • refined panel & meaningful gestures */
+:host{--violet:#b58aff;--ink:#110c21}
+.shell{gap:9px}
+.character{width:124px;height:155px;filter:drop-shadow(0 8px 12px #08051b99)}
+.character svg{width:124px;height:155px}
+.character:hover{filter:drop-shadow(0 0 13px #a768f681) drop-shadow(0 10px 10px #0b0525a6)}
+.character .arc-sigils{animation:spin 36s linear infinite;transform-origin:58px 93px}
+.character .potion-spark{animation:twinkle 2.2s ease-in-out infinite}
+.character .potion-bubble{animation:twinkle 1.6s ease-in-out infinite}
+.character[data-mood="feliz"] .arc-mouth{stroke-width:3}
+.character[data-mood="animado"]{animation:levitate 1.25s ease-in-out infinite}
+.familiar-title{border-color:color-mix(in srgb,var(--violet),#251438 40%);background:linear-gradient(115deg,#231335ed,#130e25ef)}
+.panel{width:min(338px,calc(100vw - 18px));border:1px solid #ad78de91;background:linear-gradient(150deg,#251637f7,#110d20fa 75%);box-shadow:0 20px 60px #060113b0}
+.panel-header{background:radial-gradient(ellipse at 80% 0%,#8a5cf21e,transparent),#ffffff06}
+.panel-header b{font-size:14px;letter-spacing:.02em}
+.tab{font-size:11px;white-space:nowrap}
+.tab.selected{background:color-mix(in srgb,var(--violet) 32%,#21132f);color:#fff1d4}
+.content{max-height:min(335px,45vh)}
+.action{min-height:35px}
+.action.primary{background:linear-gradient(125deg,#7043b3,#47277e)}
+.action:hover,.list-item:hover{border-color:var(--violet)}
+.insight{padding:11px;margin:8px 0;border:1px solid #9276af5a;border-radius:12px;background:#ad81f711;line-height:1.55}
+.insight b{display:block;color:#f4e6ff;margin-bottom:3px}
+.insight span{color:#cab7df;font-size:11px}
+.thought{max-width:205px;border:1px solid #b991f37a;border-radius:12px 12px 3px 12px;background:#251635f2;padding:7px 11px;line-height:1.3;font-size:10px;color:#f1e3ff;box-shadow:0 5px 19px #06020d77;align-self:flex-end}
+.thought:empty,.thought[hidden]{display:none!important}
+:host([data-position="bottom-left"]) .thought{align-self:flex-start;border-radius:12px 12px 12px 3px}
+:host([data-position="bottom-left"]) .shell{align-items:flex-start}
+@keyframes twinkle{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.12)}}
+@media(max-width:460px){:host{right:8px;bottom:9px}.panel{width:min(315px,calc(100vw - 16px))}.character{width:100px;height:128px}.character svg{width:100px;height:128px}}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
-const SVG = `<svg viewBox="0 0 116 143" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-<defs><radialGradient id="glow"><stop stop-color="#cc9aff" stop-opacity=".57"/><stop offset="1" stop-color="#793bdf" stop-opacity="0"/></radialGradient><linearGradient id="cloak" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7650a2"/><stop offset="1" stop-color="#2e2049"/></linearGradient></defs>
-<ellipse cx="58" cy="92" rx="57" ry="53" fill="url(#glow)"/>
-<g class="rune" opacity=".56" stroke="#ffdba2" fill="none" stroke-width="1.5"><circle cx="58" cy="91" r="39" stroke-dasharray="7 6"/><path d="M58 45v7m0 80v-7M12 91h7m78 0h7"/></g>
-<path d="M23 115Q26 84 38 79Q58 65 79 80Q90 93 94 122Q60 143 22 121Z" fill="url(#cloak)" stroke="#bd9be2" stroke-width="2.2"/>
-<path d="M48 84Q58 102 69 84L61 123L54 131Z" fill="#ad79c4" opacity=".65"/>
-<path d="M24 55Q38 40 58 13Q74 50 84 55L98 64Q55 82 14 62Z" fill="#483161" stroke="#d5adff" stroke-width="2.7"/>
-<path d="M52 19l7-12 6 15M25 54q30-6 60 1" stroke="#dfb572" stroke-width="3" fill="none" stroke-linecap="round"/>
-<path d="M31 58Q32 41 57 41Q82 39 84 61V86Q81 106 58 108Q35 107 31 84Z" fill="#edc0ac" stroke="#694467" stroke-width="2"/>
-<path d="M30 63Q45 50 59 54Q70 59 85 60" fill="none" stroke="#66507e" stroke-width="4"/>
-<g class="eyes"><ellipse cx="46" cy="76" rx="5" ry="7" fill="#21172e"/><ellipse cx="69" cy="76" rx="5" ry="7" fill="#21172e"/><circle cx="47" cy="74" r="1.7" fill="#fff"/><circle cx="70" cy="74" r="1.7" fill="#fff"/></g>
-<path d="M54 90q5 5 10 0" stroke="#995d75" stroke-width="2.3" fill="none" stroke-linecap="round"/>
-<path d="M33 109l-13 15M81 108l15 13" stroke="#d6b7ef" stroke-width="7" stroke-linecap="round"/>
-<circle cx="58" cy="116" r="8.5" fill="#4e2364" stroke="#ecd090" stroke-width="2"/><path d="M58 110v12M52 116h12" stroke="#eacc85" stroke-width="1.5"/>
-<path d="M78 24l2 6 7 2-7 2-2 7-2-7-7-2 7-2Z" fill="#f5d78f"/>
+const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<defs>
+ <radialGradient id="arc-halo"><stop stop-color="#bd84ff" stop-opacity=".42"/><stop offset="1" stop-color="#8445d9" stop-opacity="0"/></radialGradient>
+ <linearGradient id="arc-hat" x1=".1" y1="0" x2=".8" y2="1"><stop stop-color="#7651bd"/><stop offset=".52" stop-color="#3f246d"/><stop offset="1" stop-color="#23173c"/></linearGradient>
+ <linearGradient id="arc-cloak" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6f43aa"/><stop offset=".65" stop-color="#342052"/><stop offset="1" stop-color="#170f2b"/></linearGradient>
+ <linearGradient id="arc-flask" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4ffed" stop-opacity=".8"/><stop offset=".55" stop-color="#47f5d6" stop-opacity=".7"/><stop offset="1" stop-color="#36a5ec" stop-opacity=".85"/></linearGradient>
+ <filter id="arc-glow"><feGaussianBlur stdDeviation="2.1"/></filter>
+</defs>
+<ellipse cx="58" cy="87" rx="55" ry="60" fill="url(#arc-halo)"/>
+<g class="arc-sigils" fill="none" stroke="#d5a7ff" stroke-width=".9" opacity=".68"><circle cx="58" cy="93" r="45" stroke-dasharray="3 5"/><path d="M58 40v8M58 139v-7M4 93h8M104 93h8"/><circle cx="58" cy="93" r="35" stroke-dasharray="1 10"/></g>
+<ellipse cx="58" cy="143" rx="37" ry="4" fill="#0e0925" opacity=".3"/>
+<!-- robe and sleeves -->
+<path d="M37 93Q20 99 22 133Q38 144 58 144Q81 144 96 133Q96 101 78 94L70 89H47Z" fill="url(#arc-cloak)" stroke="#b893df" stroke-width="1.7"/>
+<path d="M50 94L58 111L67 94L63 132L58 138L53 132Z" fill="#261838" stroke="#9e71c2" stroke-width="1.2"/>
+<path d="M58 107l5 9-5 9-5-9Z" fill="#d7b572" stroke="#fff2bd" stroke-width=".7"/>
+<path d="M36 100q-13 5-16 22" fill="none" stroke="#7952b2" stroke-width="13" stroke-linecap="round"/>
+<path d="M81 102q12 3 17 18" fill="none" stroke="#7952b2" stroke-width="12" stroke-linecap="round"/>
+<!-- flowing hair -->
+<path d="M33 69Q23 93 36 108L44 99Q48 113 52 102L69 100Q75 111 83 107Q89 89 82 69Z" fill="#ece4f5" stroke="#b9a8d1" stroke-width="1.8"/>
+<!-- face -->
+<path d="M32 68Q30 47 57 48Q83 46 85 68L81 88Q75 100 59 102Q39 101 34 88Z" fill="#e9c1ad" stroke="#ba8b9a" stroke-width="1.4"/>
+<ellipse cx="42" cy="85" rx="6" ry="3.3" fill="#efa5ac" opacity=".6"/><ellipse cx="74" cy="85" rx="6" ry="3.3" fill="#efa5ac" opacity=".6"/>
+<!-- expressive hair fringe and eyes -->
+<path d="M31 69Q37 50 51 54Q56 44 69 54Q79 52 85 69Q75 64 69 64Q64 73 58 72Q50 63 42 69Q36 67 31 71Z" fill="#f4ebff" stroke="#c9b8de" stroke-width="1.3"/>
+<g class="eyes"><path d="M43 77q4-3 9 0" fill="none" stroke="#39243b" stroke-width="2" stroke-linecap="round"/><path d="M65 77q4-3 9 0" fill="none" stroke="#39243b" stroke-width="2" stroke-linecap="round"/><ellipse cx="47.5" cy="81" rx="3" ry="5" fill="#251936"/><ellipse cx="69" cy="81" rx="3" ry="5" fill="#251936"/><circle cx="48" cy="79.4" r="1.3" fill="#fff"/><circle cx="69.5" cy="79.4" r="1.3" fill="#fff"/></g>
+<path class="arc-mouth" d="M54 91q4 4 8 0" fill="none" stroke="#9b6374" stroke-width="1.6" stroke-linecap="round"/>
+<!-- hat with gold circlet and small arcane star -->
+<path d="M18 64Q29 55 35 40Q52 13 59 5Q73 28 79 46Q88 56 97 61Q92 72 57 73Q29 72 18 64Z" fill="url(#arc-hat)" stroke="#c9a6ff" stroke-width="2.1"/>
+<path d="M38 39Q55 29 76 44L80 53Q58 48 31 55Z" fill="#9a6abd" opacity=".35"/>
+<path d="M22 62Q57 70 94 61" fill="none" stroke="#e3c077" stroke-width="4.5" stroke-linecap="round"/>
+<path d="M56 13l3 6 7 1-5 5 2 7-7-4-6 4 1-7-5-5 7-1Z" fill="#fce1a4" stroke="#fff2c8" stroke-width="1"/>
+<circle cx="59" cy="23" r="2" fill="#fff9d6"/>
+<!-- alchemist vial in right hand -->
+<path d="M94 111l3-7 7 2-1 7 5 10q3 12-9 15-12-2-9-14Z" fill="url(#arc-flask)" stroke="#cffdf1" stroke-width="1.5"/>
+<path d="M95 110l9 3" stroke="#e8fff4" stroke-width="2"/><path d="M92 126q6 5 14 0" fill="none" stroke="#1ee4ba" stroke-width="2"/>
+<circle class="potion-bubble" cx="99" cy="121" r="2.4" fill="#ecfffe"/><circle class="potion-bubble" cx="103" cy="117" r="1.2" fill="#fff"/>
+<path d="M88 118q5-6 7-2" fill="none" stroke="#e7c7b9" stroke-width="5" stroke-linecap="round"/>
+<!-- tiny feet and sparkles -->
+<ellipse cx="44" cy="143" rx="12" ry="4" fill="#251333" stroke="#9e77bc" stroke-width="1.5"/><ellipse cx="71" cy="143" rx="12" ry="4" fill="#251333" stroke="#9e77bc" stroke-width="1.5"/>
+<path class="potion-spark" d="M101 76l2 7 7 2-7 2-2 7-2-7-7-2 7-2Z" fill="#9ff5e8"/>
+<path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
+<circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
 </svg>`;
-const TABS = ['ações', 'página', 'rotas', 'arquivos', 'assistentes'];
+const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA'];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
 const storage=()=>{try{return window.localStorage;}catch{return null;}};
@@ -286,6 +427,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
+    this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -293,10 +435,11 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Clique para afagar; arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><div class="thought" id="thought" aria-hidden="true"></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
+    this.$thought=this.shadowRoot.getElementById('thought');
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
@@ -311,6 +454,27 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$content.addEventListener('click', e => this.onContentClick(e));
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
+    this.startObservation();
+    this.studioHandler=event=>{
+      const d=event?.detail;
+      if(!d||typeof d.section!=='string')return;
+      this.studioInfo={
+        section:d.section.slice(0,35),
+        projects:Number.isFinite(d.projects)?Math.max(0,Math.min(9999,d.projects)):0,
+        pages:Number.isFinite(d.pages)?Math.max(0,Math.min(9999,d.pages)):0,
+        editing:d.editing===true
+      };
+      this.inspectPage(true);
+    };
+    window.addEventListener('alquimago:studio-context',this.studioHandler);
+    this.activityHandler=event=>{
+      const data=event?.detail;
+      if(data?.type==='published'&&typeof data.revision==='string'){
+        this.action('publish','pub-'+encodeURIComponent(data.revision).slice(0,100));
+      }
+    };
+    window.addEventListener('alquimago:activity',this.activityHandler);
+    window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
       this.message=config.identity.greeting;
@@ -331,12 +495,62 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       if(!this.isConnected)return;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
-      if(saved.position)this.state.position=saved.position;
+      if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save(); this.renderHeader(); }, 10000);
   }
-  disconnectedCallback() { if (this.timer) clearInterval(this.timer); this.timer = null; }
+  disconnectedCallback(){
+    if(this.timer)clearInterval(this.timer);
+    if(this.observeTimer)clearTimeout(this.observeTimer);
+    if(this.observer)this.observer.disconnect();
+    if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
+    if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
+    if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
+    this.timer=null;this.observer=null;this.observeTimer=null;
+  }
+  startObservation(){
+    if(this.desktop||!this.isConnected)return;
+    this.routeHandler=()=>this.inspectPage(true);
+    window.addEventListener('hashchange',this.routeHandler);
+    window.addEventListener('popstate',this.routeHandler);
+    if(typeof MutationObserver!=='undefined'){
+      this.observer=new MutationObserver(()=>{
+        if(this.observeTimer)return;
+        this.observeTimer=setTimeout(()=>{this.observeTimer=null;this.inspectPage(false);},1400);
+      });
+      this.observer.observe(document.body,{childList:true,subtree:true});
+    }
+    this.inspectPage(true);
+  }
+  inspectPage(navigated=false){
+    if(this.desktop||!this.isConnected)return;
+    const next=readPublicPage(document,location.href);
+    if(!navigated&&samePageSignature(next,this.activePage))return;
+    const routeChanged=this.activePage?.signature!==next.signature;
+    this.activePage=next;
+    this.audit=auditPage();
+    this.suggestions=suggestionsFromPage(next);
+    if(this.studioInfo?.editing){
+      this.suggestions.unshift({
+        id:'studio',title:'Studio • '+this.studioInfo.section,
+        description:'Projeto em edição com '+this.studioInfo.projects+' projetos e '+this.studioInfo.pages+' páginas personalizadas. Revise a prévia antes da publicação.'
+      });
+      this.suggestions=this.suggestions.slice(0,6);
+    }
+    if(routeChanged){
+      this.message='Reconheci a página: '+next.route+'. Tenho '+this.suggestions.length+' sugestão(ões).';
+    }
+    this.updateThought();
+    if(this.state.open&&this.state.tab===1)this.render();
+    else this.renderHeader();
+  }
+  updateThought(){
+    if(!this.$thought)return;
+    const issue=this.suggestions.find(x=>x.id!=='route'&&x.id!=='editor');
+    this.$thought.textContent=issue?'✦ '+issue.title:'';
+    this.$thought.hidden=!!this.state.open||!issue;
+  }
   save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
   snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
   moveTo(x, y) {
@@ -347,29 +561,37 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   onPointerDown(e) {
     if (e.button !== 0) return;
-    this.pointerStart = { x: e.clientX, y: e.clientY, left: this.offsetLeft, top: this.offsetTop, moved: false };
-    if (this.desktop) {
-      try { void window.__TAURI__?.window?.getCurrentWindow()?.startDragging(); } catch { /* optional desktop feature */ }
+    const box=this.getBoundingClientRect();
+    this.pointerStart={x:e.clientX,y:e.clientY,left:box.left,top:box.top,dx:0,dy:0,moved:false};
+    if(this.desktop&&e.altKey){
+      try{void window.__TAURI__?.window?.getCurrentWindow()?.startDragging();}catch{/* platform optional */}
     }
     this.$character.setPointerCapture(e.pointerId);
   }
   onPointerMove(e) {
-    if (!this.pointerStart || !this.config.features.dragging) return;
-    const dx = e.clientX - this.pointerStart.x, dy = e.clientY - this.pointerStart.y;
-    if (Math.abs(dx) + Math.abs(dy) > 7) this.pointerStart.moved = true;
-    if (this.pointerStart.moved && !this.desktop) this.moveTo(this.pointerStart.left + dx, this.pointerStart.top + dy);
+    if(!this.pointerStart)return;
+    const dx=e.clientX-this.pointerStart.x,dy=e.clientY-this.pointerStart.y;
+    this.pointerStart.dx=dx;this.pointerStart.dy=dy;
+    // Short strokes are caresses. Intentional longer drags relocate the mascot.
+    if(this.config.features.dragging&&Math.hypot(dx,dy)>72)this.pointerStart.moved=true;
+    if(this.pointerStart.moved&&!this.desktop)this.moveTo(this.pointerStart.left+dx,this.pointerStart.top+dy);
   }
   onPointerUp(e) {
     const data = this.pointerStart; this.pointerStart = null;
     if (!data) return;
-    if (data.moved) { if (!this.desktop) this.save(); }
+    if(data.moved){if(!this.desktop)this.save();}
+    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58)this.action('stroke');
     else this.action('pet');
     if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
   }
-  action(name) {
-    this.state.brain = applyAction(this.state.brain, name);
-    this.message=this.config.messages[name]||'Runas reorganizadas.';
-    this.save(); this.render();
+  action(name,detail=''){
+    const before=this.state.brain.xp;
+    const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):name==='publish'?detail:'';
+    this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
+    const earned=this.state.brain.xp-before;
+    const messages={stroke:'Hmm… mais um carinho no chapéu! ✧',brew:'Elixir alquímico preparado! ✨',explore:'Nova rota estudada. ✦',publish:'Projeto publicado! Magia de verdade. ✦'};
+    this.message=(this.config.messages[name]||messages[name]||'Runas reorganizadas.')+(earned?' +'+earned+' XP':'');
+    this.save();this.render();
   }
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
@@ -383,6 +605,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
     this.$feedback.textContent = this.message || MOODS[mood];
+    this.updateThought();
   }
   render() {
     const flags=this.config.features;
@@ -396,14 +619,24 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><div class="actions"><button class="action" data-action="pet">✦ Afagar</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="focus">◈ Concentrar</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button></div>`);
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button></div>`);
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
-        if (!this.audit) this.audit = auditPage();
+        this.audit=auditPage();
         const a = this.audit;
         const wrapper = add(`<div class="line"><b>Diagnóstico superficial</b></div><div class="muted" id="page-title"></div><div class="line"><span>Elementos de navegação</span><b>${a.links}</b></div><div class="line"><span>Botões</span><b>${a.buttons}</b></div><div class="line"><span>Imagens sem atributo alt</span><b>${a.missingAlt}</b></div><div class="line"><span>IDs duplicados</span><b>${a.duplicateIds}</b></div><div class="line"><span>Imagens com falha</span><b>${a.brokenImages}</b></div><div class="actions"><button class="action" data-action="audit">↻ Atualizar</button><button class="action primary" data-action="copy-audit">Copiar relatório</button></div>`);
-        wrapper.querySelector('#page-title').textContent = a.title;
+        wrapper.querySelector('#page-title').textContent=a.title;
+        const intro=document.createElement('p');intro.className='muted';intro.textContent='Análise contextual: somente estrutura da página e rota atual, nunca valores digitados ou mensagens.';this.$content.appendChild(intro);
+        const title=document.createElement('div');title.className='line';title.innerHTML='<b>Sugestões do familiar</b>';this.$content.appendChild(title);
+        for(const [i,tip] of this.suggestions.entries()){
+          const box=document.createElement('div');box.className='insight';
+          const heading=document.createElement('b');heading.textContent='✦ '+tip.title;
+          const detail=document.createElement('span');detail.textContent=tip.description;
+          const copy=document.createElement('button');copy.type='button';copy.className='action';copy.dataset.insight=String(i);copy.textContent='Pedir ajuda à IA ↗';copy.style.marginTop='7px';
+          box.append(heading,detail,document.createElement('br'),copy);this.$content.appendChild(box);
+        }
+        const explore=document.createElement('button');explore.type='button';explore.className='action primary';explore.dataset.action='explore';explore.textContent='✧ Explorar esta rota';this.$content.appendChild(explore);
       }
     } else if (this.state.tab === 2) {
       if (this.desktop) add('<p class="muted">Abra a versão web do Alquimago no seu projeto React para navegar pelas páginas desse site.</p>');
@@ -438,6 +671,8 @@ class AlquimagoFamiliar extends HTMLElement {
     return ['Sou o Alquimago, um familiar digital local. Preciso de assistência para o projeto do usuário.',
       'Contexto: ' + (a ? `${a.title} (${location.origin}${a.path})` : 'Aplicativo desktop Alquimago'),
       a ? `Diagnóstico básico: ${a.links} links, ${a.buttons} botões, ${a.images} imagens, ${a.missingAlt} imagens sem alt, ${a.duplicateIds} IDs repetidos.` : '',
+      ...this.suggestions.slice(0,4).map(tip=>'Sugestão de melhoria: '+tip.title+' — '+tip.description),
+      this.studioInfo?.editing?'Editor integrado: '+this.studioInfo.section+'; '+this.studioInfo.projects+' projetos; '+this.studioInfo.pages+' páginas.':'',
       this.config.assistant.projectContext?'Contexto: '+this.config.assistant.projectContext:'',
       ...this.config.assistant.guidelines.map(rule=>'Orientação: '+rule),
       ...this.projectFiles.filter(file=>file.status==='read').slice(0,4).map(file=>'Arquivo público '+file.file+': '+file.excerpt.slice(0,700)),
@@ -453,12 +688,17 @@ class AlquimagoFamiliar extends HTMLElement {
     const button = e.target.closest('button'); if (!button) return;
     if (button.dataset.navigate !== undefined) {
       const link = this.links[Number(button.dataset.navigate)];
-      if (link && new URL(link.href).origin === location.origin) location.assign(link.href);
+      if(link && new URL(link.href).origin===location.origin){location.assign(link.href);this.message='Abrindo '+link.label+'…';this.renderHeader();}
+      return;
+    }
+    if(button.dataset.insight!==undefined){
+      const tip=this.suggestions[Number(button.dataset.insight)];
+      if(tip)void this.copy(this.createPrompt()+'\n\nMelhoria solicitada: '+tip.title+' — '+tip.description);
       return;
     }
     const action = button.dataset.action;
     if (!action) return;
-    if (['pet','play','focus','rest'].includes(action)) return this.action(action);
+    if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
     if(action==='export-memory'){
       const blob=new Blob([exportBackup(this.snapshot())],{type:'application/json'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');
@@ -510,7 +750,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.2.0',
+    version: '0.3.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
