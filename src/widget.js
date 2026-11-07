@@ -132,14 +132,29 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$content.addEventListener('click', e => this.onContentClick(e));
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
-    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(config=>{
+    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
       this.message=config.identity.greeting;
-      const saved=readMemory(storage(),config.memory.namespace);
+      let saved=readMemory(storage(),config.memory.namespace);
+      // A public, site-owned baseline is used only if the device has no progress.
+      // It never overwrites existing progress and never accesses a private URL.
+      if(!Object.keys(saved.brain).length && config.memory.remoteSnapshot){
+        const result=await inspectProjectFiles([config.memory.remoteSnapshot],{pageUrl:location.href});
+        if(result[0]?.status==='read'){
+          try{
+            const published=JSON.parse(result[0].excerpt);
+            if(published?.schema===2 && published.brain && typeof published.brain==='object'){
+              saved={...saved,brain:published.brain};
+              writeMemory(storage(),saved,config.memory.namespace);
+            }
+          }catch{/* Invalid public snapshot does not discard local progress. */}
+        }
+      }
+      if(!this.isConnected)return;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
       if(saved.position)this.state.position=saved.position;
       this.render();
-    }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';this.renderHeader();});
+    }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save(); this.renderHeader(); }, 10000);
   }
   disconnectedCallback() { if (this.timer) clearInterval(this.timer); this.timer = null; }
