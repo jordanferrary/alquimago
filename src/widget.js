@@ -722,10 +722,16 @@ class AlquimagoFamiliar extends HTMLElement {
     this.setAttribute('data-position',this.config.appearance.position);
     this.$panel.classList.toggle('open', this.state.open);
     this.renderHeader();
-    this.$tabs.innerHTML=MAIN_TABS.filter(item=>allowed[item.index]).map(item=>
-      '<button type="button" class="tab '+(item.index===this.state.tab?'selected':'')+
-      '" data-tab="'+item.index+'" aria-pressed="'+(item.index===this.state.tab)+'">'+
-      this.language.tabs[item.key]+'</button>').join('');
+    this.$tabs.replaceChildren();
+    for(const item of MAIN_TABS.filter(item=>allowed[item.index])){
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='tab'+(item.index===this.state.tab?' selected':'');
+      button.dataset.tab=String(item.index);
+      button.setAttribute('aria-pressed',String(item.index===this.state.tab));
+      button.textContent=this.language.tabs[item.key]||item.key;
+      this.$tabs.appendChild(button);
+    }
     this.$content.replaceChildren();
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
