@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
+  behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:true},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
@@ -19,6 +20,7 @@ export function normalizeConfig(input){
   const id=obj(data.identity), app=obj(data.appearance), features=obj(data.features);
   const memory=obj(data.memory), project=obj(data.project), messages=obj(data.messages), agent=obj(data.assistant);
   const language=obj(data.language),proactive=obj(data.proactive);
+  const behavior=obj(data.behavior);
   const skins=Array.isArray(app.skins)?app.skins.slice(0,12).filter(entry=>
     entry&&typeof entry==='object'&&!Array.isArray(entry)&&
     typeof entry.id==='string'&&/^[a-zA-Z0-9_-]{1,35}$/.test(entry.id)
@@ -37,6 +39,13 @@ export function normalizeConfig(input){
     appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position,skin:obj(app.skin),skins:validSkins,selectedSkin},
     language:{code:txt(language.code,'pt-BR',32),file:typeof language.file==='string'?language.file.trim().slice(0,500):''},
     proactive:{projectHover:proactive.projectHover!==false,delayMs:typeof proactive.delayMs==='number'?Math.max(550,Math.min(4000,proactive.delayMs)):1000,cooldownMs:typeof proactive.cooldownMs==='number'?Math.max(20000,Math.min(600000,proactive.cooldownMs)):45000},
+    behavior:{
+      enabled:behavior.enabled!==false,
+      mode:['silencioso','equilibrado','brincalhao'].includes(behavior.mode)?behavior.mode:'equilibrado',
+      minIntervalMs:typeof behavior.minIntervalMs==='number'&&Number.isFinite(behavior.minIntervalMs)?Math.max(45000,Math.min(900000,behavior.minIntervalMs)):120000,
+      maxPerDay:typeof behavior.maxPerDay==='number'&&Number.isFinite(behavior.maxPerDay)?Math.max(0,Math.min(8,Math.floor(behavior.maxPerDay))):4,
+      toy:behavior.toy!==false
+    },
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
     memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):'',mode:memory.mode==='publish'?'publish':'local'},
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
