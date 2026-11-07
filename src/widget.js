@@ -72,7 +72,7 @@ const STYLE = `
 .insight b{display:block;color:#f4e6ff;margin-bottom:3px}
 .insight span{color:#cab7df;font-size:11px}
 .thought{max-width:205px;border:1px solid #b991f37a;border-radius:12px 12px 3px 12px;background:#251635f2;padding:7px 11px;line-height:1.3;font-size:10px;color:#f1e3ff;box-shadow:0 5px 19px #06020d77;align-self:flex-end}
-.thought:empty{display:none}
+.thought:empty,.thought[hidden]{display:none!important}
 :host([data-position="bottom-left"]) .thought{align-self:flex-start;border-radius:12px 12px 12px 3px}
 :host([data-position="bottom-left"]) .shell{align-items:flex-start}
 @keyframes twinkle{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.12)}}
@@ -167,7 +167,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
-    this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.previousRoute='';
+    this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -175,7 +175,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><div class="thought" id="thought" aria-hidden="true"></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Clique para afagar; arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><div class="thought" id="thought" aria-hidden="true"></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
@@ -195,6 +195,19 @@ class AlquimagoFamiliar extends HTMLElement {
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
     this.startObservation();
+    this.studioHandler=event=>{
+      const d=event?.detail;
+      if(!d||typeof d.section!=='string')return;
+      this.studioInfo={
+        section:d.section.slice(0,35),
+        projects:Number.isFinite(d.projects)?Math.max(0,Math.min(9999,d.projects)):0,
+        pages:Number.isFinite(d.pages)?Math.max(0,Math.min(9999,d.pages)):0,
+        editing:d.editing===true
+      };
+      this.inspectPage(true);
+    };
+    window.addEventListener('alquimago:studio-context',this.studioHandler);
+    window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
       this.message=config.identity.greeting;
@@ -225,6 +238,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
+    if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   startObservation(){
@@ -249,6 +263,13 @@ class AlquimagoFamiliar extends HTMLElement {
     this.activePage=next;
     this.audit=auditPage();
     this.suggestions=suggestionsFromPage(next);
+    if(this.studioInfo?.editing){
+      this.suggestions.unshift({
+        id:'studio',title:'Studio • '+this.studioInfo.section,
+        description:'Projeto em edição com '+this.studioInfo.projects+' projetos e '+this.studioInfo.pages+' páginas personalizadas. Revise a prévia antes da publicação.'
+      });
+      this.suggestions=this.suggestions.slice(0,6);
+    }
     if(routeChanged){
       this.message='Reconheci a página: '+next.route+'. Tenho '+this.suggestions.length+' sugestão(ões).';
     }
@@ -383,6 +404,7 @@ class AlquimagoFamiliar extends HTMLElement {
       'Contexto: ' + (a ? `${a.title} (${location.origin}${a.path})` : 'Aplicativo desktop Alquimago'),
       a ? `Diagnóstico básico: ${a.links} links, ${a.buttons} botões, ${a.images} imagens, ${a.missingAlt} imagens sem alt, ${a.duplicateIds} IDs repetidos.` : '',
       ...this.suggestions.slice(0,4).map(tip=>'Sugestão de melhoria: '+tip.title+' — '+tip.description),
+      this.studioInfo?.editing?'Editor integrado: '+this.studioInfo.section+'; '+this.studioInfo.projects+' projetos; '+this.studioInfo.pages+' páginas.':'',
       this.config.assistant.projectContext?'Contexto: '+this.config.assistant.projectContext:'',
       ...this.config.assistant.guidelines.map(rule=>'Orientação: '+rule),
       ...this.projectFiles.filter(file=>file.status==='read').slice(0,4).map(file=>'Arquivo público '+file.file+': '+file.excerpt.slice(0,700)),
