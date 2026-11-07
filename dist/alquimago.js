@@ -1,6 +1,6 @@
-/* ALQUIMAGO • versão 0.1 • distribuição independente, MIT */
+/* ALQUIMAGO v0.2 • MIT */
 (() => {
-'use strict';
+"use strict";
 // ALQUIMAGO • cérebro simbólico adaptativo, sem conexão de rede.
 // Implementação original, NÃO é a rede neural do Pestinha.
 const clamp = (value, min = 0, max = 100) => Math.max(min, Math.min(max, value));
@@ -61,8 +61,130 @@ function currentMood(brain, now = Date.now()) {
 }
 function levelFromXp(xp) { return Math.max(1, Math.floor(Math.sqrt(Math.max(0, xp) / 8)) + 1); }
 
+// Declarative, same-origin public configuration. JSON is never executable.
+const DEFAULT_CONFIG = Object.freeze({
+  schemaVersion:1,
+  identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
+  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
+  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true},
+  memory:{namespace:'default'},
+  project:{files:[]},
+  messages:{pet:'Um brilho de amizade arcana! ✧',play:'Prepare-se: poção de diversão!',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
+  assistant:{projectContext:'',guidelines:[]}
+});
+const obj = x => x && typeof x==='object' && !Array.isArray(x) ? x : {};
+const txt = (x, fallback, limit=160) => typeof x==='string' && x.trim() ? x.trim().slice(0,limit) : fallback;
+const hex = (x, fallback) => typeof x==='string' && /^#[\da-fA-F]{6}$/.test(x) ? x : fallback;
+function normalizeConfig(input){
+  const data=obj(input), d=DEFAULT_CONFIG;
+  const id=obj(data.identity), app=obj(data.appearance), features=obj(data.features);
+  const memory=obj(data.memory), project=obj(data.project), messages=obj(data.messages), agent=obj(data.assistant);
+  return {
+    schemaVersion:1,
+    identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
+    appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position},
+    features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
+    memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default'},
+    project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
+    messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
+    assistant:{
+      projectContext:typeof agent.projectContext==='string'?agent.projectContext.trim().slice(0,700):'',
+      guidelines:Array.isArray(agent.guidelines)?agent.guidelines.filter(x=>typeof x==='string'&&x.trim()).slice(0,12).map(x=>x.trim().slice(0,220)):[]
+    }
+  };
+}
+async function loadConfig(path,{origin,base,fetcher}={}){
+  if(!path)return normalizeConfig(null);
+  const site=origin||globalThis.location?.origin;
+  const target=new URL(path,base||globalThis.location?.href||'https://example.invalid/');
+  if(!['https:','http:'].includes(target.protocol)||(site&&target.origin!==site))throw Error('A configuração deve estar na mesma origem do site.');
+  const reader=fetcher||globalThis.fetch;
+  if(typeof reader!=='function')return normalizeConfig(null);
+  const response=await reader(target.href,{credentials:'same-origin',cache:'no-store'});
+  if(!response.ok)throw Error('Configuração indisponível.');
+  const body=await response.text();
+  if(body.length>32768)throw Error('Configuração muito grande.');
+  const parsed=JSON.parse(body);
+  if(parsed?.schemaVersion!==undefined&&parsed.schemaVersion!==1)throw Error('Versão de configuração incompatível.');
+  return normalizeConfig(parsed);
+}
+
+// Stable, origin-scoped memory keys survive deployments. Never persist credentials.
+const LEGACY_KEY='alquimago:v1';
+const MEMORY_VERSION=2;
+const memoryKey=(ns='default')=>'alquimago:memory:v2:'+(/^[\w-]{1,48}$/.test(ns)?ns:'default');
+const memoryObject=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+const num=x=>typeof x==='number'&&Number.isFinite(x);
+function cleanMemory(value){
+  const data=memoryObject(value),raw=memoryObject(data.brain),p=memoryObject(data.position),brain={};
+  for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil'])
+    if(num(raw[k]))brain[k]=Math.max(0,Math.min(1e12,raw[k]));
+  if(typeof raw.lastAction==='string'&&['pet','play','focus','rest','study','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  return {schema:2,brain,position:num(p.x)&&num(p.y)?{x:Math.max(0,Math.min(10000,p.x)),y:Math.max(0,Math.min(10000,p.y))}:null};
+}
+function readMemory(storage,namespace='default'){
+  try{
+    const prior=storage.getItem(memoryKey(namespace));
+    if(prior)return cleanMemory(JSON.parse(prior));
+    if(namespace!=='default')return cleanMemory(null);
+    const legacy=storage.getItem(LEGACY_KEY);
+    if(!legacy)return cleanMemory(null);
+    const result=cleanMemory(JSON.parse(legacy));
+    writeMemory(storage,result,namespace);
+    return result;
+  }catch{return cleanMemory(null);}
+}
+function writeMemory(storage,value,namespace='default'){
+  try{storage.setItem(memoryKey(namespace),JSON.stringify(cleanMemory(value)));return true;}
+  catch{return false;}
+}
+function parseBackup(text){
+  if(typeof text!=='string'||text.length>32768)throw Error('Arquivo de memória inválido.');
+  const result=JSON.parse(text);
+  if(result?.schema!==1&&result?.schema!==2)throw Error('Versão de memória incompatível.');
+  return cleanMemory(result);
+}
+const exportBackup=value=>JSON.stringify(cleanMemory(value),null,2);
+
+// Read-only inspection of explicit public file URLs. Not a filesystem scanner.
+const EXT=/\.(?:txt|md|json|csv|html|css|js|mjs|ts|tsx)$/i;
+const FORBIDDEN=/(?:^|\/)(?:\.git|\.env(?:\.|$)|secrets?|private|credentials?)(?:\/|\.|$)/i;
+function resolveProjectFile(value,pageUrl){
+  if(typeof value!=='string'||!value.trim()||value.length>512)return null;
+  try{
+    const u=new URL(value,pageUrl),host=new URL(pageUrl);
+    if(!/^https?:$/.test(u.protocol)||u.origin!==host.origin||!EXT.test(u.pathname)||FORBIDDEN.test(u.pathname)||u.username||u.password)return null;
+    return u.href;
+  }catch{return null;}
+}
+async function inspectProjectFiles(list,{pageUrl,fetcher,maxBytes=64000}={}){
+  const reader=fetcher||globalThis.fetch,base=pageUrl||globalThis.location?.href;
+  if(!base||typeof reader!=='function')return [];
+  const files=[...new Set((Array.isArray(list)?list:[]).filter(x=>typeof x==='string'&&x.trim()))].slice(0,12);
+  const results=[];
+  for(const file of files){
+    const url=resolveProjectFile(file,base);
+    if(!url){results.push({file,status:'blocked'});continue;}
+    try{
+      const response=await reader(url,{credentials:'same-origin',redirect:'error',cache:'no-store'});
+      if(!response.ok){results.push({file,status:'unavailable'});continue;}
+      const size=Number(response.headers?.get?.('content-length'));
+      if(Number.isFinite(size)&&size>maxBytes){results.push({file,status:'oversized'});continue;}
+      const buffer=await response.arrayBuffer();
+      if(buffer.byteLength>maxBytes){results.push({file,status:'oversized'});continue;}
+      results.push({file,status:'read',bytes:buffer.byteLength,excerpt:new TextDecoder().decode(buffer).slice(0,2000)});
+    }catch{results.push({file,status:'unavailable'});}
+  }
+  return results;
+}
+
+
+
+
+
 const TAG = 'alquimago-familiar';
 const STYLE = `
+.tabs{overflow-x:auto}.tab{min-width:46px;padding:7px 4px}
 :host{all:initial;position:fixed;z-index:2147483000;right:22px;bottom:20px;color:#f5eaff;font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;--violet:#b58aff;--ink:#17101f;--gold:#f9d891;user-select:none;box-sizing:border-box}
 :host([data-mode="desktop"]){position:relative;right:auto;bottom:auto;display:block;width:100%;height:100%}
 *{box-sizing:border-box}
@@ -119,14 +241,10 @@ const SVG = `<svg viewBox="0 0 116 143" aria-hidden="true" xmlns="http://www.w3.
 <circle cx="58" cy="116" r="8.5" fill="#4e2364" stroke="#ecd090" stroke-width="2"/><path d="M58 110v12M52 116h12" stroke="#eacc85" stroke-width="1.5"/>
 <path d="M78 24l2 6 7 2-7 2-2 7-2-7-7-2 7-2Z" fill="#f5d78f"/>
 </svg>`;
-const TABS = ['ações', 'página', 'rotas', 'assistentes'];
+const TABS = ['ações', 'página', 'rotas', 'arquivos', 'assistentes'];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
-const STORAGE_KEY = 'alquimago:v1';
-
-function safeRead() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
-}
-function safeWrite(data) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* private mode */ } }
+const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
+const storage=()=>{try{return window.localStorage;}catch{return null;}};
 function findSameOriginLinks() {
   if (typeof document === 'undefined') return [];
   const unique = new Map();
@@ -160,7 +278,9 @@ class AlquimagoFamiliar extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this.state = { brain: restoreBrain(null), tab: 0, open: false, position: null };
-    this.message = 'Olá! Sou seu familiar arcano.';
+    this.config=normalizeConfig(null);
+    this.message=this.config.identity.greeting;
+    this.projectFiles=[];
     this.links = [];
     this.audit = null;
     this.timer = null;
@@ -168,11 +288,11 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
-    const saved = safeRead();
+    const saved=readMemory(storage());
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b>✦ Grimório do Alquimago</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Clique para afagar; arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong>✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Clique para afagar; arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
@@ -190,10 +310,19 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$content.addEventListener('click', e => this.onContentClick(e));
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
+    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(config=>{
+      this.config=config;
+      this.message=config.identity.greeting;
+      const saved=readMemory(storage(),config.memory.namespace);
+      this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
+      if(saved.position)this.state.position=saved.position;
+      this.render();
+    }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save(); this.renderHeader(); }, 10000);
   }
   disconnectedCallback() { if (this.timer) clearInterval(this.timer); this.timer = null; }
-  save() { safeWrite({ brain: this.state.brain, position: this.state.position }); }
+  save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
+  snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -223,12 +352,17 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   action(name) {
     this.state.brain = applyAction(this.state.brain, name);
-    this.message = { pet:'Um brilho de amizade arcana! ✧', play:'Prepare-se: poção de diversão!', focus:'Concentração ativada. 🜁', rest:'Meditando por alguns instantes.', study:'Analisando a energia da página.' }[name] || 'Runas reorganizadas.';
+    this.message=this.config.messages[name]||'Runas reorganizadas.';
     this.save(); this.render();
   }
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
-    const mood = currentMood(this.state.brain);
+    const mood=currentMood(this.state.brain);
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ Grimório de '+this.config.identity.name;
+    this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
+    this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle;
+    this.style.setProperty('--violet',this.config.appearance.accent);
+    this.style.setProperty('--gold',this.config.appearance.gold);
     this.shadowRoot.getElementById('mood').textContent = mood;
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
@@ -242,7 +376,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><div class="actions"><button class="action" data-action="pet">✦ Afagar</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="focus">◈ Concentrar</button><button class="action" data-action="rest">☾ Meditar</button></div>`);
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><div class="actions"><button class="action" data-action="pet">✦ Afagar</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="focus">◈ Concentrar</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button></div>`);
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -264,6 +398,16 @@ class AlquimagoFamiliar extends HTMLElement {
           this.$content.appendChild(button);
         });
       }
+    } else if(this.state.tab===3){
+      if(this.desktop)add('<p class="muted">Escolha uma pasta para analisar textos autorizados. Nenhuma pasta é lida automaticamente.</p><div class="actions"><button class="action primary" data-action="choose-folder">Escolher pasta</button></div>');
+      else add('<p class="muted">Só os arquivos públicos listados na configuração do projeto são acessados.</p><div class="actions"><button class="action primary" data-action="read-files">Ler arquivos</button></div>');
+      if(!this.projectFiles.length)add('<p class="muted">Nenhum arquivo examinado ainda.</p>');
+      for(const entry of this.projectFiles){
+        const item=document.createElement('div');item.className='line';
+        const label=document.createElement('span');label.textContent=entry.file.slice(0,75);
+        const result=document.createElement('small');result.textContent=entry.status==='read'?String(entry.bytes)+' bytes':entry.status;
+        item.append(label,result);this.$content.appendChild(item);
+      }
     } else {
       add('<p class="muted">Um resumo de tarefa pode ser copiado para continuar no ChatGPT ou no Gemini. Não há automação de login, coleta de conversas nem acesso a tokens.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
     }
@@ -273,6 +417,9 @@ class AlquimagoFamiliar extends HTMLElement {
     return ['Sou o Alquimago, um familiar digital local. Preciso de assistência para o projeto do usuário.',
       'Contexto: ' + (a ? `${a.title} (${location.origin}${a.path})` : 'Aplicativo desktop Alquimago'),
       a ? `Diagnóstico básico: ${a.links} links, ${a.buttons} botões, ${a.images} imagens, ${a.missingAlt} imagens sem alt, ${a.duplicateIds} IDs repetidos.` : '',
+      this.config.assistant.projectContext?'Contexto: '+this.config.assistant.projectContext:'',
+      ...this.config.assistant.guidelines.map(rule=>'Orientação: '+rule),
+      ...this.projectFiles.filter(file=>file.status==='read').slice(0,4).map(file=>'Arquivo público '+file.file+': '+file.excerpt.slice(0,700)),
       'Objetivo: primeiro pergunte qual mudança o usuário deseja realizar. Preserve o visual atual até receber instruções.',
       'Não suponha acesso ao repositório nem a arquivos privados. Solicite permissão antes de publicar alterações.'].filter(Boolean).join('\n');
   }
@@ -291,6 +438,44 @@ class AlquimagoFamiliar extends HTMLElement {
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','play','focus','rest'].includes(action)) return this.action(action);
+    if(action==='export-memory'){
+      const blob=new Blob([exportBackup(this.snapshot())],{type:'application/json'});
+      const url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download='alquimago-memory.json';a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),1000);
+      this.message='Backup da memória exportado.';this.renderHeader();return;
+    }
+    if(action==='import-memory'){
+      const picker=document.createElement('input');picker.type='file';picker.accept='.json,application/json';
+      picker.onchange=async()=>{try{
+        const file=picker.files?.[0];if(!file||file.size>32768)return;
+        const state=parseBackup(await file.text());
+        this.state.brain=restoreBrain(state.brain);this.state.position=state.position;
+        this.save();this.message='Memória restaurada neste dispositivo.';this.render();
+      }catch{this.message='Arquivo de memória inválido.';this.renderHeader();}};
+      picker.click();return;
+    }
+    if(action==='read-files'){
+      this.message='Lendo recursos autorizados...';this.renderHeader();
+      void inspectProjectFiles(this.config.project.files,{pageUrl:location.href}).then(files=>{
+        this.projectFiles=files;this.message=files.filter(f=>f.status==='read').length+' arquivo(s) lido(s).';this.render();
+      });return;
+    }
+    if(action==='choose-folder'){
+      const picker=document.createElement('input');picker.type='file';picker.multiple=true;picker.setAttribute('webkitdirectory','');
+      picker.onchange=async()=>{
+        const selection=Array.from(picker.files||[]).filter(f=>/\.(json|md|txt|ts|tsx|js|mjs|html|css|csv)$/i.test(f.name)).slice(0,20);
+        const records=[];
+        for(const file of selection){
+          const name=file.webkitRelativePath||file.name;
+          if(file.size>64000){records.push({file:name,status:'oversized'});continue;}
+          try{const body=await file.text();records.push({file:name,status:'read',bytes:file.size,excerpt:body.slice(0,2000)});}
+          catch{records.push({file:name,status:'unavailable'});}
+        }
+        this.projectFiles=records;this.message=records.filter(f=>f.status==='read').length+' arquivo(s) lido(s).';this.render();
+      };
+      picker.click();return;
+    }
     if (action === 'audit') { this.audit = auditPage(); this.action('study'); return; }
     if (action === 'copy-audit') return this.copy(this.createPrompt());
     if (action === 'chatgpt' || action === 'gemini') {
@@ -304,14 +489,15 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.1.0',
+    version: '0.2.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
       target.appendChild(el);
       return el;
     },
-    destroy() { document.querySelectorAll(TAG).forEach(el => el.remove()); }
+    destroy(){document.querySelectorAll(TAG).forEach(el=>el.remove());},
+    exportState(){const el=document.querySelector(TAG);return el?.snapshot?.()||null;}
   };
   const autoMount = () => {
     if (window.ALQUIMAGO_AUTO_MOUNT === false || document.querySelector(TAG)) return;
