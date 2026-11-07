@@ -29,3 +29,23 @@ export async function inspectProjectFiles(list,{pageUrl,fetcher,maxBytes=64000}=
   }
   return results;
 }
+
+/** An explicitly configured, bounded public JSON snapshot, not arbitrary browsing. */
+export async function readPublicSnapshot(value,{pageUrl,fetcher,maxBytes=180000}={}){
+ const base=pageUrl||globalThis.location?.href;
+ if(!base)return null;
+ const href=resolveProjectFile(value,base);
+ if(!href||!new URL(href).pathname.endsWith('.json'))return null;
+ try{
+  const reader=fetcher||globalThis.fetch;
+  if(typeof reader!=='function')return null;
+  const response=await reader(href,{credentials:'same-origin',redirect:'error',cache:'no-store'});
+  if(!response.ok)return null;
+  const declared=Number(response.headers?.get?.('content-length'));
+  if(Number.isFinite(declared)&&declared>maxBytes)return null;
+  const body=await response.arrayBuffer();
+  if(body.byteLength>maxBytes)return null;
+  const parsed=JSON.parse(new TextDecoder().decode(body));
+  return parsed&&typeof parsed==='object'&&parsed.schema===2?parsed:null;
+ }catch{return null;}
+}
