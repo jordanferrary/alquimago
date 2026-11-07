@@ -29,6 +29,10 @@ export function respondToChat(input,context={}){
   return {reply:'Misturei três gotas de luar, uma runa violeta e muita curiosidade. Poção concluída! ⚗',intent:'brew',action:'brew'};
  if(/\b(descansar|dormir|sono|meditar)\b/.test(q))
   return {reply:'Vou meditar por um instante e recuperar minha energia arcana.',intent:'rest',action:'rest'};
+ if(/\b(abra|abrir|navegar|visitar|ir|levar|leva)\b.*\b(galeria|portfolio|contato|sobre|inicio|home)\b/.test(q)){
+  const target=q.match(/\b(galeria|portfolio|contato|sobre|inicio|home)\b/)?.[1]||'';
+  return {reply:'Vou procurar a seção '+target+' na navegação pública do site.',intent:'navigate',target};
+ }
  if(/\b(sugestao|melhorar|analisar|erro|problema|site|pagina|projeto)\b/.test(q)){
   const tip=tips.find(t=>!['route','studio'].includes(t.id))||tips[0];
   return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer levar isso para uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight'};
