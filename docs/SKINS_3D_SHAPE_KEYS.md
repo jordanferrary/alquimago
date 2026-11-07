@@ -132,3 +132,16 @@ Fontes técnicas:
 - [Three.js Loading 3D Models](https://threejs.org/manual/en/load-gltf.html)
 - [Three.js GLTFLoader](https://threejs.org/docs/#examples/en/loaders/GLTFLoader)
 - [Cloudflare Pages file size limits](https://developers.cloudflare.com/pages/platform/limits/)
+
+
+## Atualização: Breath, direção de animação e enquadramento
+
+**Nova Shape Key: Breath.** No Blender, crie Breath na malha que contém o tórax. Em Value=0, deixe o peito neutro; em Value=1, faça a expansão máxima de uma inspiração. Não salve a expansão na Basis. O Alquimago executa uma onda cíclica 0 → 1 → 0, suavizada, sobre a intensidade configurada. A velocidade muda conforme o estado local (tranquilo, feliz, animado, curioso, concentrado, sonolento, meditando ou cansado).
+
+**Cada skin tem direção de animação própria.** Abra Local Studio → Ferramentas → Familiar → Ateliê do Alquimago → **Animações**. Você poderá ajustar duração e intensidade de **todas as Shape Keys** reconhecidas, assim como o intervalo de piscadas e bocejos. Para Breath, ajuste duração base, intensidade e velocidade relativa por humor. Os valores ficam no armazenamento local até a publicação aprovada, quando o perfil passa ao campo público appearance.animation3d de config.json.
+
+**Rosto sem cortar o enquadramento:** o Ateliê → **Câmera** oferece os presets Rosto, Busto e Corpo inteiro, seguidos por Zoom, Foco X, Foco Y, Rotação (yaw) e deslocamentos da janela. Os controles de foco movem o ponto da câmera dentro do modelo; os deslocamentos X/Y externos movem somente a janela. Caso o rosto não esteja centralizado depois do preset, refine Foco Y e Zoom. O padrão publicado fica em appearance.stage3d.
+
+**Organização do produto:** O Local Studio inclui uma área **Familiar**, com acesso direto ao Grimório e ao Ateliê, e uma busca por ferramentas. O Grimório foi organizado como conversa principal com os recursos de treinamento e mentor em uma seção recolhível. O **mascote é exibido no portfólio público**, onde pode reagir e ser visualizado; o **chat de IA generativa aparece somente com o Local Studio desbloqueado**. Isto é uma separação de interface, não autenticação do endpoint Cloudflare: a rota /api/assistant continua pública e pode consumir a cota Gemini.
+
+Não publique um novo GLB sem testar as Shape Keys, o posicionamento em celular e a operação do mascote depois de recarregar. O formato recomendado continua glTF Binary 2.0 (.glb).
