@@ -28,5 +28,5 @@ test('published backup contains bounded cortex and build imports both modules',(
  assert.match(source,/if\(this\.config\.memory\.mode==='publish'\)return;/);
  assert.match(builder,/behavior\.mjs/);
  assert.match(builder,/physics\.mjs/);
- assert.match(builder,/behavior,physics,commands,conversation,knowledge,llm,widget/);
+ assert.match(builder,/behavior,physics,commands,conversation,knowledge,llm,learning,widget/);
 });
