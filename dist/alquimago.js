@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.4.1 • MIT */
+/* ALQUIMAGO v0.5.0 • MIT */
 (() => {
 "use strict";
 // Alquimago 0.3 — symbolic familiar brain, not a language model.
@@ -89,7 +89,7 @@ const DEFAULT_CONFIG = Object.freeze({
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
-  memory:{namespace:'default',remoteSnapshot:''},
+  memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',stroke:'Que carinho agradável! ✧',play:'Prepare-se: poção de diversão!',brew:'Elixir mágico concluído! ⚗',explore:'Rota estudada pelo familiar. ✦',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
   assistant:{projectContext:'',guidelines:[]}
@@ -106,7 +106,7 @@ function normalizeConfig(input){
     identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
     appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position},
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
-    memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):''},
+    memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):'',mode:memory.mode==='publish'?'publish':'local'},
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
     messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
     assistant:{
@@ -141,7 +141,7 @@ function cleanMemory(value){
   const data=memoryObject(value),raw=memoryObject(data.brain),p=memoryObject(data.position),brain={};
   for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil','lastRewardAt'])
     if(num(raw[k]))brain[k]=Math.max(0,Math.min(1e12,raw[k]));
-  if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
+  if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','publish','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
   if(typeof raw.lastRewardAction==='string'&&raw.lastRewardAction.length<40)brain.lastRewardAction=raw.lastRewardAction;
   if(raw.rewardedPages&&typeof raw.rewardedPages==='object'){
     brain.rewardedPages=Object.fromEntries(Object.entries(raw.rewardedPages).filter(([key,value])=>/^[A-Za-z0-9_.#%-]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)).slice(-80));
@@ -165,7 +165,7 @@ function writeMemory(storage,value,namespace='default'){
   catch{return false;}
 }
 function parseBackup(text){
-  if(typeof text!=='string'||text.length>32768)throw Error('Arquivo de memória inválido.');
+  if(typeof text!=='string'||text.length>180000)throw Error('Arquivo de memória inválido.');
   const result=JSON.parse(text);
   if(result?.schema!==1&&result?.schema!==2)throw Error('Versão de memória incompatível.');
   return cleanMemory(result);
@@ -202,6 +202,26 @@ async function inspectProjectFiles(list,{pageUrl,fetcher,maxBytes=64000}={}){
     }catch{results.push({file,status:'unavailable'});}
   }
   return results;
+}
+
+/** An explicitly configured, bounded public JSON snapshot, not arbitrary browsing. */
+async function readPublicSnapshot(value,{pageUrl,fetcher,maxBytes=180000}={}){
+ const base=pageUrl||globalThis.location?.href;
+ if(!base)return null;
+ const href=resolveProjectFile(value,base);
+ if(!href||!new URL(href).pathname.endsWith('.json'))return null;
+ try{
+  const reader=fetcher||globalThis.fetch;
+  if(typeof reader!=='function')return null;
+  const response=await reader(href,{credentials:'same-origin',redirect:'error',cache:'no-store'});
+  if(!response.ok)return null;
+  const declared=Number(response.headers?.get?.('content-length'));
+  if(Number.isFinite(declared)&&declared>maxBytes)return null;
+  const body=await response.arrayBuffer();
+  if(body.byteLength>maxBytes)return null;
+  const parsed=JSON.parse(new TextDecoder().decode(body));
+  return parsed&&typeof parsed==='object'&&parsed.schema===2?parsed:null;
+ }catch{return null;}
 }
 
 // Privacy-preserving UI awareness: DOM metadata and public routes only.
@@ -306,33 +326,33 @@ function respondToChat(input,context={}){
  const tips=Array.isArray(context.suggestions)?context.suggestions:[];
  if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
  if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
- if(/\b(oi|ola|eai|opa|bom dia|boa tarde|boa noite|salve)\b/.test(q))
+ if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
   return {reply:'Saudações! Sou '+name+'. Minha poção está borbulhando e estou '+mood+'. Quer conversar, brincar ou analisar esta página?',intent:'greeting'};
- if(/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
+ if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
   return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
- if(/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
+ if(context.neuralIntent==='status'||/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
   return {reply:'Meu grimório registra nível '+level+' e '+xp+' XP. Carinhos aumentam nossa afinidade, mas não geram XP infinito. Explorar uma rota ou realizar uma tarefa relevante ajuda na evolução.',intent:'status'};
- if(/\b(carinho|acariciar|afagar|cabeca|cabecinha)\b/.test(q))
+ if(context.neuralIntent==='pet'||/\b(carinho|acariciar|afagar|cabeca|cabecinha)\b/.test(q))
   return {reply:'Passe o mouse suavemente de um lado para o outro sobre meu chapéu, sem clicar! Também pode arrastar o dedo sobre minha cabeça no celular. ✧',intent:'pet'};
- if(/\b(brincar|brincadeira|jogar|bolinha)\b/.test(q))
+ if(context.neuralIntent==='play'||/\b(brincar|brincadeira|jogar|bolinha)\b/.test(q))
   return {reply:'Uma brincadeira arcana! Vou gastar um pouco de energia e ganhar curiosidade. Vamos?',intent:'play',action:'play'};
- if(/\b(pocao|elixir|alquimia|mistura)\b/.test(q))
+ if(context.neuralIntent==='brew'||/\b(pocao|elixir|alquimia|mistura)\b/.test(q))
   return {reply:'Misturei três gotas de luar, uma runa violeta e muita curiosidade. Poção concluída! ⚗',intent:'brew',action:'brew'};
- if(/\b(descansar|dormir|sono|meditar)\b/.test(q))
+ if(context.neuralIntent==='rest'||/\b(descansar|dormir|sono|meditar)\b/.test(q))
   return {reply:'Vou meditar por um instante e recuperar minha energia arcana.',intent:'rest',action:'rest'};
  if(/\b(abra|abre|abrir|navegar|visitar|ir|vai|levar|leva)\b.*\b(galeria|portfolio|contato|sobre|inicio|home)\b/.test(q)){
   const target=q.match(/\b(galeria|portfolio|contato|sobre|inicio|home)\b/)?.[1]||'';
   return {reply:'Vou procurar a seção '+target+' na navegação pública do site.',intent:'navigate',target};
  }
- if(/\b(sugestao|melhorar|analisar|erro|problema|site|pagina|projeto)\b/.test(q)){
+ if(context.neuralIntent==='insight'||/\b(sugestao|melhorar|analisar|erro|problema|site|pagina|projeto)\b/.test(q)){
   const tip=tips.find(t=>!['route','studio'].includes(t.id))||tips[0];
   return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer levar isso para uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight'};
  }
- if(/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
+ if(context.neuralIntent==='help'||/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
   return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também posso listar rotas do projeto e preparar um resumo para ChatGPT ou Gemini.',intent:'help'};
- if(/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
+ if(context.neuralIntent==='mood'||/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
   return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
- if(/\b(obrigado|valeu|agradeco)\b/.test(q))
+ if(context.neuralIntent==='thanks'||/\b(obrigado|valeu|agradeco)\b/.test(q))
   return {reply:'Sempre um prazer ajudar nas suas criações. ✦',intent:'thanks'};
  return {reply:'Essa pergunta vai além das respostas locais que conheço. Posso analisar a estrutura do site ou preparar sua pergunta para um modelo de IA, com sua autorização.',intent:'unknown'};
 }
@@ -358,6 +378,157 @@ function writeDialogue(storage,namespace='default',history=[]){
  try{storage.setItem(dialogueKey(namespace),JSON.stringify(safe));return true;}
  catch{return false;}
 }
+
+// Lightweight on-device neural intent classifier.
+// 96 input feature neurons -> 24 hidden tanh neurons -> 12 intent output neurons.
+// Trainable weights; never stores chat messages, credentials or raw text.
+const INTENTS=['greeting','identity','status','pet','play','brew','rest','navigate','insight','help','mood','thanks'];
+const INPUTS=96,HIDDEN=24,OUTPUTS=INTENTS.length;
+const samples={
+ greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend'],
+ identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia'],
+ status:['qual meu xp','quanto xp eu tenho','meu nivel','qual o nivel','quanta energia','meu progresso','status','quanto de xp tenho'],
+ pet:['carinho','quero fazer carinho','como faço carinho','passar a mao na cabeca','posso te acariciar','afagar o mago'],
+ play:['vamos brincar','quero brincar','brincadeira','jogar um joguinho','brincar com voce'],
+ brew:['pocao','poção','faz poção','criar elixir','mistura magica','alquimia','preparar pocao'],
+ rest:['dormir','descansa','vai descansar','meditar','hora de dormir','ta com sono','recarregar energia'],
+ navigate:['abra a galeria','abre a galeria','ir para contato','navegar para sobre','abrir portfólio','vai para inicio','mostra a home','abrir a pagina contato'],
+ insight:['ideias para o site','me da sugestoes','sugestão pro site','analise esta pagina','como melhorar meu site','ache erros no projeto','dica de design'],
+ help:['ajuda','preciso de ajuda','o que voce faz','quais comandos','como funciona','comandos','ajude-me'],
+ mood:['como esta seu humor','ta feliz','se sente bem','voce ta triste','qual seu humor','ta animado'],
+ thanks:['obrigado','valeu','muito obrigado','brigado','agradeco','thanks','obg']
+};
+const neuralClamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
+function canon(input){
+ return String(input||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+ .replace(/(.)\1{3,}/g,'$1$1').replace(/[^a-z0-9\s]/g,' ').trim().replace(/\s+/g,' ').slice(0,120);
+}
+function hash(value){
+ let n=2166136261;
+ for(let i=0;i<value.length;i++){n^=value.charCodeAt(i);n=Math.imul(n,16777619);}
+ return n>>>0;
+}
+function neuralFeatures(text){
+ const s=canon(text),vec=Array(INPUTS).fill(0);
+ if(!s)return vec;
+ const tokens=s.split(' ');
+ const features=[...tokens.map(w=>'t:'+w)];
+ const padded='^'+s+'$';
+ for(let i=0;i<padded.length-2;i++)features.push('3:'+padded.slice(i,i+3));
+ for(let i=0;i<tokens.length-1;i++)features.push('p:'+tokens[i]+' '+tokens[i+1]);
+ for(const feature of features)vec[hash(feature)%INPUTS]+=1;
+ const norm=Math.hypot(...vec)||1;return vec.map(v=>v/norm);
+}
+function deterministic(index){return ((hash('arcane-seed-'+index)%20001)/10000-1)*.13;}
+function newNeuralModel(){
+ return {version:1,
+  inputHidden:Array.from({length:INPUTS*HIDDEN},(_,i)=>deterministic(i)),
+  hiddenBias:Array(HIDDEN).fill(0),
+  hiddenOutput:Array.from({length:HIDDEN*OUTPUTS},(_,i)=>deterministic(i+3000)),
+  outputBias:Array(OUTPUTS).fill(0),
+  learned:0
+ };
+}
+function neuralForward(model,text){
+ const x=neuralFeatures(text),hidden=Array(HIDDEN).fill(0),raw=Array(OUTPUTS).fill(0);
+ for(let j=0;j<HIDDEN;j++){
+  let z=model.hiddenBias[j];
+  for(let i=0;i<INPUTS;i++)if(x[i])z+=x[i]*model.inputHidden[i*HIDDEN+j];
+  hidden[j]=Math.tanh(z);
+ }
+ for(let k=0;k<OUTPUTS;k++){
+  let z=model.outputBias[k];
+  for(let j=0;j<HIDDEN;j++)z+=hidden[j]*model.hiddenOutput[j*OUTPUTS+k];
+  raw[k]=z;
+ }
+ const highest=Math.max(...raw);
+ const exp=raw.map(z=>Math.exp(neuralClamp(z-highest,-40,40)));
+ const total=exp.reduce((a,b)=>a+b,0);
+ const probs=exp.map(n=>n/total);
+ const chosen=probs.indexOf(Math.max(...probs));
+ return {intent:INTENTS[chosen],confidence:probs[chosen],probabilities:probs,x,hidden};
+}
+function trainNeural(model,text,intent,rate=.075){
+ const target=INTENTS.indexOf(intent);
+ if(target<0||!canon(text))return model;
+ const {probabilities,x,hidden}=neuralForward(model,text);
+ const outputError=probabilities.map((p,k)=>(k===target?1:0)-p);
+ const hiddenError=Array(HIDDEN).fill(0);
+ for(let j=0;j<HIDDEN;j++){
+  let sum=0;for(let k=0;k<OUTPUTS;k++)sum+=outputError[k]*model.hiddenOutput[j*OUTPUTS+k];
+  hiddenError[j]=sum*(1-hidden[j]*hidden[j]);
+ }
+ for(let k=0;k<OUTPUTS;k++)model.outputBias[k]=neuralClamp(model.outputBias[k]+rate*outputError[k],-5,5);
+ for(let j=0;j<HIDDEN;j++){
+  model.hiddenBias[j]=neuralClamp(model.hiddenBias[j]+rate*hiddenError[j],-5,5);
+  for(let k=0;k<OUTPUTS;k++){
+   const ix=j*OUTPUTS+k;
+   model.hiddenOutput[ix]=neuralClamp(model.hiddenOutput[ix]+rate*outputError[k]*hidden[j],-5,5);
+  }
+ }
+ for(let i=0;i<INPUTS;i++)if(x[i])for(let j=0;j<HIDDEN;j++){
+  const ix=i*HIDDEN+j;
+  model.inputHidden[ix]=neuralClamp(model.inputHidden[ix]+rate*hiddenError[j]*x[i],-5,5);
+ }
+ model.learned=neuralClamp((model.learned||0)+1,0,1000000);
+ return model;
+}
+function seedNeuralModel(){
+ const model=newNeuralModel();
+ const list=Object.entries(samples).flatMap(([intent,phrases])=>phrases.map(text=>({intent,text})));
+ // Deterministic initial examples, no network or personal data.
+ for(let epoch=0;epoch<85;epoch++)
+   for(const entry of list)trainNeural(model,entry.text,entry.intent,.11);
+ model.learned=0;
+ return model;
+}
+function neuralPredict(model,text){
+ const result=neuralForward(model,text);
+ // A softmax can be overconfident on unknown sentences. The nearest known
+ // phrase provides an additional out-of-distribution similarity gate.
+ const similarity=Math.max(0,...Object.values(samples).flat().map(sample=>{
+  const vector=neuralFeatures(sample);
+  return vector.reduce((sum,value,i)=>sum+value*result.x[i],0);
+ }));
+ return {intent:result.intent,confidence:result.confidence*similarity,similarity};
+}
+function restoreNeuralModel(value){
+ if(!value||value.version!==1)return null;
+ const arrays=[['inputHidden',INPUTS*HIDDEN],['hiddenBias',HIDDEN],['hiddenOutput',HIDDEN*OUTPUTS],['outputBias',OUTPUTS]];
+ for(const [key,length] of arrays)
+  if(!Array.isArray(value[key])||value[key].length!==length||!value[key].every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=5))return null;
+ return {...Object.fromEntries(arrays.map(([key])=>[key,[...value[key]]])),version:1,
+  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0};
+}
+function serializeNeuralModel(model){
+ const clean=restoreNeuralModel(model);
+ return clean?{...clean,
+  inputHidden:clean.inputHidden.map(n=>Number(n.toFixed(5))),
+  hiddenOutput:clean.hiddenOutput.map(n=>Number(n.toFixed(5))),
+  hiddenBias:clean.hiddenBias.map(n=>Number(n.toFixed(5))),
+  outputBias:clean.outputBias.map(n=>Number(n.toFixed(5)))
+ }:null;
+}
+
+function neuralKey(namespace='default'){
+ return 'alquimago:neural:v1:'+(/^[A-Za-z0-9_-]{1,48}$/.test(namespace)?namespace:'default');
+}
+function readNeural(storage,namespace='default'){
+ try{
+  const raw=storage.getItem(neuralKey(namespace));
+  if(!raw||raw.length>180000)return null;
+  return restoreNeuralModel(JSON.parse(raw));
+ }catch{return null;}
+}
+function writeNeural(storage,namespace,model){
+ try{
+  const valid=serializeNeuralModel(model);
+  if(!valid)return false;
+  storage.setItem(neuralKey(namespace),JSON.stringify(valid));
+  return true;
+ }catch{return false;}
+}
+
 
 
 
@@ -460,6 +631,95 @@ const STYLE = `
 @keyframes affection-rise{0%{opacity:0;transform:translateY(10px) scale(.8)}25%{opacity:1}100%{opacity:0;transform:translateY(-40px) scale(1.3)}}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
+
+/* Avoid filter creating a containing block for fixed-position panel. */
+.shell{filter:none!important}
+/* Responsive, opaque and truly viewport-bounded grimório. The panel is not in
+   the mascot's vertical flow, so short monitors no longer cut it off. */
+:host{isolation:isolate}
+:host([data-publishing="true"]){display:none!important}
+.panel{
+ position:fixed!important;
+ z-index:2147483600;
+ right:clamp(132px,11vw,165px);
+ left:auto;top:auto;bottom:10px;
+ width:min(360px,calc(100vw - 175px));
+ height:auto;max-height:calc(100dvh - 20px);
+ min-height:0;
+ overflow:hidden;
+ background:#171023!important;
+ background-image:linear-gradient(155deg,#302040,#161022 70%)!important;
+ backdrop-filter:none!important;
+ box-shadow:0 20px 65px #04010cf0,0 0 0 1px #b78cee50;
+ pointer-events:auto;
+ overscroll-behavior:contain;
+}
+.panel.open{display:flex!important;flex-direction:column}
+.panel:not(.open){display:none!important}
+.panel-header,.tabs,.feedback{flex:0 0 auto}
+.panel-header{background:#261933!important}
+.panel-header .row{gap:5px}
+.panel-header .row b{flex:1;min-width:0;font-size:12px!important}
+.panel-close{
+ display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;
+ background:#482e60;border:1px solid #b286ce;border-radius:9px;
+ color:#f7e8ff;font:15px system-ui;cursor:pointer;
+}
+.content{
+ flex:1 1 auto;min-height:0!important;
+ max-height:none!important;
+ overflow-y:auto;overscroll-behavior:contain;
+ padding:12px!important;
+}
+.tabs{overflow-x:auto;scrollbar-width:thin}
+.tab{flex:0 0 auto;min-width:46px}
+.feedback{max-height:70px;overflow-y:auto;background:#1a1129}
+.chat-history{min-height:45px!important;max-height:min(220px,32dvh)!important}
+.neural-teach{
+ display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;
+ padding:8px 0;border-top:1px solid #8b66a746;
+}
+.neural-teach label{color:#dec8f2;font-size:10px}
+.neural-teach select{
+ flex:1 1 115px;min-width:0;background:#20122f;color:#f5e8ff;
+ border:1px solid #906ab7;border-radius:8px;padding:6px;font:11px system-ui;
+}
+.neural-teach button{
+ background:#653b90;border:1px solid #ab83d4;color:#fff;
+ border-radius:8px;padding:6px 9px;font:11px system-ui;cursor:pointer;
+}
+.session-note{
+ font-size:11px;line-height:1.5;padding:8px 10px;margin-top:9px;
+ border:1px solid #a77cd158;border-radius:10px;background:#362244;
+ color:#e9d3f4;
+}
+:host([data-position="bottom-left"]) .panel{
+ right:auto;left:clamp(132px,11vw,165px);
+}
+:host([data-mode="desktop"]) .panel{
+ position:relative!important;right:auto!important;left:auto!important;
+ top:auto!important;bottom:auto!important;max-height:calc(100dvh - 230px);
+ width:min(320px,100%);overflow:hidden;
+}
+@media(max-width:720px){
+ .panel,.panel.open,:host([data-position="bottom-left"]) .panel{
+  position:fixed!important;
+  top:8px;bottom:8px;right:8px;left:8px;
+  width:auto!important;height:auto!important;max-height:none!important;
+  border-radius:15px;
+ }
+ .panel.open{display:flex!important}
+ .content{padding:10px!important}
+}
+@media(max-height:430px){
+ .panel,.panel.open,:host([data-position="bottom-left"]) .panel{
+  top:5px;bottom:5px;max-height:calc(100dvh - 10px);
+ }
+ .panel-header{padding:8px 10px}
+ .tabs{padding:5px}
+ .feedback{padding:5px 10px;min-height:20px}
+}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -549,8 +809,10 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
-    this.hoverStroke=freshStroke();this.dialogue=[];this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
+    this.hoverStroke=freshStroke();this.dialogue=[];
+    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
+    this.publishDialogHandler=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -559,12 +821,13 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
     this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=5;this.render();});
+    this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
@@ -618,28 +881,36 @@ class AlquimagoFamiliar extends HTMLElement {
       }
     };
     window.addEventListener('alquimago:activity',this.activityHandler);
+    this.publishDialogHandler=event=>{
+      if(event?.detail?.open===true){
+        this.dataset.publishing='true';
+        this.state.open=false;
+        this.render();
+      }else delete this.dataset.publishing;
+    };
+    window.addEventListener('alquimago:publish-dialog',this.publishDialogHandler);
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
-      this.dialogue=readDialogue(storage(),config.memory.namespace);
+      this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
-      let saved=readMemory(storage(),config.memory.namespace);
-      // A public, site-owned baseline is used only if the device has no progress.
-      // It never overwrites existing progress and never accesses a private URL.
-      if(!Object.keys(saved.brain).length && config.memory.remoteSnapshot){
-        const result=await inspectProjectFiles([config.memory.remoteSnapshot],{pageUrl:location.href});
-        if(result[0]?.status==='read'){
-          try{
-            const published=JSON.parse(result[0].excerpt);
-            if(published?.schema===2 && published.brain && typeof published.brain==='object'){
-              saved={...saved,brain:published.brain};
-              writeMemory(storage(),saved,config.memory.namespace);
-            }
-          }catch{/* Invalid public snapshot does not discard local progress. */}
+      this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
+      let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
+      // The Studio always starts from its last published snapshot; no local drafts
+      // survive a refresh unless the user explicitly publishes via GitHub.
+      if(config.memory.remoteSnapshot&&(config.memory.mode==='publish'||!Object.keys(saved.brain).length)){
+        const published=await readPublicSnapshot(config.memory.remoteSnapshot,{pageUrl:location.href});
+        if(published?.brain&&typeof published.brain==='object'){
+          saved=cleanMemory(published);
+          if(published.neural){
+            const restored=restoreNeuralModel(published.neural);
+            if(restored)this.neural=restored;
+          }
         }
       }
       if(!this.isConnected)return;
+      this.configReady=true;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
@@ -654,6 +925,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
+    if(this.publishDialogHandler)window.removeEventListener('alquimago:publish-dialog',this.publishDialogHandler);
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
@@ -714,8 +986,11 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
     this.$thought.hidden=!!this.state.open&&this.state.tab===5||(!spoken&&!tip);
   }
-  save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
-  snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
+  save(){
+    if(this.config.memory.mode==='publish')return;
+    writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
+  }
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural)}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -769,7 +1044,10 @@ class AlquimagoFamiliar extends HTMLElement {
   sendMessage(text){
     const user=safeChatText(text);
     if(!user)return;
+    const prediction=neuralPredict(this.neural,user);
+    this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=respondToChat(user,{
+      neuralIntent:prediction.confidence>=.55?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
@@ -783,9 +1061,10 @@ class AlquimagoFamiliar extends HTMLElement {
       destination=options.find(link=>new URL(link.href).hash.toLowerCase().includes('/'+hash))||null;
       response.reply=destination?'Encontrei '+response.target+'. Abrindo esta seção do site…':'Não encontrei '+response.target+' na navegação disponível. Você pode conferir a aba Rotas.';
     }
+    if(response.store===false){this.lastUserText='';this.lastNeuralIntent='';}
     if(response.store!==false){
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:response.reply}].slice(-24);
-      writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+      if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
     }else{
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
@@ -809,9 +1088,9 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.4.1';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.5';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
-    this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle;
+    this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
     this.style.setProperty('--gold',this.config.appearance.gold);
     this.shadowRoot.getElementById('mood').textContent = mood;
@@ -832,7 +1111,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -890,9 +1169,27 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       this.$content.appendChild(history);
       add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
-      add('<div class="chat-suggestions"><button type="button" data-say="Oi!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
-      add('<p class="muted">Diálogo local: respostas programadas e contexto público. Não é uma IA generativa, não lê campos do site e não envia mensagens para servidores.</p>');
+      add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
+      const teacher=document.createElement('div');teacher.className='neural-teach';
+      const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
+      const chooser=document.createElement('select');chooser.id='alquimago-teach';
+      const intentLabels={greeting:'Saudação',identity:'Identidade',status:'XP e status',pet:'Carinho',play:'Brincar',brew:'Poção',rest:'Descanso',navigate:'Navegação',insight:'Sugestão',help:'Ajuda',mood:'Humor',thanks:'Agradecimento'};
+      for(const intent of INTENTS){
+        const option=document.createElement('option');option.value=intent;option.textContent=intentLabels[intent]||intent;
+        option.selected=intent===this.lastNeuralIntent;chooser.appendChild(option);
+      }
+      const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
+      teach.disabled=!this.lastUserText;
+      teacher.append(lbl,chooser,teach);this.$content.appendChild(teacher);
+      const message=document.createElement('p');message.className='muted';
+      message.textContent='Rede neural local: 96 entradas · 24 neurônios internos · 12 respostas. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
+      this.$content.appendChild(message);
+      if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
+    }
+    if(this.config.memory.mode==='publish'){
+      const reset=this.$content.querySelector('[data-action="reset-memory"]');
+      if(reset)reset.textContent='Zerar rascunho do mago';
     }
     if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"],[data-action="reset-memory"]').forEach(button=>button.remove());
   }
@@ -933,6 +1230,22 @@ class AlquimagoFamiliar extends HTMLElement {
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(action==='open-publish'){
+      this.state.open=false;this.render();
+      window.dispatchEvent(new Event('alquimago:request-publish'));
+      return;
+    }
+    if(action==='teach-neural'){
+      if(!this.lastUserText)return;
+      const selected=this.$content.querySelector('#alquimago-teach')?.value;
+      if(!INTENTS.includes(selected))return;
+      for(let n=0;n<25;n++)trainNeural(this.neural,this.lastUserText,selected,.06);
+      if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
+      this.lastNeuralIntent=selected;
+      this.message='Aprendi essa associação. '+(this.config.memory.mode==='publish'?'Publique para guardar o aprendizado.':'O aprendizado foi salvo neste dispositivo.');
+      this.render();
+      return;
+    }
     if(action==='reset-memory'){
       // Hard reloads must keep persistent progress. Reset is always deliberate.
       const allowed=typeof window.confirm==='function'&&window.confirm(
@@ -940,6 +1253,8 @@ class AlquimagoFamiliar extends HTMLElement {
       );
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
+      this.neural=seedNeuralModel();
+      this.lastUserText='';this.lastNeuralIntent='';
       this.state.position=null;
       this.dialogue=[];
       this.lastSpoken=null;
@@ -952,14 +1267,17 @@ class AlquimagoFamiliar extends HTMLElement {
       // Write a fresh memory rather than deleting the key; otherwise a
       // public project-memory snapshot would immediately restore old XP.
       this.save();
-      writeDialogue(storage(),this.config.memory.namespace,[]);
-      this.message='Memória local reiniciada. O projeto não foi alterado.';
+      if(this.config.memory.mode!=='publish'){
+        writeDialogue(storage(),this.config.memory.namespace,[]);
+        writeNeural(storage(),this.config.memory.namespace,this.neural);
+      }
+      this.message=this.config.memory.mode==='publish'?'Rascunho zerado. Publique para manter; recarregar recupera a última versão publicada.':'Memória local reiniciada. O projeto não foi alterado.';
       this.state.tab=0;
       this.render();
       return;
     }
     if(action==='export-memory'){
-      const blob=new Blob([exportBackup(this.snapshot())],{type:'application/json'});
+      const blob=new Blob([JSON.stringify(this.snapshot()||cleanMemory(null),null,2)],{type:'application/json'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');
       a.href=url;a.download='alquimago-memory.json';a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -968,10 +1286,15 @@ class AlquimagoFamiliar extends HTMLElement {
     if(action==='import-memory'){
       const picker=document.createElement('input');picker.type='file';picker.accept='.json,application/json';
       picker.onchange=async()=>{try{
-        const file=picker.files?.[0];if(!file||file.size>32768)return;
-        const state=parseBackup(await file.text());
+        const file=picker.files?.[0];if(!file||file.size>180000)return;
+        const raw=await file.text(),state=parseBackup(raw);
+        const imported=JSON.parse(raw);
         this.state.brain=restoreBrain(state.brain);this.state.position=state.position;
-        this.save();this.message='Memória restaurada neste dispositivo.';this.render();
+        this.neural=restoreNeuralModel(imported.neural)||seedNeuralModel();
+        this.save();
+        if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
+        this.message=this.config.memory.mode==='publish'?'Memória importada para o rascunho. Publique para manter.':'Memória e aprendizado restaurados neste dispositivo.';
+        this.render();
       }catch{this.message='Arquivo de memória inválido.';this.renderHeader();}};
       picker.click();return;
     }
@@ -1009,7 +1332,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.4.1',
+    version: '0.5.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
