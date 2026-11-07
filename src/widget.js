@@ -21,6 +21,25 @@ import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,sum
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
+
+/* Visitor mode is a living character, not a floating stat/minigame widget. */
+:host([data-public-mode="true"]) .familiar-title,
+:host([data-public-mode="true"]) .panel,
+:host([data-public-mode="true"]) .thought{display:none!important}
+.character .arc-mouth{transform-box:fill-box;transform-origin:50% 50%;transition:transform .3s ease,stroke-width .3s ease}
+.character[data-reaction="sad"] .arc-mouth,
+.character[data-reaction="angry"] .arc-mouth{transform:scaleY(-1)}
+.character[data-reaction="angry"] .eyes{animation:none;transform:scaleY(.7);transform-origin:center}
+.character[data-reaction="pet"] .eyes,
+.character[data-reaction="happy"] .eyes{animation:none;transform:scaleY(.28);transform-origin:center}
+.character[data-reaction="pet"] .arc-mouth,
+.character[data-reaction="happy"] .arc-mouth{stroke-width:2.5;transform:scale(1.18)}
+.character[data-reaction="surprised"] .eyes{animation:none;transform:scale(1.1);transform-origin:center}
+.character[data-reaction="surprised"] .arc-mouth{stroke-width:3;transform:scaleY(1.6)}
+.character[data-reaction="tired"] .eyes{animation:none;transform:scaleY(.35);transform-origin:center}
+.character[data-reaction="curious"] .eyes{animation:none;transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){.character .arc-mouth{transition:none!important}}
+
 :host([data-position="bottom-left"]){right:auto;left:22px}
 .tabs{overflow-x:auto}.tab{min-width:46px;padding:7px 4px}
 :host{all:initial;position:fixed;z-index:2147483000;right:22px;bottom:20px;color:#f5eaff;font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;--violet:#b58aff;--ink:#17101f;--gold:#f9d891;user-select:none;box-sizing:border-box}
@@ -415,6 +434,9 @@ class AlquimagoFamiliar extends HTMLElement {
     this.behaviorAllowed=false;this.behaviorMode='equilibrado';
     this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
     this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
+    this.pageEmotion=null;this.pageAwayAt=0;this.pageActivityAt=Date.now();this.pageReactions=null;
+    this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;this.pageHeadStart=0;
+    this.pageLastReaction=Object.create(null);this.pageLastMouse=null;
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -426,19 +448,19 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
-    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
+    this.$thought.addEventListener('click',()=>{if(document.documentElement.dataset.alquimagoStudio!=='true')return;this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
     this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
     this.$character.addEventListener('pointerdown', e => this.onPointerDown(e));
     this.$character.addEventListener('pointermove', e => this.onPointerMove(e));
-    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};});
+    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};this.pageHeadStart=0;});
     this.$character.addEventListener('pointerup', e => this.onPointerUp(e));
     this.$character.addEventListener('pointercancel', () => { this.pointerStart = null; });
     this.$character.addEventListener('contextmenu',e=>{e.preventDefault();this.state.open=true;this.state.tab=0;this.render();});
@@ -505,6 +527,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.render();
     this.lastSpoken=this.config.identity.greeting;this.lastSpokenAt=Date.now();this.updateThought();
     this.startObservation();
+    this.startPageReactions();
     this.studioHandler=event=>{
       const d=event?.detail;
       if(!d||typeof d.section!=='string')return;
@@ -591,7 +614,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
-    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick(); this.renderHeader(); }, 10000);
+    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick();this.tickPageReactions(); this.renderHeader(); }, 10000);
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
@@ -608,6 +631,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerOverHandler)document.removeEventListener('pointerover',this.pointerOverHandler);
     if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
     this.cancelProjectHover();
+    this.stopPageReactions();
     if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
     this.closeOrb();
     this.timer=null;this.observer=null;this.observeTimer=null;
@@ -872,6 +896,108 @@ class AlquimagoFamiliar extends HTMLElement {
     this.style.left = left + 'px'; this.style.top = top + 'px'; this.style.right = 'auto'; this.style.bottom = 'auto';
     this.state.position = { x: left, y: top };
   }
+
+  // Local, ephemeral gestures. Neither selected text nor mouse coordinates
+  // are stored, transferred or provided to the language model.
+  reactPageEmotion(name,duration=1600,priority=1,cooldown=2500){
+    if(!this.isConnected||this.desktop||document.hidden)return;
+    const now=Date.now();
+    if(now-(this.pageLastReaction[name]||0)<cooldown)return;
+    if(this.pageEmotion&&this.pageEmotion.until>now&&this.pageEmotion.priority>priority)return;
+    this.pageLastReaction[name]=now;
+    this.pageEmotion={name,until:now+duration,priority};
+    this.renderHeader();
+    if(this.pageReactionTimer)clearTimeout(this.pageReactionTimer);
+    this.pageReactionTimer=setTimeout(()=>{
+      this.pageReactionTimer=null;
+      if(this.isConnected)this.renderHeader();
+    },duration+40);
+  }
+  tickPageReactions(){
+    if(this.desktop||document.hidden||this.pageAwayAt)return;
+    const silentFor=Date.now()-this.pageActivityAt;
+    if(silentFor>65000)this.reactPageEmotion('tired',4500,1,50000);
+  }
+  startPageReactions(){
+    if(this.desktop||this.pageReactions)return;
+    const listeners=[];
+    const on=(target,type,callback,options)=>{
+      target.addEventListener(type,callback,options);
+      listeners.push(()=>target.removeEventListener(type,callback,options));
+    };
+    const touchActivity=()=>{this.pageActivityAt=Date.now()};
+    const ignored=node=>{
+      const element=node?.nodeType===1?node:node?.parentElement;
+      return !!element?.closest?.('input,textarea,select,[contenteditable],.editor-overlay,.studio-dock-anchor,[role="dialog"]');
+    };
+    on(document.documentElement,'mouseleave',()=>{
+      if(document.hidden)return;
+      this.pageAwayAt=Date.now();
+      if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
+      this.pageLeaveTimer=setTimeout(()=>{
+        this.pageLeaveTimer=null;
+        if(this.pageAwayAt&&this.isConnected)this.renderHeader();
+      },420);
+    });
+    on(document.documentElement,'mouseenter',()=>{
+      if(!this.pageAwayAt)return;
+      const awayFor=Date.now()-this.pageAwayAt;
+      this.pageAwayAt=0;touchActivity();
+      if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
+      this.pageLeaveTimer=null;
+      if(awayFor>420)this.reactPageEmotion('happy',1700,5,1200);
+      else this.renderHeader();
+    });
+    on(document,'selectionchange',()=>{
+      if(this.pageSelectTimer)clearTimeout(this.pageSelectTimer);
+      this.pageSelectTimer=setTimeout(()=>{
+        this.pageSelectTimer=null;
+        if(document.hidden||document.documentElement.dataset.alquimagoStudio==='true')return;
+        const selection=window.getSelection();
+        if(!selection||selection.isCollapsed||!selection.rangeCount)return;
+        if(ignored(selection.anchorNode)||ignored(selection.focusNode))return;
+        this.reactPageEmotion('angry',2500,5,11000);
+      },180);
+    });
+    on(window,'pointermove',event=>{
+      if(event.pointerType!=='mouse')return;
+      touchActivity();
+      const previous=this.pageLastMouse;
+      this.pageLastMouse={x:event.clientX,y:event.clientY,at:performance.now()};
+      if(!previous||document.hidden||ignored(event.target))return;
+      const dt=performance.now()-previous.at;
+      if(dt<12||dt>95)return;
+      const distance=Math.hypot(event.clientX-previous.x,event.clientY-previous.y);
+      if(distance/dt<2.7||distance<80)return;
+      const rect=this.$character.getBoundingClientRect();
+      if(event.clientX<rect.left-180||event.clientX>rect.right+180||
+         event.clientY<rect.top-180||event.clientY>rect.bottom+180)return;
+      this.reactPageEmotion('surprised',1100,3,8500);
+    },{passive:true});
+    on(document,'pointerdown',touchActivity,{passive:true});
+    on(document,'keydown',touchActivity,{passive:true});
+    on(window,'scroll',()=>{
+      touchActivity();
+      if(!this.pageAwayAt)this.reactPageEmotion('curious',1300,1,14500);
+    },{passive:true});
+    const navigation=()=>{touchActivity();this.reactPageEmotion('curious',2100,2,3000)};
+    on(window,'hashchange',navigation);
+    on(window,'popstate',navigation);
+    on(document,'visibilitychange',()=>{
+      if(document.hidden){this.pageEmotion=null;this.pageAwayAt=0}
+      else {touchActivity();this.renderHeader()}
+    });
+    this.pageReactions=listeners;
+  }
+  stopPageReactions(){
+    for(const remove of this.pageReactions||[])remove();
+    this.pageReactions=null;
+    for(const timer of [this.pageReactionTimer,this.pageLeaveTimer,this.pageSelectTimer])
+      if(timer)clearTimeout(timer);
+    this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;
+    this.pageEmotion=null;this.pageAwayAt=0;this.pageLastMouse=null;
+  }
+
   onPointerDown(e) {
     if (e.button !== 0) return;
     this.lastUserActivity=Date.now();
@@ -886,14 +1012,21 @@ class AlquimagoFamiliar extends HTMLElement {
     if(!this.pointerStart){
       if(e.pointerType==='mouse'&&e.buttons===0){
         const rect=this.$character.getBoundingClientRect();
+        const overHead=e.clientY-rect.top<rect.height*.71;
         const result=updateHeadStroke(this.hoverStroke,{
           x:e.clientX-rect.left,
-          head:e.clientY-rect.top<rect.height*.71,
+          head:overHead,
           pressed:false,
           time:Date.now()
         });
         this.hoverStroke=result.state;
-        if(result.triggered){this.action('stroke');this.spawnAffection();}
+        if(overHead){
+          if(!this.pageHeadStart)this.pageHeadStart=Date.now();
+          if(Date.now()-this.pageHeadStart>480){
+            this.reactPageEmotion('pet',1250,6,4000);
+          }
+        }else this.pageHeadStart=0;
+        if(result.triggered)this.reactPageEmotion('pet',1600,7,3000);
       }
       return;
     }
@@ -904,18 +1037,17 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerStart.moved&&!this.desktop)this.moveTo(this.pointerStart.left+dx,this.pointerStart.top+dy);
   }
   onPointerUp(e) {
-    const data = this.pointerStart; this.pointerStart = null;
-    if (!data) return;
-    if(data.moved){if(!this.desktop)this.save();}
-    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58){this.action('stroke');this.spawnAffection();}
-    else {this.action('pet');this.spawnAffection();if(!this.desktop){this.state.tab=5;this.state.open=true;this.render();}}
-    if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
-  }
-  spawnAffection(){
-    const node=document.createElement('span');
-    node.className='affection-burst';node.textContent='♥ ✦ ♥';
-    this.$character.appendChild(node);
-    setTimeout(()=>node.remove(),950);
+    const data=this.pointerStart;this.pointerStart=null;
+    if(!data)return;
+    if(data.moved){
+      if(!this.desktop)this.save();
+    }else{
+      this.reactPageEmotion('pet',1500,7,600);
+      if(!this.desktop&&document.documentElement.dataset.alquimagoStudio==='true'){
+        this.state.tab=5;this.state.open=true;this.render();
+      }
+    }
+    if(this.$character.hasPointerCapture(e.pointerId))this.$character.releasePointerCapture(e.pointerId);
   }
   sendMessage(text){
     this.lastUserActivity=Date.now();
@@ -1051,7 +1183,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.expressionTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),900);
     }
   }
-  toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
+  toggle() { if (this.desktop||document.documentElement.dataset.alquimagoStudio!=='true') return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
     this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.10';
@@ -1059,10 +1191,15 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
     this.style.setProperty('--gold',this.config.appearance.gold);
-    this.shadowRoot.getElementById('mood').textContent = mood;
+
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
-    if(this.skinAdapter?.setExpression){try{this.skinAdapter.setExpression(skinExpression(mood))}catch{/* optional 3D adapter */}}
+    const behavior=this.pageEmotion&&Date.now()<this.pageEmotion.until?this.pageEmotion.name:null;
+    const effective=behavior||(!this.desktop&&this.pageAwayAt?'sad':null);
+    this.$character.dataset.reaction=effective||'';
+    if(this.skinAdapter?.setExpression){
+      try{this.skinAdapter.setExpression(effective||skinExpression(mood))}catch{/* optional 3D adapter */}
+    }
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
   }
@@ -1072,7 +1209,7 @@ class AlquimagoFamiliar extends HTMLElement {
     // boundary, not backend authentication: the Gemini API gateway is public.
     const studioMode=document.documentElement.dataset.alquimagoStudio==='true';
     this.setAttribute('data-public-mode',String(!studioMode));
-    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;}
+    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;this.state.open=false;}
     const flags=studioMode?this.config.features:{...this.config.features,
       dialogue:false,pageAudit:false,routes:false,projectFiles:false,assistants:false,memoryTools:false};
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
@@ -1094,7 +1231,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button><button class="action" data-action="orb-toy">◉ Orbe arcano</button></div>
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div>
       <details class="arcane-advanced arcane-cortex">
       <summary>🧠 Cérebro e autonomia</summary>
       <p class="muted" id="cortex-summary">Rede pulsada local, com decisões e memória comportamental.</p>
@@ -1280,11 +1417,6 @@ class AlquimagoFamiliar extends HTMLElement {
     if(last)last.textContent=this.lastAutoDecision?
       'Última iniciativa: '+this.lastAutoDecision.action+'. '+(this.lastAutoDecision.used?'Feedback registrado.':'Diga se foi útil.') :
       'O cérebro ainda não tomou nenhuma iniciativa nesta sessão.';
-    const orbButton=this.$content.querySelector('[data-action="orb-toy"]');
-    if(orbButton){
-      orbButton.textContent=this.orbField?'Guardar orbe':'◉ Orbe arcano';
-      if(!this.config.behavior.toy)orbButton.remove();
-    }
     for(const button of this.$content.querySelectorAll('[data-action="cortex-like"],[data-action="cortex-dislike"]'))
       button.disabled=!this.lastAutoDecision||this.lastAutoDecision.used;
     const proactivity=this.$content.querySelector('#toggle-proactive');
@@ -1373,13 +1505,10 @@ class AlquimagoFamiliar extends HTMLElement {
       this.message=positive?'Aprendi: mais iniciativas como essa.':'Aprendi: menos desse comportamento.';
       this.render();return;
     }
-    if(button.dataset.action==='orb-toy'){
-      this.lastUserActivity=Date.now();
-      this.startOrb();this.render();return;
-    }
     const action = button.dataset.action;
     if (!action) return;
-    if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(['pet','stroke'].includes(action)){this.reactPageEmotion('pet',1600,7,500);return;}
+    if(['focus','rest','explore'].includes(action))return this.action(action);
     if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
       const target={ 'go-routes':2,'go-files':3,'go-ai':4,'go-actions':0 }[action];
       this.state.tab=target;this.render();return;
