@@ -189,7 +189,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
-    this.hoverStroke=freshStroke();this.dialogue=[];
+    this.hoverStroke=freshStroke();this.dialogue=[];this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
@@ -237,6 +237,7 @@ class AlquimagoFamiliar extends HTMLElement {
     });
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
+    this.lastSpoken=this.config.identity.greeting;this.lastSpokenAt=Date.now();this.updateThought();
     this.startObservation();
     this.studioHandler=event=>{
       const d=event?.detail;
@@ -262,6 +263,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.config=config;
       this.dialogue=readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
+      this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
       let saved=readMemory(storage(),config.memory.namespace);
       // A public, site-owned baseline is used only if the device has no progress.
       // It never overwrites existing progress and never accesses a private URL.
@@ -282,7 +284,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
-    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save(); this.renderHeader(); }, 10000);
+    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick(); this.renderHeader(); }, 10000);
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
@@ -293,6 +295,21 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
     this.timer=null;this.observer=null;this.observeTimer=null;
+  }
+  onIdleTick(){
+    if(this.state.open||typeof document!=='undefined'&&document.hidden)return;
+    const now=Date.now();
+    if(now-this.lastIdleSpeech<55000)return;
+    this.lastIdleSpeech=now;
+    const pool=[
+      'Um pouco de magia melhora qualquer dia. ✦',
+      'Psst! Posso analisar a estrutura desta página.',
+      'Minha poção está quase pronta. ⚗',
+      'Se passar o mouse sobre meu chapéu, receberei carinho.',
+      'Ainda há runas escondidas neste projeto…'
+    ];
+    const spoken=pool[this.idleCycle++%pool.length];
+    this.lastSpoken=spoken;this.lastSpokenAt=now;
   }
   startObservation(){
     if(this.desktop||!this.isConnected)return;
@@ -333,7 +350,7 @@ class AlquimagoFamiliar extends HTMLElement {
   updateThought(){
     if(!this.$thought)return;
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
-    const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<6500?this.lastSpoken:null;
+    const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<14500?this.lastSpoken:null;
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
     this.$thought.hidden=!!this.state.open&&this.state.tab===5||(!spoken&&!tip);
   }
