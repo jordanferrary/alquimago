@@ -125,8 +125,8 @@ export function answerFromKnowledge(text,context={}){
   const description=project.description?
    ' Há uma descrição publicada para essa obra.' : ' Ainda não há descrição cadastrada.';
   return {intent:'project-info',projectId:project.id,source:'public-portfolio',
-   reply:'Encontrei “'+project.title+'” no portfólio. '+(facts.length?facts.join('; ')+'. ':'')+
-   description+' Posso comentar a apresentação ou informar as ferramentas cadastradas.'};
+   reply:'Encontrei “'+project.title+'” no portfólio. '+(facts.length?facts.join('; ').replace(/^categoria /,'Categoria ')+'. ':'')+
+   description.trimStart()+' Posso comentar a apresentação ou informar as ferramentas cadastradas.'};
  }
  return null;
 }
