@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.4.1 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.5.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
 ## Recursos
 
@@ -105,7 +105,7 @@ Esses eventos são informativos e podem ser emitidos por qualquer código do mes
 O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini. Ele usa um relatório de contexto e uma abertura explícita de sites externos; para automação real entre serviços são necessários conectores e permissões oficiais.
 
 
-## Gestos e conversa — v0.4
+## Gestos e conversa — v0.5
 
 - **Carinho verdadeiro:** movimente o cursor horizontalmente várias vezes sobre a cabeça/chapéu, **sem clicar**. O personagem reage com corações e afinidade. No toque, faça um deslize curto; um arraste mais longo move o familiar.
 - **Clique simples:** reage e abre a aba **Conversar**. As frases são respondidas pelo motor local determinístico; ele **não é** um modelo de linguagem generativo.
@@ -113,21 +113,21 @@ O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini.
 - **Conversar:** digite perguntas como `oi`, `quanto XP tenho?`, `como faço carinho?`, `tem sugestões pro site?` ou `abre a galeria`. Comandos de navegação só procuram links já disponíveis **na mesma origem**.
 - **Persistência:** diálogo e XP ficam no armazenamento do navegador por origem e namespace, sobrevivendo à atualização da versão do site. Mensagens reconhecidas como possíveis segredos não são mantidas no histórico.
 - **Sem XP infinito:** carinho não rende XP; brincar, criar poções e explorar têm limites e intervalos.
-- **Versão visível:** ao abrir o grimório, o cabeçalho mostra `v0.4`. Se não aparecer, a página ainda carrega a distribuição antiga.
+- **Versão visível:** ao abrir o grimório, o cabeçalho mostra `v0.5`. Se não aparecer, a página ainda carrega a distribuição antiga.
 
 ### React / atualização e cache
 
 Coloque a distribuição atualizada em `public/alquimago/alquimago.js` e mude o identificador de versão da URL quando atualizar:
 
 ```html
-<script defer data-config="/alquimago/config.json?v=0.4.1" src="/alquimago/alquimago.js?v=0.4.1"></script>
+<script defer data-config="/alquimago/config.json?v=0.5.0" src="/alquimago/alquimago.js?v=0.5.0"></script>
 ```
 
 Em apps hospedados em subpastas, ajuste as URLs ao caminho base do deploy. Se o mascote é exibido somente quando um editor está desbloqueado, recarregar a página pode fechar esse editor; reabra-o para verificar a versão. A publicação do arquivo no GitHub não prova que o GitHub Pages compilou e entregou a atualização. Confira as execuções de Actions e valide no navegador.
 
 Os gestos foram reimplementados independentemente, inspirados pela documentação do [Pestinha original](https://github.com/mille-okws/pestinha); nenhum asset ou trecho do seu código foi incorporado.
 
-### Reset local seguro (v0.4.1)
+### Reset local seguro (v0.5.0)
 
 No grimório, abra **Cuidado → Reiniciar dados locais** e confirme para zerar
 XP, atributos, posição e conversa **somente neste navegador e nesta instalação**.
@@ -140,3 +140,30 @@ um snapshot público anterior não ressurja automaticamente após o reset.
 porque atualizações de sites não devem destruir a memória de visitantes.
 Para embutir o Alquimago num app Vite, um identificador de build na URL do script
 (como `?v=<commit>`) evita servir uma versão JavaScript já obsoleta.
+
+## Alquimago v0.5 — cérebro neural e fluxo de publicação
+
+**Diálogo:** existe agora uma rede neural genuína, pequena e treinável, com **96 neurônios de entrada, 24 neurônios internos e 12 saídas de intenções**. Ela reconhece expressões variadas como `oi`, `OIE`, pedidos sobre XP, carinho, poções e rotas. O sistema de respostas continua local, limitado a conhecimentos definidos e observações públicas do site: **não é um LLM nem uma IA generativa**. Para perguntas complexas permanece o encaminhamento autorizado para ChatGPT/Gemini.
+
+**Ensinar:** após enviar uma mensagem, selecione o significado correto e clique em **Ensinar**. Os pesos são atualizados por gradiente supervisionado no próprio navegador. O texto bruto não é incluído no arquivo numérico exportado ou publicado; mensagens identificadas como segredos não ficam disponíveis para treinamento.
+
+**Layout:** o grimório utiliza um painel opaco com altura limitada à janela e rolagem interna, além de um botão para fechar. Em telas estreitas, ocupa a área segura visível em vez de crescer para fora da viewport. O personagem fica independente do painel.
+
+**Políticas de memória:** em `alquimago.config.json` configure:
+
+```json
+{
+  "memory": {
+    "namespace": "meu-site",
+    "mode": "local",
+    "remoteSnapshot": ""
+  }
+}
+```
+
+- `mode: "local"` (padrão): XP, conversas e pesos treinados são mantidos no navegador após recarregar, com backup opcional.
+- `mode: "publish"`: o estado funciona como **rascunho temporário**. Ao recarregar, volta à última memória pública em `remoteSnapshot`. É indicado para editores que oferecem **publicação explícita**, como o Local Studio.
+- Em modo de publicação, o editor anfitrião pode ler `document.querySelector('alquimago-familiar')?.snapshot()` **somente na ação autorizada de publicar** e gravar seu resultado sanitizado no repositório por um fluxo autenticado. O widget não publica arquivos por conta própria. Ele emite `alquimago:request-publish` quando o usuário aciona **Publicar alterações**.
+- O snapshot numérico público pode conter XP, humor simbólico e pesos da rede neural, mas **nunca transcrições da conversa**. Como os pesos aprendidos serão públicos se publicados em GitHub Pages, não ensine dados privados e não permita que mensagens contendo segredos sejam utilizadas no treinamento.
+
+**Compatibilidade:** as atualizações de código do widget são independentes de `memory.namespace`. Nunca limpe o armazenamento de outros aplicativos ao atualizar o Alquimago. A versão v0.5 não foi validada visualmente em todos os navegadores/Windows; execute os testes e inspecione o build antes de distribuir amplamente.
