@@ -3,7 +3,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
-  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true},
+  features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true},
   memory:{namespace:'default'},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',play:'Prepare-se: poção de diversão!',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
