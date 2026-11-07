@@ -2,7 +2,7 @@ import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
 const root=process.cwd();
 const load=async name=>(await readFile(path.join(root,'src',name),'utf8'));
-const clean=code=>code.replace(/\bexport (const|function|async function)\b/g,'$1');
+const clean=code=>code.replace(/^import .*?;\s*$/gm,'').replace(/\bexport (const|function|async function)\b/g,'$1');
 const brain=clean(await load('brain.mjs'));
 const config=clean(await load('config.mjs'));
 const storage=clean(await load('storage.mjs'));
