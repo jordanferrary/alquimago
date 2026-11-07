@@ -67,7 +67,7 @@ const DEFAULT_CONFIG = Object.freeze({
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right'},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true},
-  memory:{namespace:'default'},
+  memory:{namespace:'default',remoteSnapshot:''},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',play:'Prepare-se: poção de diversão!',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
   assistant:{projectContext:'',guidelines:[]}
@@ -84,7 +84,7 @@ function normalizeConfig(input){
     identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
     appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position},
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
-    memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default'},
+    memory:{namespace:typeof memory.namespace==='string'&&/^[\w-]{1,48}$/.test(memory.namespace)?memory.namespace:'default',remoteSnapshot:typeof memory.remoteSnapshot==='string'?memory.remoteSnapshot.trim().slice(0,512):''},
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
     messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
     assistant:{
@@ -311,14 +311,29 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$content.addEventListener('click', e => this.onContentClick(e));
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
-    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(config=>{
+    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
       this.message=config.identity.greeting;
-      const saved=readMemory(storage(),config.memory.namespace);
+      let saved=readMemory(storage(),config.memory.namespace);
+      // A public, site-owned baseline is used only if the device has no progress.
+      // It never overwrites existing progress and never accesses a private URL.
+      if(!Object.keys(saved.brain).length && config.memory.remoteSnapshot){
+        const result=await inspectProjectFiles([config.memory.remoteSnapshot],{pageUrl:location.href});
+        if(result[0]?.status==='read'){
+          try{
+            const published=JSON.parse(result[0].excerpt);
+            if(published?.schema===2 && published.brain && typeof published.brain==='object'){
+              saved={...saved,brain:published.brain};
+              writeMemory(storage(),saved,config.memory.namespace);
+            }
+          }catch{/* Invalid public snapshot does not discard local progress. */}
+        }
+      }
+      if(!this.isConnected)return;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
       if(saved.position)this.state.position=saved.position;
       this.render();
-    }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';this.renderHeader();});
+    }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save(); this.renderHeader(); }, 10000);
   }
   disconnectedCallback() { if (this.timer) clearInterval(this.timer); this.timer = null; }
