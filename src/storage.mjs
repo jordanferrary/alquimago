@@ -32,7 +32,7 @@ export function writeMemory(storage,value,namespace='default'){
   catch{return false;}
 }
 export function parseBackup(text){
-  if(typeof text!=='string'||text.length>32768)throw Error('Arquivo de memória inválido.');
+  if(typeof text!=='string'||text.length>180000)throw Error('Arquivo de memória inválido.');
   const result=JSON.parse(text);
   if(result?.schema!==1&&result?.schema!==2)throw Error('Versão de memória incompatível.');
   return cleanMemory(result);
