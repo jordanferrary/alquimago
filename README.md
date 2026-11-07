@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.3.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.4.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
 ## Recursos
 
@@ -103,3 +103,26 @@ window.dispatchEvent(new CustomEvent('alquimago:activity', {
 Esses eventos são informativos e podem ser emitidos por qualquer código do mesmo site: a recompensa em XP é **cosmética**, não um comprovante de publicação. A integração de produção deve despachar esse evento apenas após a confirmação do backend/GitHub.
 
 O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini. Ele usa um relatório de contexto e uma abertura explícita de sites externos; para automação real entre serviços são necessários conectores e permissões oficiais.
+
+
+## Gestos e conversa — v0.4
+
+- **Carinho verdadeiro:** movimente o cursor horizontalmente várias vezes sobre a cabeça/chapéu, **sem clicar**. O personagem reage com corações e afinidade. No toque, faça um deslize curto; um arraste mais longo move o familiar.
+- **Clique simples:** reage e abre a aba **Conversar**. As frases são respondidas pelo motor local determinístico; ele **não é** um modelo de linguagem generativo.
+- **Botão direito:** abre o grimório de ações. **Roda do mouse:** gira o personagem brevemente.
+- **Conversar:** digite perguntas como `oi`, `quanto XP tenho?`, `como faço carinho?`, `tem sugestões pro site?` ou `abre a galeria`. Comandos de navegação só procuram links já disponíveis **na mesma origem**.
+- **Persistência:** diálogo e XP ficam no armazenamento do navegador por origem e namespace, sobrevivendo à atualização da versão do site. Mensagens reconhecidas como possíveis segredos não são mantidas no histórico.
+- **Sem XP infinito:** carinho não rende XP; brincar, criar poções e explorar têm limites e intervalos.
+- **Versão visível:** ao abrir o grimório, o cabeçalho mostra `v0.4`. Se não aparecer, a página ainda carrega a distribuição antiga.
+
+### React / atualização e cache
+
+Coloque a distribuição atualizada em `public/alquimago/alquimago.js` e mude o identificador de versão da URL quando atualizar:
+
+```html
+<script defer data-config="/alquimago/config.json?v=0.4.0" src="/alquimago/alquimago.js?v=0.4.0"></script>
+```
+
+Em apps hospedados em subpastas, ajuste as URLs ao caminho base do deploy. Se o mascote é exibido somente quando um editor está desbloqueado, recarregar a página pode fechar esse editor; reabra-o para verificar a versão. A publicação do arquivo no GitHub não prova que o GitHub Pages compilou e entregou a atualização. Confira as execuções de Actions e valide no navegador.
+
+Os gestos foram reimplementados independentemente, inspirados pela documentação do [Pestinha original](https://github.com/mille-okws/pestinha); nenhum asset ou trecho do seu código foi incorporado.
