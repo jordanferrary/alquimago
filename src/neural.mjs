@@ -103,7 +103,13 @@ export function seedNeuralModel(){
 }
 export function neuralPredict(model,text){
  const result=neuralForward(model,text);
- return {intent:result.intent,confidence:result.confidence};
+ // A softmax can be overconfident on unknown sentences. The nearest known
+ // phrase provides an additional out-of-distribution similarity gate.
+ const similarity=Math.max(0,...Object.values(samples).flat().map(sample=>{
+  const vector=neuralFeatures(sample);
+  return vector.reduce((sum,value,i)=>sum+value*result.x[i],0);
+ }));
+ return {intent:result.intent,confidence:result.confidence*similarity,similarity};
 }
 export function restoreNeuralModel(value){
  if(!value||value.version!==1)return null;
