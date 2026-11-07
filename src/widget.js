@@ -102,6 +102,8 @@ const STYLE = `
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
 
+/* Avoid filter creating a containing block for fixed-position panel. */
+.shell{filter:none!important}
 /* Responsive, opaque and truly viewport-bounded grimório. The panel is not in
    the mascot's vertical flow, so short monitors no longer cut it off. */
 :host{isolation:isolate}
@@ -278,7 +280,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.timer = null;
     this.pointerStart = null;
     this.hoverStroke=freshStroke();this.dialogue=[];
-    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
+    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
   }
@@ -378,6 +380,7 @@ class AlquimagoFamiliar extends HTMLElement {
         }
       }
       if(!this.isConnected)return;
+      this.configReady=true;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
@@ -457,7 +460,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
   }
-  snapshot(){return {...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural)};}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural)}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -733,7 +736,7 @@ class AlquimagoFamiliar extends HTMLElement {
         writeDialogue(storage(),this.config.memory.namespace,[]);
         writeNeural(storage(),this.config.memory.namespace,this.neural);
       }
-      this.message='Memória local reiniciada. O projeto não foi alterado.';
+      this.message=this.config.memory.mode==='publish'?'Rascunho zerado. Publique para manter; recarregar recupera a última versão publicada.':'Memória local reiniciada. O projeto não foi alterado.';
       this.state.tab=0;
       this.render();
       return;
