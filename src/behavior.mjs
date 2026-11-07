@@ -257,3 +257,22 @@ export function cortexSummary(state){
   motors:CORTEX_MOTORS,learnedEpisodes:s.episodes.length,feedback:s.feedbackCount,
   preferred:CORTEX_ACTIONS[s.rewardBias.indexOf(Math.max(...s.rewardBias))]};
 }
+
+export const cortexKey=(namespace='default')=>'alquimago:cortex:v1:'+
+ (/^[a-zA-Z0-9_-]{1,48}$/.test(namespace)?namespace:'default');
+export function readCortex(storage,namespace='default'){
+ try{
+  const raw=storage?.getItem(cortexKey(namespace));
+  if(!raw||raw.length>45000)return null;
+  return cleanCortex(JSON.parse(raw));
+ }catch{return null;}
+}
+export function writeCortex(storage,namespace,state){
+ try{
+  if(!storage)return false;
+  const text=JSON.stringify(cleanCortex(state));
+  if(text.length>45000)return false;
+  storage.setItem(cortexKey(namespace),text);
+  return true;
+ }catch{return false;}
+}
