@@ -101,6 +101,93 @@ const STYLE = `
 @keyframes affection-rise{0%{opacity:0;transform:translateY(10px) scale(.8)}25%{opacity:1}100%{opacity:0;transform:translateY(-40px) scale(1.3)}}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
+
+/* Responsive, opaque and truly viewport-bounded grimório. The panel is not in
+   the mascot's vertical flow, so short monitors no longer cut it off. */
+:host{isolation:isolate}
+:host([data-publishing="true"]){display:none!important}
+.panel{
+ position:fixed!important;
+ z-index:2147483600;
+ right:clamp(132px,11vw,165px);
+ left:auto;top:auto;bottom:10px;
+ width:min(360px,calc(100vw - 175px));
+ height:auto;max-height:calc(100dvh - 20px);
+ min-height:0;
+ overflow:hidden;
+ background:#171023!important;
+ background-image:linear-gradient(155deg,#302040,#161022 70%)!important;
+ backdrop-filter:none!important;
+ box-shadow:0 20px 65px #04010cf0,0 0 0 1px #b78cee50;
+ pointer-events:auto;
+ overscroll-behavior:contain;
+}
+.panel.open{display:flex!important;flex-direction:column}
+.panel:not(.open){display:none!important}
+.panel-header,.tabs,.feedback{flex:0 0 auto}
+.panel-header{background:#261933!important}
+.panel-header .row{gap:5px}
+.panel-header .row b{flex:1;min-width:0;font-size:12px!important}
+.panel-close{
+ display:grid;place-items:center;width:27px;height:27px;flex:0 0 27px;
+ background:#482e60;border:1px solid #b286ce;border-radius:9px;
+ color:#f7e8ff;font:15px system-ui;cursor:pointer;
+}
+.content{
+ flex:1 1 auto;min-height:0!important;
+ max-height:none!important;
+ overflow-y:auto;overscroll-behavior:contain;
+ padding:12px!important;
+}
+.tabs{overflow-x:auto;scrollbar-width:thin}
+.tab{flex:0 0 auto;min-width:46px}
+.feedback{max-height:70px;overflow-y:auto;background:#1a1129}
+.chat-history{min-height:45px!important;max-height:min(220px,32dvh)!important}
+.neural-teach{
+ display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;
+ padding:8px 0;border-top:1px solid #8b66a746;
+}
+.neural-teach label{color:#dec8f2;font-size:10px}
+.neural-teach select{
+ flex:1 1 115px;min-width:0;background:#20122f;color:#f5e8ff;
+ border:1px solid #906ab7;border-radius:8px;padding:6px;font:11px system-ui;
+}
+.neural-teach button{
+ background:#653b90;border:1px solid #ab83d4;color:#fff;
+ border-radius:8px;padding:6px 9px;font:11px system-ui;cursor:pointer;
+}
+.session-note{
+ font-size:11px;line-height:1.5;padding:8px 10px;margin-top:9px;
+ border:1px solid #a77cd158;border-radius:10px;background:#362244;
+ color:#e9d3f4;
+}
+:host([data-position="bottom-left"]) .panel{
+ right:auto;left:clamp(132px,11vw,165px);
+}
+:host([data-mode="desktop"]) .panel{
+ position:relative!important;right:auto!important;left:auto!important;
+ top:auto!important;bottom:auto!important;max-height:calc(100dvh - 230px);
+ width:min(320px,100%);overflow:hidden;
+}
+@media(max-width:720px){
+ .panel,.panel.open,:host([data-position="bottom-left"]) .panel{
+  position:fixed!important;
+  top:8px;bottom:8px;right:8px;left:8px;
+  width:auto!important;height:auto!important;max-height:none!important;
+  border-radius:15px;
+ }
+ .panel.open{display:flex!important}
+ .content{padding:10px!important}
+}
+@media(max-height:430px){
+ .panel,.panel.open,:host([data-position="bottom-left"]) .panel{
+  top:5px;bottom:5px;max-height:calc(100dvh - 10px);
+ }
+ .panel-header{padding:8px 10px}
+ .tabs{padding:5px}
+ .feedback{padding:5px 10px;min-height:20px}
+}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -480,7 +567,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -538,8 +625,22 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       this.$content.appendChild(history);
       add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
-      add('<div class="chat-suggestions"><button type="button" data-say="Oi!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
-      add('<p class="muted">Diálogo local: respostas programadas e contexto público. Não é uma IA generativa, não lê campos do site e não envia mensagens para servidores.</p>');
+      add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Tem sugestões pro site?">Ideias</button></div>');
+      const teacher=document.createElement('div');teacher.className='neural-teach';
+      const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
+      const chooser=document.createElement('select');chooser.id='alquimago-teach';
+      const intentLabels={greeting:'Saudação',identity:'Identidade',status:'XP e status',pet:'Carinho',play:'Brincar',brew:'Poção',rest:'Descanso',navigate:'Navegação',insight:'Sugestão',help:'Ajuda',mood:'Humor',thanks:'Agradecimento'};
+      for(const intent of INTENTS){
+        const option=document.createElement('option');option.value=intent;option.textContent=intentLabels[intent]||intent;
+        option.selected=intent===this.lastNeuralIntent;chooser.appendChild(option);
+      }
+      const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
+      teach.disabled=!this.lastUserText;
+      teacher.append(lbl,chooser,teach);this.$content.appendChild(teacher);
+      const message=document.createElement('p');message.className='muted';
+      message.textContent='Rede neural local: 96 entradas · 24 neurônios internos · 12 respostas. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
+      this.$content.appendChild(message);
+      if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
     }
     if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"],[data-action="reset-memory"]').forEach(button=>button.remove());
@@ -581,6 +682,22 @@ class AlquimagoFamiliar extends HTMLElement {
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(action==='open-publish'){
+      this.state.open=false;this.render();
+      window.dispatchEvent(new Event('alquimago:request-publish'));
+      return;
+    }
+    if(action==='teach-neural'){
+      if(!this.lastUserText)return;
+      const selected=this.$content.querySelector('#alquimago-teach')?.value;
+      if(!INTENTS.includes(selected))return;
+      for(let n=0;n<25;n++)trainNeural(this.neural,this.lastUserText,selected,.06);
+      if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
+      this.lastNeuralIntent=selected;
+      this.message='Aprendi essa associação. '+(this.config.memory.mode==='publish'?'Publique para guardar o aprendizado.':'O aprendizado foi salvo neste dispositivo.');
+      this.render();
+      return;
+    }
     if(action==='reset-memory'){
       // Hard reloads must keep persistent progress. Reset is always deliberate.
       const allowed=typeof window.confirm==='function'&&window.confirm(
@@ -588,6 +705,7 @@ class AlquimagoFamiliar extends HTMLElement {
       );
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
+      this.neural=seedNeuralModel();
       this.state.position=null;
       this.dialogue=[];
       this.lastSpoken=null;
@@ -600,7 +718,10 @@ class AlquimagoFamiliar extends HTMLElement {
       // Write a fresh memory rather than deleting the key; otherwise a
       // public project-memory snapshot would immediately restore old XP.
       this.save();
-      writeDialogue(storage(),this.config.memory.namespace,[]);
+      if(this.config.memory.mode!=='publish'){
+        writeDialogue(storage(),this.config.memory.namespace,[]);
+        writeNeural(storage(),this.config.memory.namespace,this.neural);
+      }
       this.message='Memória local reiniciada. O projeto não foi alterado.';
       this.state.tab=0;
       this.render();
