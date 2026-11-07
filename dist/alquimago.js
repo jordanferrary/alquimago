@@ -770,6 +770,62 @@ function skinExpression(mood){
  return ({feliz:'happy',animado:'happy',curioso:'curious',meditando:'sleep',sonolento:'sleep',concentrado:'focused',triste:'sad'})[mood]||'idle';
 }
 
+// Tiny contextual preference learner, independent of chat and user identity.
+// Only numerical feedback per broad art category; never stores project titles.
+const BUCKETS=['character','environment','game','stylized','motion','general'];
+function artBucket(category){
+ const c=String(category||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ if(/character|personagem|sculpt|criatura/.test(c))return 'character';
+ if(/environment|ambiente|cenario|scene/.test(c))return 'environment';
+ if(/game|jogo|interactiv|interativ/.test(c))return 'game';
+ if(/stylized|estilizado|asset|prop|handpaint/.test(c))return 'stylized';
+ if(/motion|animation|animacao|anim/.test(c))return 'motion';
+ return 'general';
+}
+function blankPreferences(){return {version:1,weights:{}};}
+function cleanPreferences(value){
+ const raw=value&&typeof value==='object'?value.weights:null;
+ const weights={};
+ if(raw&&typeof raw==='object')for(const [bucket,entries] of Object.entries(raw)){
+  if(!BUCKETS.includes(bucket)||!entries||typeof entries!=='object')continue;
+  weights[bucket]={};
+  for(const [index,value] of Object.entries(entries)){
+   if(!/^[0-4]$/.test(index)||typeof value!=='number'||!Number.isFinite(value))continue;
+   weights[bucket][index]=Math.max(-8,Math.min(8,value));
+  }
+ }
+ return {version:1,weights};
+}
+function rankTips(tips,category,preferences){
+ const bucket=artBucket(category),weights=cleanPreferences(preferences).weights[bucket]||{};
+ return (Array.isArray(tips)?tips:[]).map((text,index)=>({text,index,score:weights[index]||0}))
+  .sort((a,b)=>b.score-a.score||a.index-b.index);
+}
+function learnTip(preferences,category,index,useful){
+ const next=cleanPreferences(preferences),bucket=artBucket(category);
+ if(!Number.isInteger(index)||index<0||index>4)return next;
+ const values={...(next.weights[bucket]||{})};
+ const old=values[index]||0;
+ // Repeated ratings have diminishing effect and never create an endless feed.
+ values[index]=Math.max(-8,Math.min(8,old+(useful?1:-1)));
+ next.weights[bucket]=values;
+ return next;
+}
+function readPreferences(storage,namespace='default'){
+ try{
+  const name=/^[\w-]{1,48}$/.test(namespace)?namespace:'default';
+  return cleanPreferences(JSON.parse(storage.getItem('alquimago:prefs:v1:'+name)||'null'));
+ }catch{return blankPreferences();}
+}
+function writePreferences(storage,namespace,preferences){
+ try{
+  const name=/^[\w-]{1,48}$/.test(namespace)?namespace:'default';
+  storage.setItem('alquimago:prefs:v1:'+name,JSON.stringify(cleanPreferences(preferences)));
+  return true;
+ }catch{return false;}
+}
+
+
 
 
 
@@ -1080,6 +1136,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
+    this.preferences=blankPreferences();
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -1198,6 +1255,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
+      this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
       // The Studio always starts from its last published snapshot; no local drafts
       // survive a refresh unless the user explicitly publishes via GitHub.
@@ -1205,6 +1263,7 @@ class AlquimagoFamiliar extends HTMLElement {
         const published=await readPublicSnapshot(config.memory.remoteSnapshot,{pageUrl:location.href});
         if(published?.brain&&typeof published.brain==='object'){
           saved=cleanMemory(published);
+          if(published.preferences)this.preferences=cleanPreferences(published.preferences);
           if(published.neural){
             const restored=restoreNeuralModel(published.neural);
             if(restored)this.neural=restored;
@@ -1308,6 +1367,7 @@ class AlquimagoFamiliar extends HTMLElement {
         }
       }
       if(!this.isConnected||!card.isConnected)return;
+      advice.orderedTips=rankTips(advice.tips,advice.category,this.preferences);
       this.selectedProject=advice;
       this.hoverCount[key]=Date.now();
       this.lastSpoken=advice.comment;
@@ -1377,7 +1437,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
   }
-  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),selectedSkin:this.selectedSkin}:null;}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),preferences:cleanPreferences(this.preferences),selectedSkin:this.selectedSkin}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -1549,9 +1609,17 @@ class AlquimagoFamiliar extends HTMLElement {
           const explanation=document.createElement('p');explanation.textContent=tip.comment;
           const details=document.createElement('p');details.className='muted';details.textContent=tip.disclaimer;
           card.append(heading,explanation,details);
-          for(const point of tip.tips.slice(0,3)){
-            const row=document.createElement('p');row.className='muted';row.textContent='• '+point;card.appendChild(row);
+          for(const point of (tip.orderedTips||rankTips(tip.tips,tip.category,this.preferences)).slice(0,3)){
+            const row=document.createElement('p');row.className='muted';row.textContent='• '+point.text;card.appendChild(row);
           }
+          const actions=document.createElement('div');actions.className='actions';
+          for(const [useful,label] of [[true,'✓ Dica útil'],[false,'✕ Não priorizar']] ){
+            const rate=document.createElement('button');rate.type='button';rate.className='action';
+            rate.dataset.tipFeedback=useful?'yes':'no';
+            rate.dataset.tipIndex=String((tip.orderedTips||rankTips(tip.tips,tip.category,this.preferences))[0]?.index??0);
+            rate.textContent=label;actions.appendChild(rate);
+          }
+          card.appendChild(actions);
           const copy=document.createElement('button');copy.className='action';copy.type='button';
           copy.dataset.action='copy-project-advice';copy.textContent=this.language.ui.copy;
           card.appendChild(copy);
@@ -1697,6 +1765,14 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       return;
     }
+    if(button.dataset.tipFeedback&&this.selectedProject){
+      const i=Number(button.dataset.tipIndex);
+      this.preferences=learnTip(this.preferences,this.selectedProject.category,i,button.dataset.tipFeedback==='yes');
+      if(this.config.memory.mode!=='publish')writePreferences(storage(),this.config.memory.namespace,this.preferences);
+      this.message=button.dataset.tipFeedback==='yes'?'Vou priorizar dicas desse tipo.':'Vou reduzir dicas desse tipo.';
+      this.selectedProject.orderedTips=rankTips(this.selectedProject.tips,this.selectedProject.category,this.preferences);
+      this.render();return;
+    }
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
@@ -1738,6 +1814,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
+      this.preferences=blankPreferences();
       this.lastUserText='';this.lastNeuralIntent='';
       this.state.position=null;
       this.dialogue=[];
@@ -1754,6 +1831,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.config.memory.mode!=='publish'){
         writeDialogue(storage(),this.config.memory.namespace,[]);
         writeNeural(storage(),this.config.memory.namespace,this.neural);
+        writePreferences(storage(),this.config.memory.namespace,this.preferences);
       }
       this.message=this.config.memory.mode==='publish'?'Rascunho zerado. Publique para manter; recarregar recupera a última versão publicada.':'Memória local reiniciada. O projeto não foi alterado.';
       this.state.tab=0;
