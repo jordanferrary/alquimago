@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
  * <Alquimago src="https://.../alquimago.js" />
  * Para usar o script global, NÃO monte este componente simultaneamente.
  */
-export function Alquimago({ src = '/alquimago.js' }: { src?: string }) {
+export function Alquimago({ src = '/alquimago.js', configSrc = '/alquimago.config.json' }: { src?: string; configSrc?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const target = ref.current;
@@ -27,11 +27,12 @@ export function Alquimago({ src = '/alquimago.js' }: { src?: string }) {
     else {
       script = document.createElement('script');
       script.src = src;
+      script.dataset.config = configSrc;
       script.defer = true;
       script.addEventListener('load', mount);
       document.head.appendChild(script);
     }
     return () => { widget?.remove(); script?.remove(); };
-  }, [src]);
+  }, [src, configSrc]);
   return <div ref={ref} data-alquimago-react />;
 }
