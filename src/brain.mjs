@@ -14,7 +14,8 @@ const ACTIONS={
  rest:{energy:16,curiosity:0,focus:-2,affinity:0,xp:0},
  study:{energy:-2,curiosity:4,focus:5,affinity:0,xp:2},
  brew:{energy:-6,curiosity:5,focus:7,affinity:2,xp:3},
- explore:{energy:-1,curiosity:4,focus:1,affinity:1,xp:4}
+ explore:{energy:-1,curiosity:4,focus:1,affinity:1,xp:4},
+ publish:{energy:-2,curiosity:3,focus:4,affinity:2,xp:10}
 };
 export function restoreBrain(raw){
  const data=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
@@ -41,11 +42,13 @@ export function applyAction(brain,name,now=Date.now(),detail=''){
  next.sleepUntil=name==='rest'?now+3000:0;
  // No XP for petting, rest or passive UI changes. Other actions have cooldown.
  let earned=0;
- if(name==='explore'){
+ if(name==='explore'||name==='publish'){
   const safe=typeof detail==='string'&&/^[A-Za-z0-9_.#%-]{1,120}$/.test(detail)?detail:'';
-  // First deliberate exploration of each route per day.
+  // Route XP once per day; each confirmed publication revision rewards once.
   const day=Math.floor(now/86400000);
-  if(safe&&next.rewardedPages[safe]!==day){earned=action.xp;next.rewardedPages[safe]=day;}
+  if(safe&&(name==='publish'?!Object.hasOwn(next.rewardedPages,safe):next.rewardedPages[safe]!==day)){
+    earned=action.xp;next.rewardedPages[safe]=day;
+  }
  }else if(action.xp>0){
   // 60s between rewards of the same action; 20s global spacing.
   const gap=now-next.lastRewardAt;
