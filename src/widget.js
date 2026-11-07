@@ -1067,7 +1067,14 @@ class AlquimagoFamiliar extends HTMLElement {
     this.updateThought();
   }
   render() {
-    const flags=this.config.features;
+    // Public visitors interact with the familiar, but only Local Studio unlocks
+    // the Grimório, Gemini, diagnostics and teaching controls. This is a UI
+    // boundary, not backend authentication: the Gemini API gateway is public.
+    const studioMode=document.documentElement.dataset.alquimagoStudio==='true';
+    this.setAttribute('data-public-mode',String(!studioMode));
+    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;}
+    const flags=studioMode?this.config.features:{...this.config.features,
+      dialogue:false,pageAudit:false,routes:false,projectFiles:false,assistants:false,memoryTools:false};
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
     if(!allowed[this.state.tab])this.state.tab=[5,1,0].find(index=>allowed[index])??0;
     this.setAttribute('data-position',this.config.appearance.position);
