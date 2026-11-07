@@ -6,7 +6,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true},
   memory:{namespace:'default',remoteSnapshot:''},
   project:{files:[]},
-  messages:{pet:'Um brilho de amizade arcana! ✧',play:'Prepare-se: poção de diversão!',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
+  messages:{pet:'Um brilho de amizade arcana! ✧',stroke:'Que carinho agradável! ✧',play:'Prepare-se: poção de diversão!',brew:'Elixir mágico concluído! ⚗',explore:'Rota estudada pelo familiar. ✦',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
   assistant:{projectContext:'',guidelines:[]}
 });
 const obj = x => x && typeof x==='object' && !Array.isArray(x) ? x : {};
