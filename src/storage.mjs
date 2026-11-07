@@ -11,7 +11,7 @@ export function cleanMemory(value){
   if(typeof raw.lastAction==='string'&&['pet','stroke','play','focus','rest','study','brew','explore','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
   if(typeof raw.lastRewardAction==='string'&&raw.lastRewardAction.length<40)brain.lastRewardAction=raw.lastRewardAction;
   if(raw.rewardedPages&&typeof raw.rewardedPages==='object'){
-    brain.rewardedPages=Object.fromEntries(Object.entries(raw.rewardedPages).filter(([key,value])=>/^[-\\w/#.]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)).slice(-80));
+    brain.rewardedPages=Object.fromEntries(Object.entries(raw.rewardedPages).filter(([key,value])=>/^[A-Za-z0-9_./#-]{1,120}$/.test(key)&&typeof value==='number'&&Number.isFinite(value)).slice(-80));
   }
   return {schema:2,brain,position:num(p.x)&&num(p.y)?{x:Math.max(0,Math.min(10000,p.x)),y:Math.max(0,Math.min(10000,p.y))}:null};
 }
