@@ -12,7 +12,7 @@ export function validateModelEndpoint(value,{pageUrl}={}){
   return u.href;
  }catch{return null;}
 }
-export function prepareModelConversation(prompt,history=[],project=null){
+export function prepareModelConversation(prompt,history=[],project=null,files=[]){
  const clean=x=>typeof x==='string'?x.replace(/[\u0000-\u001f\u007f]/g,' ').trim():'';
  const question=clean(prompt).slice(0,650);
  if(!question)return null;
@@ -25,12 +25,21 @@ export function prepareModelConversation(prompt,history=[],project=null){
   year:clean(project.year).slice(0,8),
   tools:Array.isArray(project.tools)?project.tools.slice(0,12).map(x=>clean(x).slice(0,55)):[]
  }:null;
- return {message:question,history:safeHistory,project:context,locale:'pt-BR'};
+ const reviewedFiles=Array.isArray(files)?files.slice(0,4).filter(item=>
+  item&&typeof item.file==='string'&&Array.isArray(item.exports)&&Array.isArray(item.imports)
+ ).map(item=>({
+  file:clean(item.file).slice(0,160),
+  bytes:Number.isFinite(item.bytes)?Math.max(0,Math.min(1000000,item.bytes)):0,
+  description:clean(item.description).slice(0,190),
+  imports:item.imports.slice(0,12).map(i=>clean(i).slice(0,95)),
+  exports:item.exports.slice(0,16).map(i=>clean(i).slice(0,95))
+ })):[];
+ return {message:question,history:safeHistory,project:context,files:reviewedFiles,locale:'pt-BR'};
 }
-export async function askLanguageModel({endpoint,prompt,history=[],project,fetcher,signal,pageUrl}){
+export async function askLanguageModel({endpoint,prompt,history=[],project,files=[],fetcher,signal,pageUrl}){
  const url=validateModelEndpoint(endpoint,{pageUrl});
  if(!url)throw Error('A conexão com a IA não está configurada em um endpoint seguro.');
- const body=prepareModelConversation(prompt,history,project);
+ const body=prepareModelConversation(prompt,history,project,files);
  if(!body)throw Error('Escreva uma pergunta para a IA.');
  const impl=fetcher||globalThis.fetch;
  if(typeof impl!=='function')throw Error('Conexão de rede indisponível.');
