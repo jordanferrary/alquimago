@@ -29,7 +29,7 @@ export function respondToChat(input,context={}){
   return {reply:'Misturei três gotas de luar, uma runa violeta e muita curiosidade. Poção concluída! ⚗',intent:'brew',action:'brew'};
  if(/\b(descansar|dormir|sono|meditar)\b/.test(q))
   return {reply:'Vou meditar por um instante e recuperar minha energia arcana.',intent:'rest',action:'rest'};
- if(/\b(abra|abrir|navegar|visitar|ir|levar|leva)\b.*\b(galeria|portfolio|contato|sobre|inicio|home)\b/.test(q)){
+ if(/\b(abra|abre|abrir|navegar|visitar|ir|vai|levar|leva)\b.*\b(galeria|portfolio|contato|sobre|inicio|home)\b/.test(q)){
   const target=q.match(/\b(galeria|portfolio|contato|sobre|inicio|home)\b/)?.[1]||'';
   return {reply:'Vou procurar a seção '+target+' na navegação pública do site.',intent:'navigate',target};
  }
