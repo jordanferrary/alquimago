@@ -657,6 +657,10 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
     }
+    if(this.config.memory.mode==='publish'){
+      const reset=this.$content.querySelector('[data-action="reset-memory"]');
+      if(reset)reset.textContent='Zerar rascunho do mago';
+    }
     if(!flags.memoryTools)this.$content.querySelectorAll('[data-action="export-memory"],[data-action="import-memory"],[data-action="reset-memory"]').forEach(button=>button.remove());
   }
   createPrompt() {
@@ -720,6 +724,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
+      this.lastUserText='';this.lastNeuralIntent='';
       this.state.position=null;
       this.dialogue=[];
       this.lastSpoken=null;
@@ -742,7 +747,7 @@ class AlquimagoFamiliar extends HTMLElement {
       return;
     }
     if(action==='export-memory'){
-      const blob=new Blob([exportBackup(this.snapshot())],{type:'application/json'});
+      const blob=new Blob([JSON.stringify(this.snapshot()||cleanMemory(null),null,2)],{type:'application/json'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');
       a.href=url;a.download='alquimago-memory.json';a.click();
       setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -751,10 +756,15 @@ class AlquimagoFamiliar extends HTMLElement {
     if(action==='import-memory'){
       const picker=document.createElement('input');picker.type='file';picker.accept='.json,application/json';
       picker.onchange=async()=>{try{
-        const file=picker.files?.[0];if(!file||file.size>32768)return;
-        const state=parseBackup(await file.text());
+        const file=picker.files?.[0];if(!file||file.size>180000)return;
+        const raw=await file.text(),state=parseBackup(raw);
+        const imported=JSON.parse(raw);
         this.state.brain=restoreBrain(state.brain);this.state.position=state.position;
-        this.save();this.message='Memória restaurada neste dispositivo.';this.render();
+        this.neural=restoreNeuralModel(imported.neural)||seedNeuralModel();
+        this.save();
+        if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
+        this.message=this.config.memory.mode==='publish'?'Memória importada para o rascunho. Publique para manter.':'Memória e aprendizado restaurados neste dispositivo.';
+        this.render();
       }catch{this.message='Arquivo de memória inválido.';this.renderHeader();}};
       picker.click();return;
     }
