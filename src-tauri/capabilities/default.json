@@ -1,0 +1,10 @@
+{
+  "identifier": "default",
+  "description": "Apenas gerencia a janela do próprio familiar; nenhum acesso a arquivos ou rede.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-close"
+  ]
+}

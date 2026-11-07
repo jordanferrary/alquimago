@@ -1,0 +1,12 @@
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+const root = process.cwd();
+let brain = await readFile(path.join(root, 'src/brain.mjs'), 'utf8');
+let widget = await readFile(path.join(root, 'src/widget.js'), 'utf8');
+brain = brain.replace(/\bexport (const|function)\b/g, '$1');
+widget = widget.replace(/^import \{[^}]*\} from '\.\/brain\.mjs';?\s*/m, '');
+const bundle = `/* ALQUIMAGO • versão 0.1 • distribuição independente, MIT */\n(() => {\n'use strict';\n${brain}\n${widget}\n})();\n`;
+const dest = path.join(root, 'dist');
+await mkdir(dest, { recursive: true });
+await writeFile(path.join(dest, 'alquimago.js'), bundle);
+console.log(`Widget criado: dist/alquimago.js (${(bundle.length / 1024).toFixed(1)} KiB)`);
