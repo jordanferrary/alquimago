@@ -2,6 +2,7 @@ import { restoreBrain, applyAction, passTime, currentMood, levelFromXp } from '.
 import {normalizeConfig,loadConfig} from './config.mjs';
 import {readMemory,writeMemory,parseBackup,exportBackup} from './storage.mjs';
 import {inspectProjectFiles} from './project.mjs';
+import {readPublicPage,suggestionsFromPage,samePageSignature,routeSignature} from './awareness.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -122,7 +123,7 @@ const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.
 <path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
 <circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
 </svg>`;
-const TABS = ['ações', 'página', 'rotas', 'arquivos', 'assistentes'];
+const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA'];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
 const storage=()=>{try{return window.localStorage;}catch{return null;}};
@@ -166,6 +167,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.audit = null;
     this.timer = null;
     this.pointerStart = null;
+    this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.previousRoute='';
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -177,6 +179,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
+    this.$thought=this.shadowRoot.getElementById('thought');
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
@@ -191,6 +194,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$content.addEventListener('click', e => this.onContentClick(e));
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
+    this.startObservation();
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
       this.message=config.identity.greeting;
@@ -211,12 +215,53 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       if(!this.isConnected)return;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
-      if(saved.position)this.state.position=saved.position;
+      if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save(); this.renderHeader(); }, 10000);
   }
-  disconnectedCallback() { if (this.timer) clearInterval(this.timer); this.timer = null; }
+  disconnectedCallback(){
+    if(this.timer)clearInterval(this.timer);
+    if(this.observeTimer)clearTimeout(this.observeTimer);
+    if(this.observer)this.observer.disconnect();
+    if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
+    this.timer=null;this.observer=null;this.observeTimer=null;
+  }
+  startObservation(){
+    if(this.desktop||!this.isConnected)return;
+    this.routeHandler=()=>this.inspectPage(true);
+    window.addEventListener('hashchange',this.routeHandler);
+    window.addEventListener('popstate',this.routeHandler);
+    if(typeof MutationObserver!=='undefined'){
+      this.observer=new MutationObserver(()=>{
+        if(this.observeTimer)return;
+        this.observeTimer=setTimeout(()=>{this.observeTimer=null;this.inspectPage(false);},1400);
+      });
+      this.observer.observe(document.body,{childList:true,subtree:true});
+    }
+    this.inspectPage(true);
+  }
+  inspectPage(navigated=false){
+    if(this.desktop||!this.isConnected)return;
+    const next=readPublicPage(document,location.href);
+    if(!navigated&&samePageSignature(next,this.activePage))return;
+    const routeChanged=this.activePage?.signature!==next.signature;
+    this.activePage=next;
+    this.audit=auditPage();
+    this.suggestions=suggestionsFromPage(next);
+    if(routeChanged){
+      this.message='Reconheci a página: '+next.route+'. Tenho '+this.suggestions.length+' sugestão(ões).';
+    }
+    this.updateThought();
+    if(this.state.open&&this.state.tab===1)this.render();
+    else this.renderHeader();
+  }
+  updateThought(){
+    if(!this.$thought)return;
+    const issue=this.suggestions.find(x=>x.id!=='route'&&x.id!=='editor');
+    this.$thought.textContent=issue?'✦ '+issue.title:'';
+    this.$thought.hidden=!!this.state.open||!issue;
+  }
   save(){writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);}
   snapshot(){return JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position}));}
   moveTo(x, y) {
@@ -227,29 +272,37 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   onPointerDown(e) {
     if (e.button !== 0) return;
-    this.pointerStart = { x: e.clientX, y: e.clientY, left: this.offsetLeft, top: this.offsetTop, moved: false };
-    if (this.desktop) {
-      try { void window.__TAURI__?.window?.getCurrentWindow()?.startDragging(); } catch { /* optional desktop feature */ }
+    const box=this.getBoundingClientRect();
+    this.pointerStart={x:e.clientX,y:e.clientY,left:box.left,top:box.top,dx:0,dy:0,moved:false};
+    if(this.desktop&&e.altKey){
+      try{void window.__TAURI__?.window?.getCurrentWindow()?.startDragging();}catch{/* platform optional */}
     }
     this.$character.setPointerCapture(e.pointerId);
   }
   onPointerMove(e) {
-    if (!this.pointerStart || !this.config.features.dragging) return;
-    const dx = e.clientX - this.pointerStart.x, dy = e.clientY - this.pointerStart.y;
-    if (Math.abs(dx) + Math.abs(dy) > 7) this.pointerStart.moved = true;
-    if (this.pointerStart.moved && !this.desktop) this.moveTo(this.pointerStart.left + dx, this.pointerStart.top + dy);
+    if(!this.pointerStart)return;
+    const dx=e.clientX-this.pointerStart.x,dy=e.clientY-this.pointerStart.y;
+    this.pointerStart.dx=dx;this.pointerStart.dy=dy;
+    // Short strokes are caresses. Intentional longer drags relocate the mascot.
+    if(this.config.features.dragging&&Math.hypot(dx,dy)>72)this.pointerStart.moved=true;
+    if(this.pointerStart.moved&&!this.desktop)this.moveTo(this.pointerStart.left+dx,this.pointerStart.top+dy);
   }
   onPointerUp(e) {
     const data = this.pointerStart; this.pointerStart = null;
     if (!data) return;
-    if (data.moved) { if (!this.desktop) this.save(); }
+    if(data.moved){if(!this.desktop)this.save();}
+    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58)this.action('stroke');
     else this.action('pet');
     if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
   }
-  action(name) {
-    this.state.brain = applyAction(this.state.brain, name);
-    this.message=this.config.messages[name]||'Runas reorganizadas.';
-    this.save(); this.render();
+  action(name){
+    const before=this.state.brain.xp;
+    const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):'';
+    this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
+    const earned=this.state.brain.xp-before;
+    const messages={stroke:'Hmm… mais um carinho no chapéu! ✧',brew:'Elixir alquímico preparado! ✨',explore:'Nova rota estudada. ✦'};
+    this.message=(this.config.messages[name]||messages[name]||'Runas reorganizadas.')+(earned?' +'+earned+' XP':'');
+    this.save();this.render();
   }
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
@@ -263,6 +316,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
     this.$feedback.textContent = this.message || MOODS[mood];
+    this.updateThought();
   }
   render() {
     const flags=this.config.features;
