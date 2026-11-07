@@ -1,6 +1,6 @@
 // Lightweight color/contrast assessment of PUBLIC same-origin portfolio covers.
 // No remote inference, face detection, identification or hidden image uploads.
-const clamp=(x,a,b)=>Math.min(b,Math.max(a,x));
+const imageClamp=(x,a,b)=>Math.min(b,Math.max(a,x));
 export function imageMetrics(pixels){
  if(!pixels||!pixels.data||!pixels.width||!pixels.height)return null;
  const d=pixels.data,w=pixels.width,h=pixels.height,total=Math.min(w*h,4096);
@@ -46,7 +46,7 @@ export async function inspectCover(image,{pageUrl,scale=48}={}){
   const src=image.currentSrc||image.src;
   const resolved=new URL(src,base),origin=new URL(base).origin;
   if(resolved.origin!==origin)return null;
-  const side=clamp(scale,16,64);
+  const side=imageClamp(scale,16,64);
   const canvas=document.createElement('canvas');
   canvas.width=side;canvas.height=side;
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
