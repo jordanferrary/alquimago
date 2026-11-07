@@ -19,6 +19,13 @@ Mascote visual independente, configurável por JSON, para **React, Vite, HTML e 
 - No desktop, seleção manual de uma pasta para leitura restrita a textos (dependente do suporte da WebView do sistema).
 - Prepara sugestões e contexto para ChatGPT/Gemini. O usuário inicia a conversa e cola o texto; não há automação de login, leitura de chats ou contorno de limites.
 
+
+## Skins 3D e expressões faciais
+
+O site anfitrião pode registrar um adaptador WebGL/Three.js para skins `model3d`; o componente não instala bibliotecas 3D automaticamente. O fluxo de importação pela interface do Local Studio está sendo desenvolvido no repositório `portfolio_jordan`, sem alterar a publicação existente.
+
+Consulte [o guia completo de exportação GLB e Shape Keys](docs/SKINS_3D_SHAPE_KEYS.md). O contrato facial usa `Basis`, `Idle`, `Blink`, `Happy`, `Curious`, `Talk`, `Sleep`, `Pet`, `Surprised`, `Focused` e `Sad`. Os nomes devem sobreviver à exportação para GLB 2.0.
+
 ## Instalação em um site
 
 Copie `dist/alquimago.js` para a pasta de recursos públicos do seu projeto e coloque `alquimago.config.json` onde ele seja servido por HTTP.
