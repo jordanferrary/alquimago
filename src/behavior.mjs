@@ -202,7 +202,7 @@ export function tickCortex(engine,info={},now=Date.now()){
   bClamp((state.adaptation[name]||0)*.92,0,1);
  const alternatives=planCortexAlternatives(state,info,motorSignals);
  const interval=Math.max(45000,Math.min(900000,Number(info.cooldownMs)||120000));
- const maxActions=Math.max(0,Math.min(8,Number(info.dailyLimit)??4));
+ const maxActions=Math.max(0,Math.min(8,Number.isFinite(info.dailyLimit)?info.dailyLimit:4));
  // Do not interrupt people typing, navigating, using the editor, watching a
  // dialog, or while this tab is hidden. The cortex still observes safe signals.
  const permitted=info.enabled===true&&!info.hidden&&!info.panelOpen&&
