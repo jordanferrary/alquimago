@@ -5,7 +5,10 @@ import {inspectProjectFiles,readPublicSnapshot} from './project.mjs';
 import {readPublicPage,suggestionsFromPage,samePageSignature,routeSignature} from './awareness.mjs';
 import {freshStroke,updateHeadStroke} from './gestures.mjs';
 import {respondToChat,readDialogue,writeDialogue,safeChatText} from './dialogue.mjs';
-import {INTENTS,seedNeuralModel,trainNeural,neuralPredict,serializeNeuralModel,restoreNeuralModel,readNeural,writeNeural} from './neural.mjs';
+import {INTENTS,seedNeuralModel,trainNeural,teachNeural,neuralPredict,serializeNeuralModel,restoreNeuralModel,readNeural,writeNeural} from './neural.mjs';
+import {projectMeta,projectAdvice,projectIdentity,shouldCommentProject} from './project-insight.mjs';
+import {normalizeLanguage,loadLanguage} from './i18n.mjs';
+import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -283,6 +286,9 @@ class AlquimagoFamiliar extends HTMLElement {
     this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
+    this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
+    this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
+    this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -362,6 +368,9 @@ class AlquimagoFamiliar extends HTMLElement {
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
+      this.observeProjects=config.proactive.projectHover;
+      this.skin=normalizeSkin(config.appearance.skin);
+      if(config.language.file){try{this.language=await loadLanguage(config.language.file,{pageUrl:location.href})}catch{this.language=normalizeLanguage(null)}}
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
@@ -382,6 +391,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!this.isConnected)return;
       this.configReady=true;
       this.state.brain=passTime(restoreBrain(saved.brain),Math.max(0,Date.now()-(saved.brain?.lastSeen||Date.now())));
+      this.applySkin();
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
