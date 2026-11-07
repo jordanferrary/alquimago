@@ -242,6 +242,16 @@ const STYLE = `
 .arcane-ai-consent input{accent-color:#ac78ef;width:15px;height:15px;flex-shrink:0;margin-top:2px}
 
 
+
+.reviewed-learning{margin:12px 0}
+.reviewed-learning label{display:block;margin:9px 0 5px;color:#ecd7ff;font:600 11px system-ui}
+.reviewed-learning input,.reviewed-learning textarea{
+ box-sizing:border-box;width:100%;border:1px solid #805a9c;background:#130d1d;
+ color:#fff;font:12px/1.5 system-ui;border-radius:9px;padding:9px;
+}
+.reviewed-learning textarea{resize:vertical;max-height:200px}
+.reviewed-learning .actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+
 /* v0.9: conversation-first design, high contrast and carefully bounded chat. */
 .panel{
  width:min(400px,calc(100vw - 20px))!important;
@@ -1201,6 +1211,30 @@ class AlquimagoFamiliar extends HTMLElement {
       const lesson=document.createElement('details');lesson.className='neural-lesson';
       const summary=document.createElement('summary');summary.textContent='✦ Ensinar a reconhecer uma frase';
       lesson.append(summary,teacher);this.$content.appendChild(lesson);
+      const lessonBox=document.createElement('details');
+      lessonBox.className='neural-lesson reviewed-learning';
+      const lessonTitle=document.createElement('summary');
+      lessonTitle.textContent='📚 Ensinar um conhecimento verdadeiro';
+      const note=document.createElement('p');note.className='muted';
+      note.textContent='Revise a explicação antes de salvar. Só respostas aprovadas por você serão reutilizadas; elas ficam neste navegador e não são publicadas no GitHub.';
+      const qLabel=document.createElement('label');qLabel.textContent='Pergunta';
+      const question=document.createElement('input');question.id='lesson-question';
+      question.maxLength=160;question.placeholder='O que o Alquimago deve saber?';
+      question.value=this.lessonDraft?.question||'';
+      const aLabel=document.createElement('label');aLabel.textContent='Resposta verificada';
+      const answer=document.createElement('textarea');answer.id='lesson-answer';
+      answer.rows=4;answer.maxLength=800;answer.placeholder='Explique com suas palavras ou revise o que o Gemini respondeu.';
+      answer.value=this.lessonDraft?.answer||'';
+      const controls=document.createElement('div');controls.className='actions';
+      const approve=document.createElement('button');approve.type='button';
+      approve.className='action primary';approve.dataset.action='approve-lesson';
+      approve.textContent='✓ Aprovar e aprender';
+      const remove=document.createElement('button');remove.type='button';
+      remove.className='action';remove.dataset.action='clear-lessons';
+      remove.textContent='Limpar lições';
+      controls.append(approve,remove);
+      lessonBox.append(lessonTitle,note,qLabel,question,aLabel,answer,controls);
+      this.$content.appendChild(lessonBox);
       if(this.modelAvailable){
         const consent=document.createElement('label');
         consent.className='arcane-ai-consent';
@@ -1208,12 +1242,19 @@ class AlquimagoFamiliar extends HTMLElement {
         choice.id='toggle-llm';choice.checked=this.modelEnabled;
         choice.disabled=this.modelBusy;
         const details=document.createElement('span');
-        details.textContent='Usar IA generativa (opcional). Cada nova pergunta poderá ser enviada ao serviço configurado. Não envie dados privados.';
+        details.textContent='Consultar o professor Gemini (opcional). Mensagens poderão ser enviadas ao serviço configurado. Não envie dados privados.';
+        const share=document.createElement('label');share.className='arcane-ai-consent';
+        const allow=document.createElement('input');allow.type='checkbox';
+        allow.id='allow-gemini-file-context';allow.checked=this.fileContextAllowed;
+        const context=document.createElement('span');
+        context.textContent='Permitir compartilhar com o Gemini somente os nomes de imports/exports dos arquivos já lidos. Nenhum código bruto será enviado.';
+        share.append(allow,context);
         consent.append(choice,details);
         this.$content.appendChild(consent);
+        this.$content.appendChild(share);
       }
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Modo '+(this.modelEnabled?'IA generativa':'contextual local')+' · '+this.knowledge.projects.length+' obras públicas conhecidas · '+this.neural.learned+' correções de frases.';
+      message.textContent='Modo '+(this.modelEnabled?'Gemini assistido':'contextual local')+' · '+this.knowledge.projects.length+' obras públicas · '+this.lessons.lessons.length+' lições aprovadas neste navegador.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -1345,6 +1386,30 @@ class AlquimagoFamiliar extends HTMLElement {
       this.state.open=false;this.render();
       window.dispatchEvent(new Event('alquimago:request-publish'));
       return;
+    }
+    if(action==='approve-lesson'){
+      const question=this.$content.querySelector('#lesson-question')?.value||'';
+      const answer=this.$content.querySelector('#lesson-answer')?.value||'';
+      const result=approveLesson(this.lessons,question,answer,
+        this.lessonDraft?.source||'ensinado manualmente');
+      if(!result.ok){this.message=result.reason;this.renderHeader();return;}
+      if(!writeLessons(storage(),this.config.memory.namespace,result.library)){
+        this.message='Não consegui salvar a lição neste navegador. Verifique o armazenamento.';
+        this.renderHeader();return;
+      }
+      this.lessons=result.library;this.lessonDraft=null;
+      this.message='Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
+      this.render();return;
+    }
+    if(action==='clear-lessons'){
+      if(!window.confirm('Apagar todas as lições ensinadas neste navegador? Isso não altera o GitHub.'))return;
+      const empty=normalizeLessons(null);
+      if(!writeLessons(storage(),this.config.memory.namespace,empty)){
+        this.message='Não consegui alterar as lições neste navegador.';this.renderHeader();return;
+      }
+      this.lessons=empty;this.lessonDraft=null;
+      this.message='Lições locais apagadas. Os arquivos do projeto não foram alterados.';
+      this.render();return;
     }
     if(action==='teach-neural'){
       if(!this.lastUserText)return;
