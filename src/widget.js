@@ -303,6 +303,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
+    this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
   }
@@ -344,6 +345,14 @@ class AlquimagoFamiliar extends HTMLElement {
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
     this.$content.addEventListener('change',e=>{
+      if(e.target?.id==='alquimago-skin-choice'){
+        const chosen=this.skinProfiles.find(x=>x.id===e.target.value);
+        if(chosen){
+          this.selectedSkin=chosen.id;this.skin=normalizeSkin(chosen);this.applySkin();
+          this.message='Skin "'+chosen.label+'" selecionada. '+(this.config.memory.mode==='publish'?'Publique para salvar.':'');
+          this.renderHeader();
+        }
+      }
       if(e.target?.id==='toggle-proactive'){
         this.observeProjects=!!e.target.checked;
         if(!this.observeProjects)this.cancelProjectHover();
@@ -393,8 +402,21 @@ class AlquimagoFamiliar extends HTMLElement {
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
       this.observeProjects=config.proactive.projectHover;
-      this.skin=normalizeSkin(config.appearance.skin);
-      if(config.language.file){try{this.language=await loadLanguage(config.language.file,{pageUrl:location.href})}catch{this.language=normalizeLanguage(null)}}
+      this.skinProfiles=config.appearance.skins;
+      this.selectedSkin=config.appearance.selectedSkin;
+      this.skin=normalizeSkin(this.skinProfiles.find(entry=>entry.id===this.selectedSkin)||config.appearance.skin);
+      if(config.language.file){
+        try{
+          this.language=await loadLanguage(config.language.file,{pageUrl:location.href});
+          const samples=this.language.intentSamples||{};
+          for(const [intent,phrases] of Object.entries(samples)){
+            if(!INTENTS.includes(intent)||!Array.isArray(phrases))continue;
+            for(const example of phrases.slice(0,12))
+              if(typeof example==='string'&&example.length<=120)teachNeural(this.neural,example,intent);
+          }
+          this.neural.learned=0;
+        }catch{this.language=normalizeLanguage(null)}
+      }
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
@@ -565,7 +587,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
   }
-  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural)}:null;}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),selectedSkin:this.selectedSkin}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -773,7 +795,7 @@ class AlquimagoFamiliar extends HTMLElement {
       teach.disabled=!this.lastUserText;
       teacher.append(lbl,chooser,teach);this.$content.appendChild(teacher);
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Rede neural local: 96 entradas · 24 neurônios internos · 12 respostas. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
+      message.textContent='Cérebro local: 96 entradas · 24 neurônios internos · 12 intenções. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -781,7 +803,20 @@ class AlquimagoFamiliar extends HTMLElement {
     const proactivity=this.$content.querySelector('#toggle-proactive');
     if(proactivity)proactivity.checked=this.observeProjects;
     const skinLabel=this.$content.querySelector('#arcane-skin-label');
-    if(skinLabel)skinLabel.textContent=this.skin.type==='svg'?'Padrão SVG':this.skin.type==='image'?'Imagem personalizada':'Modelo 3D (adaptador opcional)';
+    if(skinLabel){
+      skinLabel.textContent='';
+      const select=document.createElement('select');
+      select.id='alquimago-skin-choice';
+      select.setAttribute('aria-label','Skin do familiar');
+      for(const entry of this.skinProfiles){
+        const option=document.createElement('option');
+        option.value=entry.id;
+        option.textContent=entry.label;
+        select.appendChild(option);
+      }
+      select.value=this.selectedSkin;
+      skinLabel.appendChild(select);
+    }
     if(this.config.memory.mode==='publish'){
       const reset=this.$content.querySelector('[data-action="reset-memory"]');
       if(reset)reset.textContent='Zerar rascunho do mago';
@@ -838,10 +873,15 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!this.lastUserText)return;
       const selected=this.$content.querySelector('#alquimago-teach')?.value;
       if(!INTENTS.includes(selected))return;
-      for(let n=0;n<25;n++)trainNeural(this.neural,this.lastUserText,selected,.06);
+      if(!teachNeural(this.neural,this.lastUserText,selected))return;
+      const corrected=neuralPredict(this.neural,this.lastUserText);
       if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
       this.lastNeuralIntent=selected;
-      this.message='Aprendi essa associação. '+(this.config.memory.mode==='publish'?'Publique para guardar o aprendizado.':'O aprendizado foi salvo neste dispositivo.');
+      const labels={greeting:'saudação',identity:'identidade',status:'status',pet:'carinho',play:'brincadeira',brew:'poção',rest:'descanso',navigate:'navegação',insight:'sugestão',help:'ajuda',mood:'humor',thanks:'agradecimento'};
+      const reply='Aprendi: agora reconheço essa frase como '+(labels[selected]||selected)+'. Confiança: '+Math.round(corrected.confidence*100)+'%. '+(this.config.memory.mode==='publish'?'Publique para manter esse aprendizado.':'O aprendizado foi salvo.');
+      this.dialogue=[...this.dialogue,{role:'familiar',text:reply}].slice(-24);
+      if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+      this.message=reply;
       this.render();
       return;
     }
