@@ -330,14 +330,24 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><div class="actions"><button class="action" data-action="pet">✦ Afagar</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="focus">◈ Concentrar</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button></div>`);
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button></div>`);
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
-        if (!this.audit) this.audit = auditPage();
+        this.audit=auditPage();
         const a = this.audit;
         const wrapper = add(`<div class="line"><b>Diagnóstico superficial</b></div><div class="muted" id="page-title"></div><div class="line"><span>Elementos de navegação</span><b>${a.links}</b></div><div class="line"><span>Botões</span><b>${a.buttons}</b></div><div class="line"><span>Imagens sem atributo alt</span><b>${a.missingAlt}</b></div><div class="line"><span>IDs duplicados</span><b>${a.duplicateIds}</b></div><div class="line"><span>Imagens com falha</span><b>${a.brokenImages}</b></div><div class="actions"><button class="action" data-action="audit">↻ Atualizar</button><button class="action primary" data-action="copy-audit">Copiar relatório</button></div>`);
-        wrapper.querySelector('#page-title').textContent = a.title;
+        wrapper.querySelector('#page-title').textContent=a.title;
+        const intro=document.createElement('p');intro.className='muted';intro.textContent='Análise contextual: somente estrutura da página e rota atual, nunca valores digitados ou mensagens.';this.$content.appendChild(intro);
+        const title=document.createElement('div');title.className='line';title.innerHTML='<b>Sugestões do familiar</b>';this.$content.appendChild(title);
+        for(const [i,tip] of this.suggestions.entries()){
+          const box=document.createElement('div');box.className='insight';
+          const heading=document.createElement('b');heading.textContent='✦ '+tip.title;
+          const detail=document.createElement('span');detail.textContent=tip.description;
+          const copy=document.createElement('button');copy.type='button';copy.className='action';copy.dataset.insight=String(i);copy.textContent='Pedir ajuda à IA ↗';copy.style.marginTop='7px';
+          box.append(heading,detail,document.createElement('br'),copy);this.$content.appendChild(box);
+        }
+        const explore=document.createElement('button');explore.type='button';explore.className='action primary';explore.dataset.action='explore';explore.textContent='✧ Explorar esta rota';this.$content.appendChild(explore);
       }
     } else if (this.state.tab === 2) {
       if (this.desktop) add('<p class="muted">Abra a versão web do Alquimago no seu projeto React para navegar pelas páginas desse site.</p>');
@@ -372,6 +382,7 @@ class AlquimagoFamiliar extends HTMLElement {
     return ['Sou o Alquimago, um familiar digital local. Preciso de assistência para o projeto do usuário.',
       'Contexto: ' + (a ? `${a.title} (${location.origin}${a.path})` : 'Aplicativo desktop Alquimago'),
       a ? `Diagnóstico básico: ${a.links} links, ${a.buttons} botões, ${a.images} imagens, ${a.missingAlt} imagens sem alt, ${a.duplicateIds} IDs repetidos.` : '',
+      ...this.suggestions.slice(0,4).map(tip=>'Sugestão de melhoria: '+tip.title+' — '+tip.description),
       this.config.assistant.projectContext?'Contexto: '+this.config.assistant.projectContext:'',
       ...this.config.assistant.guidelines.map(rule=>'Orientação: '+rule),
       ...this.projectFiles.filter(file=>file.status==='read').slice(0,4).map(file=>'Arquivo público '+file.file+': '+file.excerpt.slice(0,700)),
@@ -387,12 +398,17 @@ class AlquimagoFamiliar extends HTMLElement {
     const button = e.target.closest('button'); if (!button) return;
     if (button.dataset.navigate !== undefined) {
       const link = this.links[Number(button.dataset.navigate)];
-      if (link && new URL(link.href).origin === location.origin) location.assign(link.href);
+      if(link && new URL(link.href).origin===location.origin){location.assign(link.href);this.message='Abrindo '+link.label+'…';this.renderHeader();}
+      return;
+    }
+    if(button.dataset.insight!==undefined){
+      const tip=this.suggestions[Number(button.dataset.insight)];
+      if(tip)void this.copy(this.createPrompt()+'\n\nMelhoria solicitada: '+tip.title+' — '+tip.description);
       return;
     }
     const action = button.dataset.action;
     if (!action) return;
-    if (['pet','play','focus','rest'].includes(action)) return this.action(action);
+    if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
     if(action==='export-memory'){
       const blob=new Blob([exportBackup(this.snapshot())],{type:'application/json'});
       const url=URL.createObjectURL(blob),a=document.createElement('a');
