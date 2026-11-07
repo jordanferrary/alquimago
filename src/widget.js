@@ -607,6 +607,14 @@ class AlquimagoFamiliar extends HTMLElement {
       const rect=field.getBoundingClientRect();
       down={x:e.clientX,y:e.clientY,t:performance.now(),rect};
     });
+    ball.addEventListener('pointermove',e=>{
+      if(!down||!this.orbState)return;
+      e.preventDefault();e.stopPropagation();
+      this.orbState.x=Math.max(this.orbState.radius,Math.min(165-this.orbState.radius,e.clientX-down.rect.left));
+      this.orbState.y=Math.max(this.orbState.radius,Math.min(112-this.orbState.radius,e.clientY-down.rect.top));
+      render();
+    });
+    ball.addEventListener('pointercancel',()=>{down=null;});
     ball.addEventListener('pointerup',e=>{
       e.preventDefault();e.stopPropagation();
       if(down&&this.orbState){
@@ -624,7 +632,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const frame=now=>{
       if(!this.orbField||!this.isConnected)return;
       if(now>=this.orbStopAt){this.closeOrb();return;}
-      if(!document.hidden&&!reduced){
+      if(!document.hidden&&!reduced&&!down){
         const dt=Math.min(2,(now-previous)/16.667);
         this.orbState=stepOrb(this.orbState,165,112,dt);
         render();
