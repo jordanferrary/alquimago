@@ -1,0 +1,19 @@
+{
+  "code": "pt-BR",
+  "tabs": {
+    "chat": "Conversar",
+    "insights": "Observar",
+    "actions": "Interagir"
+  },
+  "ui": {
+    "close": "Fechar",
+    "send": "Enviar",
+    "message": "Converse com seu familiar...",
+    "learn": "Ensinar",
+    "learnTitle": "Corrija o significado da sua última mensagem",
+    "publish": "Publicar alterações",
+    "settings": "Ajustes",
+    "customSkin": "Aparência",
+    "autonomous": "Observação proativa"
+  }
+}
