@@ -201,3 +201,20 @@ Novidades principais:
 Também há os modos `silencioso` e `brincalhao`. Nenhum modo autoriza alterações de código ou publicações automáticas. Leia [a arquitetura do cérebro](docs/CEREBRO_COMPORTAMENTAL.md) e [a comparação honesta com o Pestinha](docs/AUDITORIA_PESTINHA.md).
 
 **Estado técnico:** existem testes automatizados e checagens do núcleo, mas ainda é necessária validação de ponta a ponta no navegador, conclusão do workflow de deployment e testes do aplicativo Windows antes de declarar superioridade funcional ao Pestinha.
+
+
+## Alquimago v0.9 — contexto antes de efeitos
+
+O avanço principal da v0.9 é **responder melhor**, não inflar números de neurônios.
+
+- O mascote carrega uma base JSON de obras publicadas e responde perguntas sobre títulos, ferramentas, ano e categoria, **sem inventar fatos que não estão presentes**.
+- Mantém a última obra em foco na conversa: depois de “Me fala da obra X”, entende “E quais ferramentas usou nela?”.
+- O Local Studio publica \`alquimago/knowledge.json\` automaticamente junto do conteúdo autorizado, mantendo conhecimento e obras sincronizados.
+- “Sim”, “nn”, matemática e ações de publicação ficam em fluxos explícitos e testáveis, separados do classificador de intenção.
+- A versão compilada embute os pesos pré-treinados do classificador para não repetir o treinamento do zero em cada abertura.
+- Interface da conversa com melhor legibilidade, mais espaço e controles avançados recolhidos.
+- **IA generativa opcional:** um backend autenticado pode executar um modelo real. Nenhuma chave é incluída no JavaScript, e as mensagens só são enviadas após o usuário habilitar explicitamente esse modo. Sem backend, o motor contextual local funciona normalmente.
+
+Veja [Assistente contextual e IA opcional](docs/ASSISTENTE_CONTEXTUAL.md).
+
+**O que ainda não é verdade:** o Alquimago não virou um modelo generativo independente por causa do número de neurônios. O recurso de geração depende de um servidor e pode ter custos. No projeto padrão ele está desativado até que o responsável configure uma integração segura.
