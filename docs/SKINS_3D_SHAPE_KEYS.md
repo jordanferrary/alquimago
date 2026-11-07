@@ -43,6 +43,46 @@ Regras:
 7. Se o rosto for separado em várias meshes, o renderizador detecta as Shape Keys de cada mesh; prefira uma malha de rosto clara para manutenção.
 8. A animação que o Alquimago faz automaticamente controla **Morph Targets**. Clipes de armature, física, colisão e animação locomotora não são executados por este adaptador.
 
+
+### Expressões adicionais opcionais — nomes exatos
+
+O Alquimago reconhece as Shape Keys adicionais abaixo se estiverem presentes no GLB. A ausência delas não impede o carregamento.
+
+| Nome | Uso |
+|---|---|
+| **Tired** | Cansaço automático quando a energia do familiar fica baixa |
+| **Yawn** | Bocejo periódico enquanto estiver cansado |
+| **Angry** | Raiva, testável manualmente no Ateliê |
+| **Confused** | Confusão, testável manualmente |
+| **Excited** | Empolgação combinada sutilmente com felicidade |
+| **Shy** | Timidez, testável manualmente |
+| **Love** | Carinho misturado à expressão Pet |
+| **Proud** | Orgulho na publicação |
+| **Thinking** | Reflexão misturada à concentração |
+| **Worried** | Preocupação, testável manualmente |
+| **Laugh** | Risada, testável manualmente |
+| **LookLeft** | Olhar à esquerda, opcional no acompanhamento do cursor |
+| **LookRight** | Olhar à direita |
+| **LookUp** | Olhar para cima |
+| **LookDown** | Olhar para baixo |
+
+As expressões indicadas como testes manuais **não** são emoções inferidas automaticamente pelo Gemini. Os estados locais governam as expressões, e o olhar usa uma rotação discreta. As quatro Shape Keys de olhar refinam o movimento dos olhos, mas não são obrigatórias.
+
+### Janela 3D e enquadramento
+
+O personagem 3D agora fica em uma janela/moldura com alça de redimensionamento no canto. No **Local Studio > Conteúdo > Skin 3D do Alquimago**, seção **Janela e enquadramento 3D**, há controles para largura, altura, zoom, deslocamento horizontal/vertical, seguir o mouse e restaurar enquadramento.
+
+- Largura permitida: 145–420 px. Altura: 175–475 px. São limites de interface.
+- Zoom de câmera: 0,65 a 2,6 vezes, também ajustável com **Shift + roda do mouse** sobre o mascote.
+- Deslocamento horizontal e vertical refinam onde a janela aparece.
+- O comportamento existente de arrastar o Alquimago na página permanece.
+- O olhar segue o mouse suavemente e pode ser desligado; a preferência de movimento reduzido é respeitada.
+- Alterações são locais até a publicação explícita no Local Studio; o enquadramento publicado fica na configuração pública, para visitantes receberem o mesmo padrão.
+
+### Reações de carinho
+
+No modo 3D, tocar/acariciar ativa a Shape Key **Pet** (e opcionalmente **Love**) com interpolação suave, em vez da explosão gráfica de corações. O modo SVG mantém sua reação antiga. Se o carregamento GLB/WebGL falhar, o familiar retorna à skin SVG.
+
 ## 3. Preparação no Blender
 
 1. Modele o personagem voltado para a frente e aplique transformações coerentes (principalmente escala, preferencialmente `1,1,1`).
