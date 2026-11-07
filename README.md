@@ -1,101 +1,75 @@
 # ✦ Alquimago — Familiar Arcano Digital
 
-Um mascote interativo leve para **sites React, Vite e páginas HTML**, com a mesma personalidade em uma **versão desktop Windows (Tauri 2)**.
+Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-> **Estado: protótipo v0.1.0.** Não é um agente de IA autônomo. A experiência de mascote, memória local, navegação por rotas do próprio site e auditoria DOM simples já estão implementadas. Edição de arquivos, integração autenticada com GitHub e automação de IA são propostas para versões futuras.
+**Versão:** 0.2.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
-## O que funciona agora
+## Recursos
 
-- Personagem original em SVG, com visual de mago, animações, emoções e interação por clique/arrastar.
-- Memória local de energia, curiosidade, foco, afinidade, XP e posição (localStorage do próprio site).
-- Painel independente do CSS do site, com Shadow DOM para evitar conflito de estilos.
-- Identificação das rotas internas por links locais; navegação somente após escolha do usuário.
-- Auditoria básica do DOM: links, botões, imagens com `alt` ausente, IDs duplicados e imagens quebradas.
-- Preparação de prompt de contexto, abertura de ChatGPT/Gemini mediante clique **sem automatizar o uso dessas plataformas**.
-- Projeto de aplicativo desktop Tauri 2 para Windows, reutilizando o mesmo widget.
+- Personagem SVG animado, ações, emoções simbólicas, energia, foco, curiosidade, níveis e XP.
+- Configuração por arquivo `alquimago.config.json`, com nome, paleta, mensagens, recursos e regras de projeto.
+- Memória local separada por origem e namespace, com migração da v0.1, exportação e restauração de backup.
+- Shadow DOM: não modifica estilos nem componentes do site anfitrião.
+- Auditoria simples do DOM e navegação por links da mesma origem.
+- Leitura **somente** de arquivos públicos, de texto, explicitamente permitidos no JSON, em resposta ao comando do usuário.
+- No desktop, seleção manual de uma pasta para leitura restrita a textos (dependente do suporte da WebView do sistema).
+- Prepara um contexto para ChatGPT/Gemini, sem automatizar login, extrair conversas nem driblar limites.
 
-## Instalar no portfólio React: uma linha, uma vez
+## Instalação em um site
 
-Depois de ativar GitHub Pages para o repositório `jordanferrary/alquimago`, adicione ao `index.html` do seu site, antes de `</body>`:
+Copie `dist/alquimago.js` para a pasta de recursos públicos do seu projeto e coloque `alquimago.config.json` onde ele seja servido por HTTP.
+
+Insira **uma vez** antes de `</body>`:
 
 ```html
-<script defer src="https://jordanferrary.github.io/alquimago/alquimago.js"></script>
+<script defer data-config="./alquimago.config.json" src="./alquimago.js"></script>
 ```
 
-**Não precisa alterar nada a cada publicação do site.** O arquivo é atualizado no repositório Alquimago. Mudanças remotas podem sofrer cache do navegador, e a nova versão será carregada quando o cache se atualizar. O próprio widget não publica código do seu site.
+Em Vite/React, por exemplo, coloque os arquivos na pasta `public/`. Não é necessário reinstalar quando o site publica atualizações normais. A configuração pode definir um namespace específico para cada site.
 
-Se seu repositório tiver outro nome ou se o usuário do GitHub mudar, ajuste essa URL uma única vez.
+Para carregar a distribuição pela hospedagem do projeto Alquimago, use o URL de hospedagem configurado pela sua organização. Prefira arquivos locais ou versões fixas quando precisar evitar mudanças inesperadas de um script remoto.
 
-### Alternativa via componente React (sem depender de um script global)
+**Configuração:** use `alquimago.config.json` como modelo. Campos inesperados são ignorados. Os textos da configuração entram na interface por `textContent` e não como HTML. O arquivo deve estar hospedado na **mesma origem** do site.
 
-Copie `react/Alquimago.tsx` para o projeto e monte o componente:
+## Persistência e GitHub
 
-```tsx
-import { Alquimago } from './components/Alquimago';
+A memória pessoal de cada visitante é mantida em `localStorage`, isolada pelo domínio e por `memory.namespace`. Ela permanece quando o site recebe um novo deploy **na mesma origem**. Limpar dados do navegador, mudar de domínio ou navegar em outro dispositivo não sincroniza a memória automaticamente; há botões para exportar e restaurar um backup.
 
-export default function App() {
-  return <><main>Meu portfólio</main><Alquimago src="https://jordanferrary.github.io/alquimago/alquimago.js" /></>;
-}
+Um site estático **não** consegue gravar diretamente em um repositório GitHub sem autenticação. Para versionar dados do mascote, o editor do site precisa adicionar um arquivo JSON ao **fluxo de publicação autenticado que já utiliza**. Não publique dados pessoais dos visitantes nem tokens.
+
+A integração demonstrativa com um editor React/Local Studio usa `public/alquimago/project-context.json` e um resumo numérico público opcional de XP em `public/alquimago/project-memory.json`, no **mesmo commit** de publicação do conteúdo. Isso é um exemplo; não é comportamento automático em todos os sites.
+
+## Aplicativo Windows
+
+```bash
+npm install
+npm test
+npm run build
+npm run desktop:build
 ```
 
-Não combine as duas formas no mesmo site, para evitar duas instâncias.
+A compilação requer Rust e ferramentas de build compatíveis com Tauri 2 no Windows. Também existe workflow de GitHub Actions para gerar um instalador, se a compilação for bem-sucedida. **A build Windows ainda não foi validada em dispositivo Windows.**
 
-## Visualizar no computador sem instalar nada
+O mascote no desktop **não** lê automaticamente todos os arquivos do PC: o usuário deve selecionar uma pasta, e a leitura é limitada a arquivos de texto. Esse limite é deliberado.
 
-Após extrair o ZIP, execute no terminal na pasta do projeto:
+## Desenvolver
 
 ```bash
 npm test
 npm run build
 ```
 
-Para a demonstração web, use um servidor HTTP estático local (por exemplo, a extensão Live Server do VS Code) com a pasta `dist/` e abra `index.html`. Também é possível abrir o arquivo diretamente no navegador, mas recursos como área de transferência podem exigir HTTPS ou localhost.
+- `src/brain.mjs`: estados e evolução de XP, sem modelo de linguagem.
+- `src/config.mjs`: validação de configurações públicas.
+- `src/storage.mjs`: migração e exportação de memória.
+- `src/project.mjs`: leitura permitida de arquivos públicos.
+- `src/widget.js`: componente visual e interações.
+- `scripts/build.mjs`: distribuição sem dependências de runtime.
+- `react/Alquimago.tsx`: integração opcional.
+- `src-tauri/`: estrutura para desktop.
 
-## Criar o repositório separado
+## Privacidade e origem
 
-1. Abra https://github.com/new e crie um repositório chamado `alquimago` na conta `jordanferrary`. Marque como **público** se quiser GitHub Pages gratuitamente no plano Free. Deixe sem README automático, pois este pacote já inclui um.
-2. Faça upload dos arquivos extraídos do ZIP para o repositório (mantenha pastas como `src/`, `dist/` e `.github/`). Quem usa Git local pode simplesmente enviar a pasta com `git push`.
-3. No GitHub, vá em **Settings > Pages**, escolha **GitHub Actions**. O workflow `.github/workflows/pages.yml` publica `dist/` automaticamente.
-4. Após a publicação, adicione a única linha do script ao portfólio.
+Nunca inclua segredos, código privado ou credenciais nos arquivos listados em `project.files`. Tudo o que for servido como público no GitHub Pages pode ser visto por visitantes. O acesso a arquivos do PC exige escolha explícita. Não há envio automático de dados para provedores de IA.
 
-Se você conectar ou criar o repositório, o ChatGPT com acesso de edição ao GitHub pode ajudar a publicar e atualizar os arquivos diretamente quando a integração permitir.
-
-## Versão Windows (desktop)
-
-O código está em `src-tauri/`. Para compilar no Windows, é necessário **Rust**, **Node.js** e os requisitos de desenvolvimento do Tauri 2 (WebView2/Build Tools conforme a documentação oficial).
-
-```bash
-npm install
-npm run desktop:build
-```
-
-Ou, depois de criar o repositório, abra **Actions > Compilar Alquimago para Windows > Run workflow**. O instalador `.exe` deverá ficar nos artefatos da execução, se a compilação for bem-sucedida.
-
-> A build do desktop ainda **não foi compilada/testada em Windows** neste ambiente. O workflow e a configuração estão preparados para compilação posterior; não há instalador `.exe` pré-gerado neste ZIP.
-
-## Arquitetura
-
-```text
-src/brain.mjs            Núcleo determinístico e adaptativo
-src/widget.js            Personagem, interface, navegação e eventos
-scripts/build.mjs        Empacota um único script sem dependências de runtime
-dist/                    Widget pronto + demonstração + tela do app desktop
-react/Alquimago.tsx      Adaptador React opcional
-src-tauri/               Aplicativo desktop Tauri 2
-.github/workflows/       Publicação no GitHub Pages e build Windows
-tests/                   Testes unitários do comportamento
-docs/                    Limites, segurança, origem e roadmap
-```
-
-## Segurança e privacidade
-
-- Nenhuma chave ou token é solicitada, armazenada ou enviada pelo widget.
-- O widget não acessa sistema de arquivos local nem repositórios GitHub.
-- Não interage automaticamente com páginas do ChatGPT/Gemini; abre esses sites apenas após clique do usuário e copia um prompt por solicitação.
-- A auditoria examina apenas metadados básicos do DOM da página atual, sem copiar formulários ou mensagens.
-- Os estados ficam em `localStorage` da origem em que o widget executa (isolados entre domínios).
-- Ao adicionar scripts remotos a um site, você está confiando no código remoto; hospedar em repositório próprio e revisar alterações é importante. Utilize política CSP e versionamento quando for produção.
-
-## Licença e inspiração
-
-Código e visual deste protótipo escritos de forma independente sob **MIT**. Inspirado no conceito de mascote adaptativo de desktop do projeto público [Pestinha](https://github.com/mille-okws/pestinha), de mille-okws, que utiliza GPL-3.0-or-later. **Não copiamos o código nem os assets do Pestinha.** Consulte `docs/ORIGEM_E_LICENCAS.md`.
+O conceito foi inspirado em mascotes adaptativos de desktop, incluindo [Pestinha](https://github.com/mille-okws/pestinha). O Alquimago foi reimplementado de forma independente; não redistribui código ou artes do Pestinha. Consulte `docs/ORIGEM_E_LICENCAS.md`.
