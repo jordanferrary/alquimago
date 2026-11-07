@@ -128,3 +128,22 @@ export function serializeNeuralModel(model){
   outputBias:clean.outputBias.map(n=>Number(n.toFixed(5)))
  }:null;
 }
+
+export function neuralKey(namespace='default'){
+ return 'alquimago:neural:v1:'+(/^[A-Za-z0-9_-]{1,48}$/.test(namespace)?namespace:'default');
+}
+export function readNeural(storage,namespace='default'){
+ try{
+  const raw=storage.getItem(neuralKey(namespace));
+  if(!raw||raw.length>180000)return null;
+  return restoreNeuralModel(JSON.parse(raw));
+ }catch{return null;}
+}
+export function writeNeural(storage,namespace,model){
+ try{
+  const valid=serializeNeuralModel(model);
+  if(!valid)return false;
+  storage.setItem(neuralKey(namespace),JSON.stringify(valid));
+  return true;
+ }catch{return false;}
+}
