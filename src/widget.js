@@ -193,6 +193,22 @@ const STYLE = `
  .feedback{padding:5px 10px;min-height:20px}
 }
 
+
+/* Three clear tabs and an internal, unobtrusive settings disclosure. */
+.tabs{justify-content:stretch;gap:4px;padding:7px 8px}
+.tab{flex:1 1 0;min-width:0!important;text-overflow:ellipsis;overflow:hidden;font-size:12px!important}
+.arcane-advanced{margin-top:12px;padding:9px;border:1px solid #845ba353;border-radius:12px;background:#241630}
+.arcane-advanced summary{font-size:11px;font-weight:600;cursor:pointer;color:#ead3f5;list-style:revert}
+.arcane-advanced .actions{margin-top:10px}
+.arcane-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;margin-top:12px;color:#e5d2f2}
+.arcane-toggle input{accent-color:#ae77e4;width:15px;height:15px}
+.panel,.content,.chat-history,.tabs{scrollbar-color:#8654b4 #21152e;scrollbar-width:thin}
+.panel ::-webkit-scrollbar{width:8px;height:6px}
+.panel ::-webkit-scrollbar-track{background:#21152e;border-radius:999px}
+.panel ::-webkit-scrollbar-thumb{background:#8054ab;border:2px solid #21152e;border-radius:999px}
+.panel ::-webkit-scrollbar-thumb:hover{background:#ba89df}
+.arcane-skin-image{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 13px #07020e88)}
+
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
@@ -238,7 +254,7 @@ const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.
 <path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
 <circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
 </svg>`;
-const TABS = ['cuidado', 'insights', 'rotas', 'arquivos', 'IA', 'conversar'];
+const MAIN_TABS=[{index:5,key:'chat'},{index:1,key:'insights'},{index:0,key:'actions'}];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
 const storage=()=>{try{return window.localStorage;}catch{return null;}};
@@ -327,6 +343,14 @@ class AlquimagoFamiliar extends HTMLElement {
       if (button) { this.state.tab = Number(button.dataset.tab); this.render(); }
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
+    this.$content.addEventListener('change',e=>{
+      if(e.target?.id==='toggle-proactive'){
+        this.observeProjects=!!e.target.checked;
+        if(!this.observeProjects)this.cancelProjectHover();
+        this.message=this.observeProjects?'Observação de projetos ativada.':'Observação proativa pausada.';
+        this.renderHeader();
+      }
+    });
     this.$content.addEventListener('submit',e=>{
       if(e.target?.id!=='alquimago-chat-form')return;
       e.preventDefault();
@@ -654,16 +678,28 @@ class AlquimagoFamiliar extends HTMLElement {
   render() {
     const flags=this.config.features;
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
-    if(!allowed[this.state.tab])this.state.tab=Math.max(0,allowed.indexOf(true));
+    if(!allowed[this.state.tab])this.state.tab=[5,1,0].find(index=>allowed[index])??0;
     this.setAttribute('data-position',this.config.appearance.position);
     this.$panel.classList.toggle('open', this.state.open);
     this.renderHeader();
-    this.$tabs.innerHTML=TABS.map((tab,index)=>allowed[index]?'<button type="button" class="tab '+(index===this.state.tab?'selected':'')+'" data-tab="'+index+'" aria-pressed="'+(index===this.state.tab)+'">'+tab+'</button>':'').join('');
+    this.$tabs.innerHTML=MAIN_TABS.filter(item=>allowed[item.index]).map(item=>
+      '<button type="button" class="tab '+(item.index===this.state.tab?'selected':'')+
+      '" data-tab="'+item.index+'" aria-pressed="'+(item.index===this.state.tab)+'">'+
+      this.language.tabs[item.key]+'</button>').join('');
     this.$content.replaceChildren();
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><div class="actions"><button class="action" data-action="export-memory">Exportar memória</button><button class="action" data-action="import-memory">Restaurar</button><button class="action" data-action="reset-memory">Reiniciar dados locais</button></div>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><details class="arcane-advanced"><summary>⚙ Ajustes e ferramentas</summary>
+      <div class="actions"><button class="action" data-action="go-routes">Rotas internas</button>
+      <button class="action" data-action="go-files">Arquivos públicos</button>
+      <button class="action" data-action="go-ai">Continuar com IA</button></div>
+      <label class="arcane-toggle"><input type="checkbox" id="toggle-proactive"> Comentários proativos em projetos</label>
+      <div class="actions"><button class="action" data-action="export-memory">Exportar memória</button>
+      <button class="action" data-action="import-memory">Restaurar</button>
+      <button class="action" data-action="reset-memory">Zerar dados</button></div>
+      <div class="muted">Aparência: <span id="arcane-skin-label"></span></div>
+      </details>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -683,6 +719,7 @@ class AlquimagoFamiliar extends HTMLElement {
         const explore=document.createElement('button');explore.type='button';explore.className='action primary';explore.dataset.action='explore';explore.textContent='✧ Explorar esta rota';this.$content.appendChild(explore);
       }
     } else if (this.state.tab === 2) {
+      add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       if (this.desktop) add('<p class="muted">Abra a versão web do Alquimago no seu projeto React para navegar pelas páginas desse site.</p>');
       else {
         this.links = findSameOriginLinks();
@@ -696,6 +733,7 @@ class AlquimagoFamiliar extends HTMLElement {
         });
       }
     } else if(this.state.tab===3){
+      add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       if(this.desktop)add('<p class="muted">Escolha uma pasta para analisar textos autorizados. Nenhuma pasta é lida automaticamente.</p><div class="actions"><button class="action primary" data-action="choose-folder">Escolher pasta</button></div>');
       else add('<p class="muted">Só os arquivos públicos listados na configuração do projeto são acessados.</p><div class="actions"><button class="action primary" data-action="read-files">Ler arquivos</button></div>');
       if(!this.projectFiles.length)add('<p class="muted">Nenhum arquivo examinado ainda.</p>');
@@ -706,6 +744,7 @@ class AlquimagoFamiliar extends HTMLElement {
         item.append(label,result);this.$content.appendChild(item);
       }
     } else if(this.state.tab===4){
+      add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       add('<p class="muted">Para questões que ultrapassem meu diálogo local, posso preparar um resumo e abrir ChatGPT ou Gemini, sempre por escolha do usuário.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
     } else if(this.state.tab===5){
       const history=document.createElement('div');
@@ -739,6 +778,10 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
     }
+    const proactivity=this.$content.querySelector('#toggle-proactive');
+    if(proactivity)proactivity.checked=this.observeProjects;
+    const skinLabel=this.$content.querySelector('#arcane-skin-label');
+    if(skinLabel)skinLabel.textContent=this.skin.type==='svg'?'Padrão SVG':this.skin.type==='image'?'Imagem personalizada':'Modelo 3D (adaptador opcional)';
     if(this.config.memory.mode==='publish'){
       const reset=this.$content.querySelector('[data-action="reset-memory"]');
       if(reset)reset.textContent='Zerar rascunho do mago';
@@ -782,6 +825,10 @@ class AlquimagoFamiliar extends HTMLElement {
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
+      const target={ 'go-routes':2,'go-files':3,'go-ai':4,'go-actions':0 }[action];
+      this.state.tab=target;this.render();return;
+    }
     if(action==='open-publish'){
       this.state.open=false;this.render();
       window.dispatchEvent(new Event('alquimago:request-publish'));
