@@ -45,7 +45,7 @@ export function newNeuralModel(){
   hiddenBias:Array(HIDDEN).fill(0),
   hiddenOutput:Array.from({length:HIDDEN*OUTPUTS},(_,i)=>deterministic(i+3000)),
   outputBias:Array(OUTPUTS).fill(0),
-  learned:0
+  learned:0,prototypes:[]
  };
 }
 export function neuralForward(model,text){
@@ -103,6 +103,15 @@ export function seedNeuralModel(){
 }
 export function neuralPredict(model,text){
  const result=neuralForward(model,text);
+ const profiles=Array.isArray(model.prototypes)?model.prototypes:[];
+ let best=null,similarityToTaught=0;
+ for(const entry of profiles){
+  if(!entry||!Array.isArray(entry.features)||entry.features.length!==96||!INTENTS.includes(entry.intent))continue;
+  const score=entry.features.reduce((total,n,i)=>total+n*result.x[i],0);
+  if(score>similarityToTaught){similarityToTaught=score;best=entry.intent;}
+ }
+ // Explicit user teaching wins for the same phrase and very close variants.
+ if(best&&similarityToTaught>=.90)return {intent:best,confidence:Math.min(.99,similarityToTaught),similarity:similarityToTaught,taught:true};
  // A softmax can be overconfident on unknown sentences. The nearest known
  // phrase provides an additional out-of-distribution similarity gate.
  const similarity=Math.max(0,...Object.values(samples).flat().map(sample=>{
@@ -111,13 +120,33 @@ export function neuralPredict(model,text){
  }));
  return {intent:result.intent,confidence:result.confidence*similarity,similarity};
 }
+export function teachNeural(model,text,intent){
+ if(!INTENTS.includes(intent)||!String(text||'').trim())return false;
+ const before=Math.max(0,Number(model.learned)||0);
+ for(let n=0;n<32;n++)trainNeural(model,text,intent,.065);
+ const vector=neuralFeatures(text);
+ const profiles=Array.isArray(model.prototypes)?model.prototypes:[];
+ // Numerical features only, no raw chat content. One prototype per corrected
+ // phrasing. Keep the last 24 to bound file size and learning complexity.
+ const features=vector.map(n=>Number(n.toFixed(5)));
+ const existing=profiles.findIndex(entry=>entry?.features?.every((n,i)=>Math.abs(n-features[i])<.00001));
+ if(existing>=0)profiles.splice(existing,1);
+ profiles.push({intent,features});
+ model.prototypes=profiles.slice(-24);
+ model.learned=before+1;
+ return true;
+}
 export function restoreNeuralModel(value){
  if(!value||value.version!==1)return null;
  const arrays=[['inputHidden',INPUTS*HIDDEN],['hiddenBias',HIDDEN],['hiddenOutput',HIDDEN*OUTPUTS],['outputBias',OUTPUTS]];
  for(const [key,length] of arrays)
   if(!Array.isArray(value[key])||value[key].length!==length||!value[key].every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=5))return null;
+ const prototypes=Array.isArray(value.prototypes)?value.prototypes.slice(-24).filter(entry=>
+   entry&&INTENTS.includes(entry.intent)&&Array.isArray(entry.features)&&entry.features.length===INPUTS&&
+   entry.features.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1)
+  ).map(entry=>({intent:entry.intent,features:[...entry.features]})):[];
  return {...Object.fromEntries(arrays.map(([key])=>[key,[...value[key]]])),version:1,
-  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0};
+  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0,prototypes};
 }
 export function serializeNeuralModel(model){
  const clean=restoreNeuralModel(model);
@@ -125,7 +154,8 @@ export function serializeNeuralModel(model){
   inputHidden:clean.inputHidden.map(n=>Number(n.toFixed(5))),
   hiddenOutput:clean.hiddenOutput.map(n=>Number(n.toFixed(5))),
   hiddenBias:clean.hiddenBias.map(n=>Number(n.toFixed(5))),
-  outputBias:clean.outputBias.map(n=>Number(n.toFixed(5)))
+  outputBias:clean.outputBias.map(n=>Number(n.toFixed(5))),
+  prototypes:clean.prototypes.map(entry=>({intent:entry.intent,features:entry.features.map(n=>Number(n.toFixed(5)))}))
  }:null;
 }
 
