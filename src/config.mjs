@@ -5,7 +5,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
-  behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:true},
+  behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:false},
   commands:{publishPhrase:'vai comprar pão'},
   knowledge:{file:''},
   llm:{provider:'gemini',enabled:false,endpoint:'',consentRequired:true},
