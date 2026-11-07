@@ -490,7 +490,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.2.0',
+    version: '0.3.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
