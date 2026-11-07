@@ -20,7 +20,8 @@
     "dragging": true
   },
   "memory": {
-    "namespace": "meu-projeto"
+    "namespace": "meu-projeto",
+    "remoteSnapshot": "./alquimago/project-memory.json"
   },
   "project": {
     "files": [
