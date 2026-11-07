@@ -1,4 +1,5 @@
 import {calculateBasic,answerFollowUp} from './conversation.mjs';
+import {answerFromKnowledge} from './knowledge.mjs';
 // Local, transparent conversation engine. Not a model of language or remote chat API.
 // It only reads text the visitor explicitly enters into the familiar's own chat.
 export function safeChatText(input){
@@ -21,8 +22,10 @@ export function respondToChat(input,context={}){
  if(followup)return followup;
  const calculation=calculateBasic(raw);
  if(calculation)return {reply:'O resultado é '+calculation.text+'. ✦',intent:'math'};
+ const grounded=answerFromKnowledge(raw,{knowledge:context.knowledge,lastProjectId:context.lastProjectId,focusTitle:context.focusTitle});
+ if(grounded)return grounded;
  if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
-  return {reply:'Saudações! Sou '+name+'. Minha poção está borbulhando e estou '+mood+'. Quer que eu analise a estrutura pública desta página? Responda sim ou não.',intent:'greeting',pending:{kind:'page-insight'}};
+  return {reply:'Oi! Sou '+name+'. Posso conversar, calcular, procurar informações nas obras publicadas e dar sugestões sobre a página. Quer saber algo específico?',intent:'greeting'};
  if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
   return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
  if(context.neuralIntent==='status'||/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
@@ -49,7 +52,7 @@ export function respondToChat(input,context={}){
   return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
  if(context.neuralIntent==='thanks'||/\b(obrigado|valeu|agradeco)\b/.test(q))
   return {reply:'Sempre um prazer ajudar nas suas criações. ✦',intent:'thanks'};
- return {reply:'Ainda não sei responder diretamente a isso. Quer que eu procure uma sugestão na estrutura pública desta página? Responda sim ou não.',intent:'unknown',pending:{kind:'page-insight'}};
+ return {reply:'Ainda não tenho informação suficiente para responder com segurança. Posso consultar as obras públicas, falar sobre a página ou fazer contas. Se quiser uma resposta mais ampla, é necessário conectar um modelo de linguagem.',intent:'unknown'};
 }
 
 export function dialogueKey(namespace='default'){
