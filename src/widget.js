@@ -202,6 +202,25 @@ const STYLE = `
 .neural-lesson{margin:9px 0;padding:8px 10px;background:#24172f;border:1px solid #8b65af70;border-radius:10px}
 .neural-lesson summary{color:#ead6ff;font-size:12px;font-weight:600;cursor:pointer}
 .neural-lesson .neural-teach{margin-top:8px}
+
+.arcane-orb-field{
+ position:absolute;right:2px;bottom:160px;width:165px;height:112px;
+ border:1px solid #9269c884;background:#1c1231e9;border-radius:14px;
+ z-index:3;overflow:hidden;box-shadow:0 8px 32px #11051c99;
+ pointer-events:auto;touch-action:none;
+}
+.arcane-orb{
+ position:absolute;top:0;left:0;width:22px;height:22px;padding:0;border:0;
+ border-radius:50%;color:#261340;font:16px system-ui;font-weight:bold;
+ background:radial-gradient(circle at 30% 25%,#fff6c3,#dab3ff 50%,#8754e9);
+ box-shadow:0 0 15px #b46dff,0 3px 8px #06031388;
+ cursor:grab;touch-action:none;will-change:transform;z-index:1;
+}
+.arcane-orb:active{cursor:grabbing}
+.orb-close{position:absolute;top:2px;right:3px;width:24px;height:24px;
+ border:0;border-radius:8px;background:#39224cd9;color:#f0dcff;
+ font:17px system-ui;cursor:pointer;z-index:2}
+
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
 #arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
@@ -479,6 +498,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
     this.cancelProjectHover();
     if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
+    this.closeOrb();
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
@@ -535,6 +555,66 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.lastSpoken;
     this.updateThought();
     this.save();
+  }
+  closeOrb(){
+    if(this.orbFrame)cancelAnimationFrame(this.orbFrame);
+    this.orbFrame=0;this.orbState=null;
+    if(this.orbField)this.orbField.remove();
+    this.orbField=null;this.orbElement=null;
+  }
+  startOrb(){
+    if(this.orbField){this.closeOrb();return;}
+    if(!this.config.behavior.toy)return;
+    const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const field=document.createElement('div');field.className='arcane-orb-field';
+    field.setAttribute('aria-label','Área de brincadeira do orbe arcano');
+    const ball=document.createElement('button');ball.type='button';
+    ball.className='arcane-orb';ball.setAttribute('aria-label','Arremessar o orbe arcano');
+    ball.textContent='✦';
+    const close=document.createElement('button');close.type='button';
+    close.className='orb-close';close.textContent='×';close.setAttribute('aria-label','Guardar orbe');
+    close.addEventListener('click',()=>this.closeOrb());
+    field.append(ball,close);this.shadowRoot.querySelector('.shell').appendChild(field);
+    this.orbField=field;this.orbElement=ball;this.orbState=createOrb();
+    this.orbStopAt=performance.now()+20000;
+    const render=()=>{if(this.orbElement&&this.orbState)
+      this.orbElement.style.transform='translate('+Math.round(this.orbState.x-11)+'px,'+
+      Math.round(this.orbState.y-11)+'px)';};
+    render();
+    let down=null;
+    ball.addEventListener('pointerdown',e=>{
+      e.preventDefault();e.stopPropagation();
+      ball.setPointerCapture(e.pointerId);
+      const rect=field.getBoundingClientRect();
+      down={x:e.clientX,y:e.clientY,t:performance.now(),rect};
+    });
+    ball.addEventListener('pointerup',e=>{
+      e.preventDefault();e.stopPropagation();
+      if(down&&this.orbState){
+        const elapsed=Math.max(40,performance.now()-down.t);
+        const velocityX=(e.clientX-down.x)/elapsed*18;
+        const velocityY=(e.clientY-down.y)/elapsed*18;
+        this.orbState=tossOrb(this.orbState,
+          Math.abs(velocityX)<.5?4:velocityX,
+          Math.abs(velocityY)<.5?-7:velocityY);
+        this.orbStopAt=performance.now()+18000;
+      }
+      down=null;
+    });
+    let previous=performance.now();
+    const frame=now=>{
+      if(!this.orbField||!this.isConnected)return;
+      if(now>=this.orbStopAt){this.closeOrb();return;}
+      if(!document.hidden&&!reduced){
+        const dt=Math.min(2,(now-previous)/16.667);
+        this.orbState=stepOrb(this.orbState,165,112,dt);
+        render();
+      }
+      previous=now;this.orbFrame=requestAnimationFrame(frame);
+    };
+    this.orbFrame=requestAnimationFrame(frame);
+    this.message='Orbe arcano invocado! Arraste e solte para arremessar.';
+    this.renderHeader();
   }
   applySkin(){
     const skin=this.skin||normalizeSkin(null);
