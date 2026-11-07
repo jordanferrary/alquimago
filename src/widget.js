@@ -482,19 +482,59 @@ class AlquimagoFamiliar extends HTMLElement {
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
-    if(this.state.open||typeof document!=='undefined'&&document.hidden)return;
-    const now=Date.now();
-    if(now-this.lastIdleSpeech<55000)return;
-    this.lastIdleSpeech=now;
-    const pool=[
-      'Um pouco de magia melhora qualquer dia. ✦',
-      'Psst! Posso analisar a estrutura desta página.',
-      'Minha poção está quase pronta. ⚗',
-      'Se passar o mouse sobre meu chapéu, receberei carinho.',
-      'Ainda há runas escondidas neste projeto…'
-    ];
-    const spoken=pool[this.idleCycle++%pool.length];
-    this.lastSpoken=spoken;this.lastSpokenAt=now;
+    if(!this.configReady||!this.isConnected)return;
+    const now=Date.now(),page=this.activePage||{};
+    const issues=this.suggestions.filter(x=>!['route','studio','editor'].includes(x.id));
+    const active=document.activeElement;
+    const typing=active instanceof Element&&!!active.closest('input,textarea,select,[contenteditable="true"]');
+    const reduced=typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const info={
+      route:this.desktop?'desktop':page.route||'home',
+      issues:issues.length,
+      hasBrokenMedia:(page.brokenImages||0)>0,
+      hasAccessibilityIssue:(page.missingAlt||0)>0,
+      visibleProject:!!this.selectedProject,
+      working:!!this.studioInfo?.editing,
+      editorVisible:!!this.studioInfo?.editing,
+      panelOpen:this.state.open,
+      userBusy:typing||now-this.lastUserActivity<25000,
+      idleSeconds:(now-this.lastUserActivity)/1000,
+      hidden:document.hidden,
+      reducedMotion:reduced,
+      playful:this.behaviorMode==='brincalhao',
+      quiet:this.behaviorMode==='silencioso',
+      brain:this.state.brain,
+      enabled:this.behaviorAllowed&&now-this.cortexStart>45000,
+      cooldownMs:this.config.behavior.minIntervalMs,
+      dailyLimit:this.config.behavior.maxPerDay
+    };
+    const outcome=tickCortex(this.cortex,info,now);
+    if(!outcome.action)return;
+    const action=outcome.action;
+    const topic=issues[0]?.title||'a apresentação do projeto';
+    const lines={
+      dica:'Percebi algo sobre '+topic+'. Posso mostrar uma sugestão.',
+      observar:'Estou observando a estrutura pública desta página.',
+      investigar:'Esta seção tem detalhes que podemos explorar juntos.',
+      acenar:'Saudações do seu familiar arcano! ✧',
+      brilhar:'Uma pequena runa se acendeu. ✦',
+      brincar:'Que tal brincar com o orbe arcano?',
+      meditar:'Vou recuperar um pouco de energia arcana.',
+      celebrar:'Uma etapa concluída merece uma pequena celebração. ✦',
+      curiosidade:'Encontrei uma ideia que vale investigar.',
+      pensar:'Tenho algumas alternativas para a próxima melhoria.',
+      estudar:'Vou observar o que já está apresentado publicamente.',
+      poção:'Uma poção de criatividade está borbulhando. ⚗',
+      alongar:'Uma pequena pausa entre projetos pode ser interessante.',
+      descansar:'Vou repousar um instante.',
+      acolher:'Se precisar, estou por aqui para sugerir melhorias.'
+    };
+    this.lastAutoDecision={action,context:info.route,at:now,used:false};
+    this.lastSpoken=lines[action]||outcome.reason||'Um novo pensamento arcano.';
+    this.lastSpokenAt=now;
+    this.message=this.lastSpoken;
+    this.updateThought();
+    this.save();
   }
   applySkin(){
     const skin=this.skin||normalizeSkin(null);
