@@ -17,6 +17,7 @@ import {recognizeStudioCommand} from './commands.mjs';
 import {pendingFromReply} from './conversation.mjs';
 import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
 import {askLanguageModel,validateModelEndpoint} from './llm.mjs';
+import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,summarizeApprovedFiles} from './learning.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -388,6 +389,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
+    this.lessons=normalizeLessons(null);this.lessonDraft=null;this.fileContextAllowed=false;
     this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
     this.links = [];
     this.audit = null;
@@ -465,6 +467,11 @@ class AlquimagoFamiliar extends HTMLElement {
           this.renderHeader();
         }
       }
+      if(e.target?.id==='allow-gemini-file-context'){
+        this.fileContextAllowed=!!e.target.checked;
+        this.message=this.fileContextAllowed?'Posso compartilhar apenas os nomes de imports e exports dos arquivos que você já autorizou para leitura.':'Compartilhamento de metadados de arquivos desativado.';
+        this.renderHeader();
+      }
       if(e.target?.id==='toggle-llm'){
         this.modelEnabled=this.modelAvailable&&!!e.target.checked;
         this.message=this.modelEnabled?'IA generativa ativada para esta sessão. Suas próximas perguntas poderão ser enviadas ao serviço autorizado.':'Modo contextual local ativado.';
@@ -541,6 +548,10 @@ class AlquimagoFamiliar extends HTMLElement {
         }catch{this.language=normalizeLanguage(null)}
       }
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
+      // Approved lessons are private to this browser/site, including Studio
+      // installations. Refresh and deploy do not erase them, and publish
+      // snapshots never upload them as publicly readable JSON.
+      this.lessons=readLessons(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?this.neural:(readNeural(storage(),config.memory.namespace)||this.neural);
@@ -917,9 +928,10 @@ class AlquimagoFamiliar extends HTMLElement {
       }));
       return;
     }
-    const prediction=neuralPredict(this.neural,user);
+    const approved=recallLesson(user,this.lessons);
+    const prediction=approved?{intent:'approved-lesson',confidence:1}:neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
-    const response=respondToChat(user,{
+    const response=approved?{...approved,store:true}:respondToChat(user,{
       pending:this.pendingQuestion,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
       focusTitle:this.selectedProject?.title||'',
@@ -929,7 +941,7 @@ class AlquimagoFamiliar extends HTMLElement {
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
-      !['private','math','followup','decline','clarify','navigate','empty','project-fact','project-list','project-info'].includes(response.intent)&&
+      !['private','math','followup','decline','clarify','navigate','empty','project-fact','project-list','project-info','approved-lesson'].includes(response.intent)&&
       user.length>=3;
     if(canGenerate){
       const history=this.dialogue.slice(-8);
@@ -946,11 +958,13 @@ class AlquimagoFamiliar extends HTMLElement {
       const timer=setTimeout(()=>controller.abort(),18000);
       void askLanguageModel({
         endpoint:this.config.llm.endpoint,prompt:user,history,project,
+        files:this.fileContextAllowed?summarizeApprovedFiles(this.projectFiles):[],
         pageUrl:location.href,signal:controller.signal
       }).then(answer=>{
         if(!this.isConnected||request!==this.modelSequence)return;
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
         this.message=answer.reply;
+        this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (revisado pelo usuário)'};
         this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
       }).catch(error=>{
         if(!this.isConnected||request!==this.modelSequence)return;
@@ -997,6 +1011,9 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
+    if(response.store!==false&&response.intent!=='empty'){
+      this.lessonDraft={question:user,answer:['project-fact','project-info','project-list'].includes(response.intent)?response.reply:'',source:'ensinado manualmente'};
+    }
     this.lastSpoken=response.reply;this.lastSpokenAt=Date.now();
     if(this.skinAdapter?.setExpression){
       this.skinAdapter.setExpression('talk');
