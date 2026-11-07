@@ -13,6 +13,7 @@ import {inspectCover,imageMetricAdvice} from './image-insight.mjs';
 import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
 import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
 import {createOrb,stepOrb,tossOrb} from './physics.mjs';
+import {recognizeStudioCommand} from './commands.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -827,6 +828,23 @@ class AlquimagoFamiliar extends HTMLElement {
     this.lastUserActivity=Date.now();
     const user=safeChatText(text);
     if(!user)return;
+    const command=recognizeStudioCommand(user,this.config.commands.publishPhrase);
+    if(command==='prepare-publish'){
+      // Only an explicit submit inside the familiar can request the existing
+      // publisher. The phrase is never an authentication factor or approval.
+      const allowed=!this.desktop&&this.config.memory.mode==='publish'&&this.studioInfo?.editing===true;
+      const reply=allowed?
+        'Encontrei o comando! ⚗ Vou abrir a revisão da publicação. Confira as alterações e confirme no Studio. A frase não substitui sua autorização GitHub.':
+        'Esse comando está disponível apenas no Local Studio desbloqueado. Ele não publica sozinho.';
+      this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:reply}].slice(-24);
+      this.lastUserText='';this.lastNeuralIntent='';
+      this.message=reply;this.lastSpoken=reply;this.lastSpokenAt=Date.now();
+      this.state.tab=5;this.state.open=true;this.render();
+      if(allowed)window.dispatchEvent(new CustomEvent('alquimago:request-publish',{
+        detail:{source:'chat',action:'review-only'}
+      }));
+      return;
+    }
     const prediction=neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=respondToChat(user,{
@@ -888,7 +906,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.7';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.8';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1281,7 +1299,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.7.0',
+    version: '0.8.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
