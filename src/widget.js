@@ -280,6 +280,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.hoverStroke=freshStroke();this.dialogue=[];
     this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
+    this.publishDialogHandler=null;
   }
   get desktop() { return this.getAttribute('data-mode') === 'desktop'; }
   connectedCallback() {
@@ -348,6 +349,14 @@ class AlquimagoFamiliar extends HTMLElement {
       }
     };
     window.addEventListener('alquimago:activity',this.activityHandler);
+    this.publishDialogHandler=event=>{
+      if(event?.detail?.open===true){
+        this.dataset.publishing='true';
+        this.state.open=false;
+        this.render();
+      }else delete this.dataset.publishing;
+    };
+    window.addEventListener('alquimago:publish-dialog',this.publishDialogHandler);
     window.dispatchEvent(new Event('alquimago:request-context'));
     if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
       this.config=config;
@@ -383,6 +392,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.routeHandler){window.removeEventListener('hashchange',this.routeHandler);window.removeEventListener('popstate',this.routeHandler);}
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
+    if(this.publishDialogHandler)window.removeEventListener('alquimago:publish-dialog',this.publishDialogHandler);
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
@@ -518,6 +528,7 @@ class AlquimagoFamiliar extends HTMLElement {
       destination=options.find(link=>new URL(link.href).hash.toLowerCase().includes('/'+hash))||null;
       response.reply=destination?'Encontrei '+response.target+'. Abrindo esta seção do site…':'Não encontrei '+response.target+' na navegação disponível. Você pode conferir a aba Rotas.';
     }
+    if(response.store===false){this.lastUserText='';this.lastNeuralIntent='';}
     if(response.store!==false){
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:response.reply}].slice(-24);
       if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
