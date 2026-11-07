@@ -571,6 +571,8 @@ class AlquimagoFamiliar extends HTMLElement {
       acolher:'Se precisar, estou por aqui para sugerir melhorias.'
     };
     this.lastAutoDecision={action,context:info.route,at:now,used:false};
+    if(['dica','brincar'].includes(action))
+      this.pendingQuestion={kind:action==='brincar'?'play':'page-insight',at:now};
     this.lastSpoken=lines[action]||outcome.reason||'Um novo pensamento arcano.';
     this.lastSpokenAt=now;
     this.message=this.lastSpoken;
