@@ -2,7 +2,7 @@
 export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
-  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'}},
+  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
@@ -19,10 +19,22 @@ export function normalizeConfig(input){
   const id=obj(data.identity), app=obj(data.appearance), features=obj(data.features);
   const memory=obj(data.memory), project=obj(data.project), messages=obj(data.messages), agent=obj(data.assistant);
   const language=obj(data.language),proactive=obj(data.proactive);
+  const skins=Array.isArray(app.skins)?app.skins.slice(0,12).filter(entry=>
+    entry&&typeof entry==='object'&&!Array.isArray(entry)&&
+    typeof entry.id==='string'&&/^[a-zA-Z0-9_-]{1,35}$/.test(entry.id)
+  ).map(entry=>({
+    id:entry.id,
+    label:txt(entry.label,entry.id,60),
+    type:['svg','image','model3d'].includes(entry.type)?entry.type:'svg',
+    src:typeof entry.src==='string'?entry.src.slice(0,500):'',
+    shapeKeys:obj(entry.shapeKeys)
+  })):[];
+  const validSkins=skins.length?skins:d.appearance.skins;
+  const selectedSkin=validSkins.some(x=>x.id===app.selectedSkin)?app.selectedSkin:validSkins[0].id;
   return {
     schemaVersion:1,
     identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
-    appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position,skin:obj(app.skin)},
+    appearance:{accent:hex(app.accent,d.appearance.accent),gold:hex(app.gold,d.appearance.gold),position:['bottom-right','bottom-left'].includes(app.position)?app.position:d.appearance.position,skin:obj(app.skin),skins:validSkins,selectedSkin},
     language:{code:txt(language.code,'pt-BR',32),file:typeof language.file==='string'?language.file.trim().slice(0,500):''},
     proactive:{projectHover:proactive.projectHover!==false,delayMs:typeof proactive.delayMs==='number'?Math.max(550,Math.min(4000,proactive.delayMs)):1000,cooldownMs:typeof proactive.cooldownMs==='number'?Math.max(20000,Math.min(600000,proactive.cooldownMs)):45000},
     features:Object.fromEntries(Object.entries(d.features).map(([key,defaultValue])=>[key,typeof features[key]==='boolean'?features[key]:defaultValue])),
