@@ -17,7 +17,7 @@ const samples={
  mood:['como esta seu humor','ta feliz','se sente bem','voce ta triste','qual seu humor','ta animado'],
  thanks:['obrigado','valeu','muito obrigado','brigado','agradeco','thanks','obg']
 };
-const clamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
+const neuralClamp=(n,lo,hi)=>Math.max(lo,Math.min(hi,n));
 function canon(input){
  return String(input||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
  .replace(/(.)\1{3,}/g,'$1$1').replace(/[^a-z0-9\s]/g,' ').trim().replace(/\s+/g,' ').slice(0,120);
@@ -61,7 +61,7 @@ export function neuralForward(model,text){
   raw[k]=z;
  }
  const highest=Math.max(...raw);
- const exp=raw.map(z=>Math.exp(clamp(z-highest,-40,40)));
+ const exp=raw.map(z=>Math.exp(neuralClamp(z-highest,-40,40)));
  const total=exp.reduce((a,b)=>a+b,0);
  const probs=exp.map(n=>n/total);
  const chosen=probs.indexOf(Math.max(...probs));
@@ -77,19 +77,19 @@ export function trainNeural(model,text,intent,rate=.075){
   let sum=0;for(let k=0;k<OUTPUTS;k++)sum+=outputError[k]*model.hiddenOutput[j*OUTPUTS+k];
   hiddenError[j]=sum*(1-hidden[j]*hidden[j]);
  }
- for(let k=0;k<OUTPUTS;k++)model.outputBias[k]=clamp(model.outputBias[k]+rate*outputError[k],-5,5);
+ for(let k=0;k<OUTPUTS;k++)model.outputBias[k]=neuralClamp(model.outputBias[k]+rate*outputError[k],-5,5);
  for(let j=0;j<HIDDEN;j++){
-  model.hiddenBias[j]=clamp(model.hiddenBias[j]+rate*hiddenError[j],-5,5);
+  model.hiddenBias[j]=neuralClamp(model.hiddenBias[j]+rate*hiddenError[j],-5,5);
   for(let k=0;k<OUTPUTS;k++){
    const ix=j*OUTPUTS+k;
-   model.hiddenOutput[ix]=clamp(model.hiddenOutput[ix]+rate*outputError[k]*hidden[j],-5,5);
+   model.hiddenOutput[ix]=neuralClamp(model.hiddenOutput[ix]+rate*outputError[k]*hidden[j],-5,5);
   }
  }
  for(let i=0;i<INPUTS;i++)if(x[i])for(let j=0;j<HIDDEN;j++){
   const ix=i*HIDDEN+j;
-  model.inputHidden[ix]=clamp(model.inputHidden[ix]+rate*hiddenError[j]*x[i],-5,5);
+  model.inputHidden[ix]=neuralClamp(model.inputHidden[ix]+rate*hiddenError[j]*x[i],-5,5);
  }
- model.learned=clamp((model.learned||0)+1,0,1000000);
+ model.learned=neuralClamp((model.learned||0)+1,0,1000000);
  return model;
 }
 export function seedNeuralModel(){
@@ -117,7 +117,7 @@ export function restoreNeuralModel(value){
  for(const [key,length] of arrays)
   if(!Array.isArray(value[key])||value[key].length!==length||!value[key].every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=5))return null;
  return {...Object.fromEntries(arrays.map(([key])=>[key,[...value[key]]])),version:1,
-  learned:typeof value.learned==='number'?clamp(value.learned,0,1e6):0};
+  learned:typeof value.learned==='number'?neuralClamp(value.learned,0,1e6):0};
 }
 export function serializeNeuralModel(model){
  const clean=restoreNeuralModel(model);
