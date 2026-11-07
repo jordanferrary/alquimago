@@ -10,6 +10,7 @@ import {projectMeta,projectAdvice,projectIdentity,shouldCommentProject} from './
 import {normalizeLanguage,loadLanguage} from './i18n.mjs';
 import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
 import {inspectCover,imageMetricAdvice} from './image-insight.mjs';
+import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -309,6 +310,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
+    this.preferences=blankPreferences();
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -427,6 +429,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?seedNeuralModel():(readNeural(storage(),config.memory.namespace)||seedNeuralModel());
+      this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
       // The Studio always starts from its last published snapshot; no local drafts
       // survive a refresh unless the user explicitly publishes via GitHub.
@@ -434,6 +437,7 @@ class AlquimagoFamiliar extends HTMLElement {
         const published=await readPublicSnapshot(config.memory.remoteSnapshot,{pageUrl:location.href});
         if(published?.brain&&typeof published.brain==='object'){
           saved=cleanMemory(published);
+          if(published.preferences)this.preferences=cleanPreferences(published.preferences);
           if(published.neural){
             const restored=restoreNeuralModel(published.neural);
             if(restored)this.neural=restored;
@@ -537,6 +541,7 @@ class AlquimagoFamiliar extends HTMLElement {
         }
       }
       if(!this.isConnected||!card.isConnected)return;
+      advice.orderedTips=rankTips(advice.tips,advice.category,this.preferences);
       this.selectedProject=advice;
       this.hoverCount[key]=Date.now();
       this.lastSpoken=advice.comment;
@@ -606,7 +611,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.config.memory.mode==='publish')return;
     writeMemory(storage(),{brain:this.state.brain,position:this.state.position},this.config.memory.namespace);
   }
-  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),selectedSkin:this.selectedSkin}:null;}
+  snapshot(){return this.configReady?{...JSON.parse(exportBackup({brain:this.state.brain,position:this.state.position})),neural:serializeNeuralModel(this.neural),preferences:cleanPreferences(this.preferences),selectedSkin:this.selectedSkin}:null;}
   moveTo(x, y) {
     const maxX = Math.max(0, innerWidth - 125), maxY = Math.max(0, innerHeight - 166);
     const left = Math.max(0, Math.min(maxX, x)), top = Math.max(0, Math.min(maxY, y));
@@ -778,9 +783,17 @@ class AlquimagoFamiliar extends HTMLElement {
           const explanation=document.createElement('p');explanation.textContent=tip.comment;
           const details=document.createElement('p');details.className='muted';details.textContent=tip.disclaimer;
           card.append(heading,explanation,details);
-          for(const point of tip.tips.slice(0,3)){
-            const row=document.createElement('p');row.className='muted';row.textContent='• '+point;card.appendChild(row);
+          for(const point of (tip.orderedTips||rankTips(tip.tips,tip.category,this.preferences)).slice(0,3)){
+            const row=document.createElement('p');row.className='muted';row.textContent='• '+point.text;card.appendChild(row);
           }
+          const actions=document.createElement('div');actions.className='actions';
+          for(const [useful,label] of [[true,'✓ Dica útil'],[false,'✕ Não priorizar']] ){
+            const rate=document.createElement('button');rate.type='button';rate.className='action';
+            rate.dataset.tipFeedback=useful?'yes':'no';
+            rate.dataset.tipIndex=String((tip.orderedTips||rankTips(tip.tips,tip.category,this.preferences))[0]?.index??0);
+            rate.textContent=label;actions.appendChild(rate);
+          }
+          card.appendChild(actions);
           const copy=document.createElement('button');copy.className='action';copy.type='button';
           copy.dataset.action='copy-project-advice';copy.textContent=this.language.ui.copy;
           card.appendChild(copy);
@@ -926,6 +939,14 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       return;
     }
+    if(button.dataset.tipFeedback&&this.selectedProject){
+      const i=Number(button.dataset.tipIndex);
+      this.preferences=learnTip(this.preferences,this.selectedProject.category,i,button.dataset.tipFeedback==='yes');
+      if(this.config.memory.mode!=='publish')writePreferences(storage(),this.config.memory.namespace,this.preferences);
+      this.message=button.dataset.tipFeedback==='yes'?'Vou priorizar dicas desse tipo.':'Vou reduzir dicas desse tipo.';
+      this.selectedProject.orderedTips=rankTips(this.selectedProject.tips,this.selectedProject.category,this.preferences);
+      this.render();return;
+    }
     const action = button.dataset.action;
     if (!action) return;
     if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
@@ -967,6 +988,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
+      this.preferences=blankPreferences();
       this.lastUserText='';this.lastNeuralIntent='';
       this.state.position=null;
       this.dialogue=[];
@@ -983,6 +1005,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.config.memory.mode!=='publish'){
         writeDialogue(storage(),this.config.memory.namespace,[]);
         writeNeural(storage(),this.config.memory.namespace,this.neural);
+        writePreferences(storage(),this.config.memory.namespace,this.preferences);
       }
       this.message=this.config.memory.mode==='publish'?'Rascunho zerado. Publique para manter; recarregar recupera a última versão publicada.':'Memória local reiniciada. O projeto não foi alterado.';
       this.state.tab=0;
