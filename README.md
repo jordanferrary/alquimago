@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.5.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.6.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
 ## Recursos
 
@@ -120,14 +120,14 @@ O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini.
 Coloque a distribuição atualizada em `public/alquimago/alquimago.js` e mude o identificador de versão da URL quando atualizar:
 
 ```html
-<script defer data-config="/alquimago/config.json?v=0.5.0" src="/alquimago/alquimago.js?v=0.5.0"></script>
+<script defer data-config="/alquimago/config.json?v=0.6.0" src="/alquimago/alquimago.js?v=0.6.0"></script>
 ```
 
 Em apps hospedados em subpastas, ajuste as URLs ao caminho base do deploy. Se o mascote é exibido somente quando um editor está desbloqueado, recarregar a página pode fechar esse editor; reabra-o para verificar a versão. A publicação do arquivo no GitHub não prova que o GitHub Pages compilou e entregou a atualização. Confira as execuções de Actions e valide no navegador.
 
 Os gestos foram reimplementados independentemente, inspirados pela documentação do [Pestinha original](https://github.com/mille-okws/pestinha); nenhum asset ou trecho do seu código foi incorporado.
 
-### Reset local seguro (v0.5.0)
+### Reset local seguro (v0.6.0)
 
 No grimório, abra **Cuidado → Reiniciar dados locais** e confirme para zerar
 XP, atributos, posição e conversa **somente neste navegador e nesta instalação**.
@@ -167,3 +167,9 @@ Para embutir o Alquimago num app Vite, um identificador de build na URL do scrip
 - O snapshot numérico público pode conter XP, humor simbólico e pesos da rede neural, mas **nunca transcrições da conversa**. Como os pesos aprendidos serão públicos se publicados em GitHub Pages, não ensine dados privados e não permita que mensagens contendo segredos sejam utilizadas no treinamento.
 
 **Compatibilidade:** as atualizações de código do widget são independentes de `memory.namespace`. Nunca limpe o armazenamento de outros aplicativos ao atualizar o Alquimago. A versão v0.5 não foi validada visualmente em todos os navegadores/Windows; execute os testes e inspecione o build antes de distribuir amplamente.
+
+## Recursos v0.6 e auditoria do Pestinha
+
+A auditoria de arquitetura está em [docs/AUDITORIA_PESTINHA.md](docs/AUDITORIA_PESTINHA.md). Não há paridade integral com o pet desktop: no navegador, a observação respeita as permissões do site. Entre as novidades estão comentários proativos de obras, amostragem local de luminosidade/cor das capas, ensino neural imediatamente verificável, três abas principais com scrollbar personalizada, idiomas opcionais por arquivo e skins configuráveis. Veja [docs/SKINS_3D.md](docs/SKINS_3D.md) e [locales/README.md](locales/README.md).
+
+A versão publicada no Local Studio continua usando a memória temporária até o usuário clicar em Publicar; apenas pesos numéricos e atributos aprovados seguem para o GitHub. O renderer 3D requer instalação **opt-in** de Three.js no projeto React, não estando ativo por padrão.
