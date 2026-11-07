@@ -11,7 +11,7 @@ const awareness=clean(await load('awareness.mjs'));
 const gestures=clean(await load('gestures.mjs'));
 const dialogue=clean(await load('dialogue.mjs'));
 const widget=(await load('widget.js')).replace(/^import .*?;\s*$/gm,'');
-const bundle=['/* ALQUIMAGO v0.4 • MIT */','(() => {','"use strict";',brain,config,storage,project,awareness,gestures,dialogue,widget,'})();',''].join('\n');
+const bundle=['/* ALQUIMAGO v0.4.1 • MIT */','(() => {','"use strict";',brain,config,storage,project,awareness,gestures,dialogue,widget,'})();',''].join('\n');
 await mkdir(path.join(root,'dist'),{recursive:true});
 await writeFile(path.join(root,'dist/alquimago.js'),bundle);
 await writeFile(path.join(root,'dist/alquimago.config.json'),await readFile(path.join(root,'alquimago.config.json'),'utf8'));
