@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.6.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.7.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
 
 ## Recursos
 
@@ -120,14 +120,14 @@ O Alquimago não visualiza outras abas do navegador nem controla ChatGPT/Gemini.
 Coloque a distribuição atualizada em `public/alquimago/alquimago.js` e mude o identificador de versão da URL quando atualizar:
 
 ```html
-<script defer data-config="/alquimago/config.json?v=0.6.0" src="/alquimago/alquimago.js?v=0.6.0"></script>
+<script defer data-config="/alquimago/config.json?v=0.7.0" src="/alquimago/alquimago.js?v=0.7.0"></script>
 ```
 
 Em apps hospedados em subpastas, ajuste as URLs ao caminho base do deploy. Se o mascote é exibido somente quando um editor está desbloqueado, recarregar a página pode fechar esse editor; reabra-o para verificar a versão. A publicação do arquivo no GitHub não prova que o GitHub Pages compilou e entregou a atualização. Confira as execuções de Actions e valide no navegador.
 
 Os gestos foram reimplementados independentemente, inspirados pela documentação do [Pestinha original](https://github.com/mille-okws/pestinha); nenhum asset ou trecho do seu código foi incorporado.
 
-### Reset local seguro (v0.6.0)
+### Reset local seguro (v0.7.0)
 
 No grimório, abra **Cuidado → Reiniciar dados locais** e confirme para zerar
 XP, atributos, posição e conversa **somente neste navegador e nesta instalação**.
@@ -173,3 +173,31 @@ Para embutir o Alquimago num app Vite, um identificador de build na URL do scrip
 A auditoria de arquitetura está em [docs/AUDITORIA_PESTINHA.md](docs/AUDITORIA_PESTINHA.md). Não há paridade integral com o pet desktop: no navegador, a observação respeita as permissões do site. Entre as novidades estão comentários proativos de obras, amostragem local de luminosidade/cor das capas, ensino neural imediatamente verificável, três abas principais com scrollbar personalizada, idiomas opcionais por arquivo e skins configuráveis. Veja [docs/SKINS_3D.md](docs/SKINS_3D.md) e [locales/README.md](locales/README.md).
 
 A versão publicada no Local Studio continua usando a memória temporária até o usuário clicar em Publicar; apenas pesos numéricos e atributos aprovados seguem para o GitHub. O renderer 3D requer instalação **opt-in** de Three.js no projeto React, não estando ativo por padrão.
+
+
+## Alquimago v0.7 — autonomia, condicionamento e brinquedo
+
+O mascote agora separa **linguagem** de **comportamento**: o classificador de frases continua funcionando, mas um novo córtex LIF local com **512 neurônios, 16.384 conexões, 32 sensores e 16 motores** avalia estímulos públicos do site e escolhe iniciativas com moderação. A rede comportamental não é uma IA generativa e **não controla o GitHub, outras abas ou aplicações do sistema operacional**.
+
+Novidades principais:
+- **Autonomia consentida:** comentários pontuais, pequenas reações e sugestões quando há sinais úteis. Limites de frequência e máximo diário, pausa quando alguém está digitando, editando ou com o painel aberto e suporte a movimento reduzido.
+- **Feedback que modifica decisões:** na aba **Interagir → Cérebro e autonomia**, marque **Gostei** ou **Menos disso** após uma iniciativa. O córtex aprende contexto, reforço e episódios de ação (sem texto ou dados pessoais).
+- **Orbe arcano:** brinquedo opcional com física, gravidade, colisões, arraste e arremesso, confinado a uma pequena área do personagem.
+- **Memória preservada:** modo `local` salva aprendizado no navegador. Modo `publish` envia o estado numérico do córtex com a publicação autorizada do site; recarregar sem publicar descarta a sessão temporária.
+- **Configuração universal:** adicione `behavior` ao JSON do host:
+
+```json
+{
+ "behavior":{
+  "enabled":true,
+  "mode":"equilibrado",
+  "minIntervalMs":120000,
+  "maxPerDay":4,
+  "toy":true
+ }
+}
+```
+
+Também há os modos `silencioso` e `brincalhao`. Nenhum modo autoriza alterações de código ou publicações automáticas. Leia [a arquitetura do cérebro](docs/CEREBRO_COMPORTAMENTAL.md) e [a comparação honesta com o Pestinha](docs/AUDITORIA_PESTINHA.md).
+
+**Estado técnico:** existem testes automatizados e checagens do núcleo, mas ainda é necessária validação de ponta a ponta no navegador, conclusão do workflow de deployment e testes do aplicativo Windows antes de declarar superioridade funcional ao Pestinha.
