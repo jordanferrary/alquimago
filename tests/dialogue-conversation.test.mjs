@@ -32,7 +32,7 @@ test('simple maths returns correct answers before neural intent fallback',()=>{
  for(const [message,answer] of [['1 + 1','2'],['quanto é dois mais dois?','4'],['2 x 3','6']]){
   const reply=respondToChat(message,{neuralIntent:'greeting'});
   assert.equal(reply.intent,'math');
-  assert.match(reply.reply,new RegExp('resultado é '+answer+'\\\\?'));
+  assert.ok(reply.reply.includes('resultado é '+answer),message);
  }
 });
 test('private-looking messages are not used as contextual training',()=>{
