@@ -14,6 +14,7 @@ import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writ
 import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
 import {createOrb,stepOrb,tossOrb} from './physics.mjs';
 import {recognizeStudioCommand} from './commands.mjs';
+import {pendingFromReply} from './conversation.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -335,7 +336,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.timer = null;
     this.pointerStart = null;
     this.hoverStroke=freshStroke();this.dialogue=[];
-    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
+    this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
     this.publishDialogHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
@@ -837,7 +838,7 @@ class AlquimagoFamiliar extends HTMLElement {
         'Encontrei o comando! ⚗ Vou abrir a revisão da publicação. Confira as alterações e confirme no Studio. A frase não substitui sua autorização GitHub.':
         'Esse comando está disponível apenas no Local Studio desbloqueado. Ele não publica sozinho.';
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:reply}].slice(-24);
-      this.lastUserText='';this.lastNeuralIntent='';
+      this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;
       this.message=reply;this.lastSpoken=reply;this.lastSpokenAt=Date.now();
       this.state.tab=5;this.state.open=true;this.render();
       if(allowed)window.dispatchEvent(new CustomEvent('alquimago:request-publish',{
@@ -848,11 +849,13 @@ class AlquimagoFamiliar extends HTMLElement {
     const prediction=neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=respondToChat(user,{
+      pending:this.pendingQuestion,
       neuralIntent:prediction.confidence>=.55?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    this.pendingQuestion=pendingFromReply(response);
     if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
       response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
         name:this.config.identity.name,xp:String(this.state.brain.xp),
@@ -906,7 +909,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.8';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.8.1';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1217,6 +1220,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!allowed)return;
       this.state.brain=restoreBrain(null);
       this.neural=seedNeuralModel();
+      this.pendingQuestion=null;
       this.preferences=blankPreferences();
       this.cortex=createCortexRuntime(createCortex());this.lastAutoDecision=null;
       this.lastUserText='';this.lastNeuralIntent='';
@@ -1299,7 +1303,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.8.0',
+    version: '0.8.1',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
