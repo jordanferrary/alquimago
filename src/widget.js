@@ -221,6 +221,13 @@ const STYLE = `
  border:0;border-radius:8px;background:#39224cd9;color:#f0dcff;
  font:17px system-ui;cursor:pointer;z-index:2}
 
+
+.arcane-cortex{border-color:#ae83d375}
+.arcane-control-label{display:flex;flex-direction:column;gap:6px;margin:10px 0;color:#e3ccf4;font-size:11px}
+.arcane-control-label select{background:#21132f;color:#fff;border:1px solid #8763a8;
+ border-radius:8px;padding:8px;font:12px system-ui}
+.arcane-cortex .action:disabled{opacity:.45;cursor:not-allowed}
+
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
 #arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
@@ -383,6 +390,18 @@ class AlquimagoFamiliar extends HTMLElement {
         if(chosen){
           this.selectedSkin=chosen.id;this.skin=normalizeSkin(chosen);this.applySkin();
           this.message='Skin "'+chosen.label+'" selecionada. '+(this.config.memory.mode==='publish'?'Publique para salvar.':'');
+          this.renderHeader();
+        }
+      }
+      if(e.target?.id==='toggle-cortex'){
+        this.behaviorAllowed=!!e.target.checked;
+        this.message=this.behaviorAllowed?'Iniciativas ativadas.':'Iniciativas pausadas.';
+        this.renderHeader();
+      }
+      if(e.target?.id==='cortex-mode'){
+        if(['silencioso','equilibrado','brincalhao'].includes(e.target.value)){
+          this.behaviorMode=e.target.value;
+          this.message='Temperamento ajustado para '+this.behaviorMode+'.';
           this.renderHeader();
         }
       }
@@ -654,6 +673,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.cancelProjectHover();
     const meta=projectMeta(card);
     if(!meta)return;
+    this.lastUserActivity=Date.now();
     const key=projectIdentity(meta);
     if(!shouldCommentProject(this.hoverCount,key,Date.now(),{cooldownMs:this.config.proactive.cooldownMs}))return;
     this.hoverSeen=card;
@@ -752,6 +772,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   onPointerDown(e) {
     if (e.button !== 0) return;
+    this.lastUserActivity=Date.now();
     const box=this.getBoundingClientRect();
     this.pointerStart={x:e.clientX,y:e.clientY,left:box.left,top:box.top,dx:0,dy:0,moved:false};
     if(this.desktop&&e.altKey){
@@ -795,6 +816,7 @@ class AlquimagoFamiliar extends HTMLElement {
     setTimeout(()=>node.remove(),950);
   }
   sendMessage(text){
+    this.lastUserActivity=Date.now();
     const user=safeChatText(text);
     if(!user)return;
     const prediction=neuralPredict(this.neural,user);
@@ -841,6 +863,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(destination&&new URL(destination.href).origin===location.origin)location.assign(destination.href);
   }
     action(name,detail=''){
+    this.lastUserActivity=Date.now();
     const before=this.state.brain.xp;
     const pageKey=name==='explore'?encodeURIComponent(routeSignature(location.href)).slice(0,120):name==='publish'?detail:'';
     this.state.brain=applyAction(this.state.brain,name,Date.now(),pageKey);
@@ -890,7 +913,19 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div><details class="arcane-advanced"><summary>⚙ Ajustes e ferramentas</summary>
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button><button class="action" data-action="orb-toy">◉ Orbe arcano</button></div>
+      <details class="arcane-advanced arcane-cortex">
+      <summary>🧠 Cérebro e autonomia</summary>
+      <p class="muted" id="cortex-summary">Rede pulsada local, com decisões e memória comportamental.</p>
+      <label class="arcane-toggle"><input type="checkbox" id="toggle-cortex"> Permitir iniciativas discretas</label>
+      <label class="arcane-control-label">Temperamento
+        <select id="cortex-mode"><option value="silencioso">Silencioso</option><option value="equilibrado">Equilibrado</option><option value="brincalhao">Brincalhão</option></select>
+      </label>
+      <p class="muted" id="cortex-last">Nenhuma iniciativa recente.</p>
+      <div class="actions"><button class="action" data-action="cortex-like">✓ Gostei</button>
+      <button class="action" data-action="cortex-dislike">✕ Menos disso</button></div>
+      <p class="muted">Sem controlar navegação, publicação ou campos do site. Pausado quando há interação ativa.</p>
+      </details><details class="arcane-advanced"><summary>⚙ Ajustes e ferramentas</summary>
       <div class="actions"><button class="action" data-action="go-routes">Rotas internas</button>
       <button class="action" data-action="go-files">Arquivos públicos</button>
       <button class="action" data-action="go-ai">Continuar com IA</button></div>
@@ -1004,6 +1039,27 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
     }
+    const cortexToggle=this.$content.querySelector('#toggle-cortex');
+    if(cortexToggle)cortexToggle.checked=this.behaviorAllowed;
+    const cortexMode=this.$content.querySelector('#cortex-mode');
+    if(cortexMode)cortexMode.value=this.behaviorMode;
+    const cortexStats=this.$content.querySelector('#cortex-summary');
+    if(cortexStats){
+      const stats=cortexSummary(this.cortex.state);
+      cortexStats.textContent=stats.neurons+' neurônios • '+stats.synapses.toLocaleString('pt-BR')+
+        ' conexões • '+stats.sensors+' sensores • '+stats.motors+' ações. '+stats.feedback+' aprendizados.';
+    }
+    const last=this.$content.querySelector('#cortex-last');
+    if(last)last.textContent=this.lastAutoDecision?
+      'Última iniciativa: '+this.lastAutoDecision.action+'. '+(this.lastAutoDecision.used?'Feedback registrado.':'Diga se foi útil.') :
+      'O cérebro ainda não tomou nenhuma iniciativa nesta sessão.';
+    const orbButton=this.$content.querySelector('[data-action="orb-toy"]');
+    if(orbButton){
+      orbButton.textContent=this.orbField?'Guardar orbe':'◉ Orbe arcano';
+      if(!this.config.behavior.toy)orbButton.remove();
+    }
+    for(const button of this.$content.querySelectorAll('[data-action="cortex-like"],[data-action="cortex-dislike"]'))
+      button.disabled=!this.lastAutoDecision||this.lastAutoDecision.used;
     const proactivity=this.$content.querySelector('#toggle-proactive');
     if(proactivity)proactivity.checked=this.observeProjects;
     const skinLabel=this.$content.querySelector('#arcane-skin-label');
@@ -1078,6 +1134,21 @@ class AlquimagoFamiliar extends HTMLElement {
       this.message=button.dataset.tipFeedback==='yes'?'Vou priorizar dicas desse tipo.':'Vou reduzir dicas desse tipo.';
       this.selectedProject.orderedTips=rankTips(this.selectedProject.tips,this.selectedProject.category,this.preferences);
       this.render();return;
+    }
+    if(button.dataset.action==='cortex-like'||button.dataset.action==='cortex-dislike'){
+      const choice=this.lastAutoDecision;
+      if(!choice||choice.used)return;
+      const positive=button.dataset.action==='cortex-like';
+      rewardCortex(this.cortex,choice.action,choice.context,positive?1:-1,Date.now());
+      choice.used=true;
+      this.lastUserActivity=Date.now();
+      this.save();
+      this.message=positive?'Aprendi: mais iniciativas como essa.':'Aprendi: menos desse comportamento.';
+      this.render();return;
+    }
+    if(button.dataset.action==='orb-toy'){
+      this.lastUserActivity=Date.now();
+      this.startOrb();this.render();return;
     }
     const action = button.dataset.action;
     if (!action) return;
