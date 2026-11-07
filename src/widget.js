@@ -240,6 +240,52 @@ const STYLE = `
 }
 .arcane-ai-consent input{accent-color:#ac78ef;width:15px;height:15px;flex-shrink:0;margin-top:2px}
 
+
+/* v0.9: conversation-first design, high contrast and carefully bounded chat. */
+.panel{
+ width:min(400px,calc(100vw - 20px))!important;
+ background:linear-gradient(150deg,#241532 0%,#141022 72%,#0e0b17 100%)!important;
+ border:1px solid #ac80df99!important;border-radius:20px!important;
+ box-shadow:0 18px 52px #070310c9,0 0 0 1px #e3c4ff0a inset!important;
+ backdrop-filter:none!important;max-height:min(70dvh,650px)!important;
+}
+.panel-header{padding:15px 17px 12px!important;background:#2b1c3a!important;border-bottom:1px solid #6f50906b}
+.panel-header .row b{font:700 14px/1.3 system-ui!important;letter-spacing:.025em}
+.panel-header .subtitle{font-size:11px;opacity:.9}
+.tabs{background:#1d1429;padding:8px 10px!important;border-bottom:1px solid #5b3a7855}
+.tab{font:600 12px/1.3 system-ui!important;border-radius:11px!important;padding:9px 10px!important;
+ color:#d3bfe8!important}
+.tab.selected{background:#7653a3!important;color:#fff!important;box-shadow:0 2px 10px #0905106b}
+.content{
+ max-height:none!important;min-height:0!important;flex:1 1 auto!important;
+ padding:13px 15px 15px!important;overflow-y:auto!important;
+ overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#8a62ab #1b1426;
+}
+.chat-history{max-height:min(290px,34dvh)!important;min-height:80px!important;
+ scrollbar-width:thin;scrollbar-color:#8a62ab #1b1426}
+.chat-bubble{font:12px/1.65 system-ui!important;padding:10px 12px!important;
+ border-radius:14px!important}
+.chat-bubble.from-familiar{background:#30203e!important;border-color:#7954a0a6!important}
+.chat-bubble.from-user{background:#63408e!important;border-color:#9969ca!important}
+.chat-form{gap:8px;margin-top:11px}
+.chat-form input{padding:12px!important;background:#120c1d!important;border:1px solid #8963af!important;
+ border-radius:12px!important;font-size:12px!important}
+.chat-send{height:41px!important;min-width:42px!important;border-radius:12px!important}
+.chat-suggestions button{background:#32213e!important;border-color:#76548b!important;
+ color:#f4e6ff!important;font-size:11px!important;padding:7px 10px!important}
+.neural-lesson{background:#21162c!important;border-color:#765b9366!important}
+.thought{font:11px/1.45 system-ui!important;background:#25182feb!important;
+ max-width:225px!important;border-color:#9e73be!important}
+.panel .action:focus-visible,.panel button:focus-visible,.panel input:focus-visible,
+.panel select:focus-visible{outline:2px solid #f2cbff;outline-offset:2px}
+@media(max-width:520px){
+ .panel{width:min(355px,calc(100vw - 12px))!important;max-height:min(66dvh,580px)!important}
+ .panel-header{padding:12px!important}
+ .content{padding:10px 12px!important}
+ .chat-history{max-height:26dvh!important}
+}
+@media(prefers-reduced-motion:reduce){.character{animation:none!important}.character .arc-sigils{animation:none!important}}
+
 /* Three clear tabs and an internal, unobtrusive settings disclosure. */
 #arcane-skin-label select{margin-top:6px;width:100%;background:#21132f;color:#f3deff;border:1px solid #8763a8;border-radius:8px;padding:7px;font:12px system-ui}
 .tabs{justify-content:stretch;gap:4px;padding:7px 8px}
@@ -981,7 +1027,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.8.1';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.9';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1136,7 +1182,7 @@ class AlquimagoFamiliar extends HTMLElement {
       teach.disabled=!this.lastUserText;
       teacher.append(lbl,chooser,teach);
       const lesson=document.createElement('details');lesson.className='neural-lesson';
-      const summary=document.createElement('summary');summary.textContent='✦ Ensinar uma frase';
+      const summary=document.createElement('summary');summary.textContent='✦ Ensinar a reconhecer uma frase';
       lesson.append(summary,teacher);this.$content.appendChild(lesson);
       if(this.modelAvailable){
         const consent=document.createElement('label');
@@ -1150,7 +1196,7 @@ class AlquimagoFamiliar extends HTMLElement {
         this.$content.appendChild(consent);
       }
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Cérebro local: 96 entradas · 24 neurônios internos · 12 intenções. Correções ensinadas: '+this.neural.learned+'. Não é uma IA generativa.';
+      message.textContent='Modo '+(this.modelEnabled?'IA generativa':'contextual local')+' · '+this.knowledge.projects.length+' obras públicas conhecidas · '+this.neural.learned+' correções de frases.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -1390,7 +1436,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.8.1',
+    version: '0.9.0',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
