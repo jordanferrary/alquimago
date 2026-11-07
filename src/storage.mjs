@@ -2,10 +2,10 @@
 export const LEGACY_KEY='alquimago:v1';
 export const MEMORY_VERSION=2;
 export const memoryKey=(ns='default')=>'alquimago:memory:v2:'+(/^[\w-]{1,48}$/.test(ns)?ns:'default');
-const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+const memoryObject=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 const num=x=>typeof x==='number'&&Number.isFinite(x);
 export function cleanMemory(value){
-  const data=obj(value),raw=obj(data.brain),p=obj(data.position),brain={};
+  const data=memoryObject(value),raw=memoryObject(data.brain),p=memoryObject(data.position),brain={};
   for(const k of ['energy','curiosity','focus','affinity','xp','interactions','lastSeen','sleepUntil'])
     if(num(raw[k]))brain[k]=Math.max(0,Math.min(1e12,raw[k]));
   if(typeof raw.lastAction==='string'&&['pet','play','focus','rest','study','summon'].includes(raw.lastAction))brain.lastAction=raw.lastAction;
