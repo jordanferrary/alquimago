@@ -820,6 +820,10 @@ class AlquimagoFamiliar extends HTMLElement {
       const input=e.target.querySelector('input[name="message"]');
       if(!input)return;
       this.sendMessage(input.value);
+      queueMicrotask(()=>{
+       if(this.isConnected&&this.state.open&&this.state.tab===5)
+        this.$content.querySelector('#alquimago-message')?.focus({preventScroll:true});
+      });
     });
     if (!this.desktop && this.state.position) this.moveTo(this.state.position.x, this.state.position.y);
     this.render();
@@ -1865,6 +1869,8 @@ class AlquimagoFamiliar extends HTMLElement {
       const review=this.$content.querySelector('.alquimago-lesson-review');
       if(review)conversation.insertBefore(review,composer);
       const mentor=document.createElement('details');mentor.className='grimoire-mentor';
+      mentor.open=Boolean(this.grimoireMentorOpen);
+      mentor.addEventListener('toggle',()=>{this.grimoireMentorOpen=mentor.open});
       // Review after a teacher reply is a high-priority action, not hidden.
       const mentorSummary=document.createElement('summary');mentorSummary.textContent='✦ Mentor Gemini e treinamento';
       mentor.appendChild(mentorSummary);
