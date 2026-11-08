@@ -1233,11 +1233,12 @@ class AlquimagoFamiliar extends HTMLElement {
        ?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
+      approvedLessons:this.lessons?.lessons?.length||0,neuralCorrections:this.neural?.learned||0,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     const known=['private','math','followup','decline','clarify','navigate','empty',
       'project-fact','project-list','project-info','approved-lesson','studio-guide',
-      'greeting','identity','status','pet','play','brew','rest','help','mood','thanks'];
+      'greeting','identity','status','pet','play','brew','rest','help','mood','thanks','self-learning'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
       !known.includes(response.intent)&&user.length>=3;
     if(canGenerate){
