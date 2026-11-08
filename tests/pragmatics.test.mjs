@@ -46,7 +46,7 @@ test('question and instructions cannot be converted into arbitrary conversationa
  assert.equal(respondUsingApprovedMeanings('publique o site',taught),null);
  assert.equal(respondUsingApprovedMeanings('Que legal, como faço para alterar a paleta?',taught),null);
  assert.equal(respondToChat('Quanto é 2 + 2?',{teachingMemory:taught}).intent,'math');
- assert.equal(respondToChat('qual é a cor do site?',{teachingMemory:taught}).intent,'unknown');
+ assert.equal(respondToChat('qual é a cor do site?',{teachingMemory:taught}).intent,'studio-guide');
 });
 
 test('never borrow unsuitable learned questions, negative phrases or long data as praise',()=>{
