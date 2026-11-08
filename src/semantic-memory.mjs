@@ -27,11 +27,27 @@ export function answerFromSemanticMemory(question,library){
  const relation=/\b(?:serve para|pra que|para que|utilidade|funcao)\b/.test(q)?'purpose':
   /\b(?:o que|oque|quem|defina|definicao|explique)\b/.test(q)?'definition':null;
  if(!relation)return null;
- const nodes=buildSemanticMemory(library).filter(n=>
-  (relation==='purpose'?n.relation==='serve para':n.relation==='é')&&
-  q.includes(n.subject)&&n.subject.length>=4
+ const candidates=buildSemanticMemory(library).filter(n=>
+  (relation==='purpose'?['serve para','permite','ajuda a'].includes(n.relation):n.relation==='é')
  );
- if(nodes.length!==1)return null;
- const n=nodes[0];
- return {reply:n.subject+' '+n.relation+' '+n.object+'.',intent:'semantic-memory',source:n.source};
+ // Require the complete subject phrase, not a substring of another word.
+ const bySubject=candidates.filter(n=>(' '+q+' ').includes(' '+n.subject+' ')&&n.subject.length>=4);
+ if(bySubject.length===1){
+  const n=bySubject[0];
+  return {reply:n.subject+' '+n.relation+' '+n.object+'.',intent:'semantic-memory',source:n.source};
+ }
+ // Conservative reverse association: "qual ferramenta serve para escultura?"
+ // Only answer when exactly ONE approved fact matches the requested purpose.
+ if(!bySubject.length&&relation==='purpose'&&/^(?:qual|quais|quem)\b/.test(q)){
+  const match=q.match(/\b(?:serve para|para)\s+(.+)$/);
+  const target=match?.[1]?.split(' ').filter(x=>x.length>=4)||[];
+  if(target.length){
+   const reverse=candidates.filter(n=>target.every(w=>canonicalLesson(n.object).split(' ').some(t=>t===w)));
+   if(reverse.length===1){
+    const n=reverse[0];
+    return {reply:'Pelas lições aprovadas, '+n.subject+' '+n.relation+' '+n.object+'.',intent:'semantic-memory',source:n.source};
+   }
+  }
+ }
+ return null;
 }
