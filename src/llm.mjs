@@ -12,7 +12,16 @@ export function validateModelEndpoint(value,{pageUrl}={}){
   return u.href;
  }catch{return null;}
 }
-export function prepareModelConversation(prompt,history=[],project=null,files=[]){
+function validateInlineImage(image){
+ if(!image||typeof image!=='object'||
+  !['image/jpeg','image/png','image/webp'].includes(image.mimeType)||
+  typeof image.data!=='string'||image.data.length>560000||
+  image.data.length<12||image.data.length%4!==0||
+  !/^[A-Za-z0-9+/]+={0,2}$/.test(image.data))
+  throw Error('A imagem não pôde ser preparada para análise.');
+ return {mimeType:image.mimeType,data:image.data};
+}
+export function prepareModelConversation(prompt,history=[],project=null,files=[],image=null){
  const clean=x=>typeof x==='string'?x.replace(/[\u0000-\u001f\u007f]/g,' ').trim():'';
  const question=clean(prompt).slice(0,650);
  if(!question)return null;
@@ -36,15 +45,16 @@ export function prepareModelConversation(prompt,history=[],project=null,files=[]
  })):[];
  return {
   message:question,history:safeHistory,project:context,files:reviewedFiles,locale:'pt-BR',
-  mode:'mentor',
-  task:'explain_unknown_question_for_local_familiar',
-  teachingGuidance:'Explique os fatos com clareza e indique incertezas. Esta explicação será revisada pelo usuário antes de virar memória local; não execute ações.'
+  mode:image?'image-feedback':'mentor',
+  task:image?'give_visual_art_feedback':'explain_unknown_question_for_local_familiar',
+  ...(image?{image:validateInlineImage(image)}:{}),
+  teachingGuidance:image?'Analise somente o que está visível. Dê feedback construtivo sobre composição, iluminação, formas e cor; não suponha topologia ou detalhes ocultos. Não grave a imagem em memória.':'Explique os fatos com clareza e indique incertezas. Esta explicação será revisada pelo usuário antes de virar memória local; não execute ações.'
  };
 }
-export async function askLanguageModel({endpoint,prompt,history=[],project,files=[],fetcher,signal,pageUrl}){
+export async function askLanguageModel({endpoint,prompt,history=[],project,files=[],image=null,fetcher,signal,pageUrl}){
  const url=validateModelEndpoint(endpoint,{pageUrl});
  if(!url)throw Error('A conexão com a IA não está configurada em um endpoint seguro.');
- const body=prepareModelConversation(prompt,history,project,files);
+ const body=prepareModelConversation(prompt,history,project,files,image);
  if(!body)throw Error('Escreva uma pergunta para a IA.');
  const impl=fetcher||globalThis.fetch;
  if(typeof impl!=='function')throw Error('Conexão de rede indisponível.');

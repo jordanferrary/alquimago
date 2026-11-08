@@ -13,7 +13,7 @@ export const DEFAULT_CONFIG = Object.freeze({
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',stroke:'Que carinho agradável! ✧',play:'Prepare-se: poção de diversão!',brew:'Elixir mágico concluído! ⚗',explore:'Rota estudada pelo familiar. ✦',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
-  assistant:{projectContext:'',guidelines:[]}
+  assistant:{projectContext:'',guidelines:[],spotlights:[]}
 });
 const obj = x => x && typeof x==='object' && !Array.isArray(x) ? x : {};
 const txt = (x, fallback, limit=160) => typeof x==='string' && x.trim() ? x.trim().slice(0,limit) : fallback;
@@ -64,7 +64,11 @@ export function normalizeConfig(input){
     messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
     assistant:{
       projectContext:typeof agent.projectContext==='string'?agent.projectContext.trim().slice(0,700):'',
-      guidelines:Array.isArray(agent.guidelines)?agent.guidelines.filter(x=>typeof x==='string'&&x.trim()).slice(0,12).map(x=>x.trim().slice(0,220)):[]
+      guidelines:Array.isArray(agent.guidelines)?agent.guidelines.filter(x=>typeof x==='string'&&x.trim()).slice(0,12).map(x=>x.trim().slice(0,220)):[],
+      spotlights:Array.isArray(agent.spotlights)?agent.spotlights.slice(0,12)
+        .filter(x=>x&&typeof x==='object'&&typeof x.title==='string'&&x.title.trim())
+        .map(x=>({title:txt(x.title,'',65),message:txt(x.message,'',200),
+          videoMessage:txt(x.videoMessage,'',200),hoverMessage:txt(x.hoverMessage,'',200)})):[]
     }
   };
 }

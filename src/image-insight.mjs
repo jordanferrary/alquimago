@@ -55,3 +55,37 @@ export async function inspectCover(image,{pageUrl,scale=48}={}){
   return imageMetrics(ctx.getImageData(0,0,side,side));
  }catch{return null;}
 }
+
+// Image selected by the user; all preparation is local until an explicit review click.
+export function validateReviewImageFile(file){
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))
+  throw Error('Escolha uma imagem PNG, JPG ou WebP.');
+ if(!Number.isFinite(file.size)||file.size<=0||file.size>8*1024*1024)
+  throw Error('A imagem precisa ter até 8 MB.');
+ return true;
+}
+export async function prepareReviewImage(file){
+ validateReviewImageFile(file);
+ if(typeof createImageBitmap!=='function'||typeof document==='undefined')
+  throw Error('Este navegador não permite preparar a imagem localmente.');
+ let bitmap;
+ try{
+  bitmap=await createImageBitmap(file);
+  if(!bitmap.width||!bitmap.height||bitmap.width>16000||bitmap.height>16000)
+   throw Error('As dimensões da imagem não são suportadas.');
+  const ratio=Math.min(1,1024/Math.max(bitmap.width,bitmap.height));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(bitmap.width*ratio));
+  canvas.height=Math.max(1,Math.round(bitmap.height*ratio));
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw Error('Não foi possível preparar a imagem.');
+  ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  for(const quality of [.82,.67,.50]){
+   const value=canvas.toDataURL('image/jpeg',quality);
+   const prefix='data:image/jpeg;base64,';
+   if(value.startsWith(prefix)&&value.length-prefix.length<=560000)
+    return {mimeType:'image/jpeg',data:value.slice(prefix.length)};
+  }
+  throw Error('Esta imagem é complexa demais para enviar com segurança.');
+ }finally{bitmap?.close?.();}
+}
