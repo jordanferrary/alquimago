@@ -34,7 +34,12 @@ export function prepareModelConversation(prompt,history=[],project=null,files=[]
   imports:item.imports.slice(0,12).map(i=>clean(i).slice(0,95)),
   exports:item.exports.slice(0,16).map(i=>clean(i).slice(0,95))
  })):[];
- return {message:question,history:safeHistory,project:context,files:reviewedFiles,locale:'pt-BR'};
+ return {
+  message:question,history:safeHistory,project:context,files:reviewedFiles,locale:'pt-BR',
+  mode:'mentor',
+  task:'explain_unknown_question_for_local_familiar',
+  teachingGuidance:'Explique os fatos com clareza e indique incertezas. Esta explicação será revisada pelo usuário antes de virar memória local; não execute ações.'
+ };
 }
 export async function askLanguageModel({endpoint,prompt,history=[],project,files=[],fetcher,signal,pageUrl}){
  const url=validateModelEndpoint(endpoint,{pageUrl});
@@ -55,7 +60,11 @@ export async function askLanguageModel({endpoint,prompt,history=[],project,files
   throw Error('O serviço de IA está indisponível. O modo local continua funcionando.');
  }
  const data=await response.json();
- const text=typeof data.reply==='string'?data.reply.trim().slice(0,2600):'';
- if(!text)throw Error('O modelo não retornou uma resposta utilizável.');
- return {reply:text,engine:'generative',model:typeof data.model==='string'?data.model.slice(0,80):'modelo configurado'};
+ // Structured mentor lessons are preferred; legacy {reply} remains compatible.
+ // Neither response is ever persisted without human review.
+ const lesson=data?.lesson&&typeof data.lesson==='object'?data.lesson:null;
+ const text=typeof lesson?.explanation==='string'?lesson.explanation.trim().slice(0,2600):
+  typeof data.reply==='string'?data.reply.trim().slice(0,2600):'';
+ if(!text)throw Error('O professor não retornou uma explicação utilizável.');
+ return {reply:text,engine:'mentor',model:typeof data.model==='string'?data.model.slice(0,80):'modelo configurado'};
 }
