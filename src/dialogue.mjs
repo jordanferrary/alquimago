@@ -10,6 +10,48 @@ const plain=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toL
 export function sensitiveChatText(text){
  return /(?:github_pat_|gh[pousr]_|\bsk-[a-zA-Z0-9]{12,}|\bAIza[a-zA-Z0-9_-]{20,}|\b(?:senha|password|token|secret|api\s*key)\b)/i.test(text);
 }
+/**
+ * Bounded conversational continuity for a small LOCAL familiar. It interprets
+ * the prior exchange without inventing the contents of an image or a project.
+ * It does not replace an LLM or turn unrelated sentences into project facts.
+ */
+export function respondToContextFollowup(input,context={}){
+ const q=plain(safeChatText(input)).replace(/[!?.,;:]+$/g,'').trim();
+ if(!q||q.length>190)return null;
+ const history=Array.isArray(context.history)?context.history.slice(-8):[];
+ const previous=[...history].reverse().find(x=>x?.role==='familiar'&&typeof x.text==='string');
+ const prior=previous?.text||'';
+ if(!prior)return null;
+ const projects=Array.isArray(context.knowledge?.projects)?context.knowledge.projects:[];
+ const project=projects.find(p=>p.id===context.lastProjectId)||null;
+ const refersBack=/\b(?:ela|ele|dela|dele|nela|nele|nessa|nesse|isso|aquilo|esse ponto|essa parte)\b/.test(q);
+ const acknowledgement=/^(?:(?:sim|ss|justo|verdade|vdd|faz sentido|concordo|realmente|entendi|exato|ok|ta|pois e|isso mesmo)\b)/.test(q);
+ const lacksInfo=/\b(?:pouc[ao]s?|falta|faltando|sem|vazia|vazio|melhorar|adicionar|colocar|deixei|nao coloquei|incomplet[ao]s?)\b.{0,65}\b(?:informac|descric|detalh|text|conteud)|\b(?:sem descric|sem muita informac|faltou a descric)\b/.test(q);
+ // Follow-up to an explicitly discussed work: cite only stored metadata.
+ if(project&&(refersBack||acknowledgement)&&lacksInfo){
+  const description=typeof project.description==='string'&&project.description.trim();
+  const missing=description?'já possui uma descrição cadastrada, mas ela pode ser aprofundada':'ainda não tem uma descrição cadastrada';
+  return {
+   intent:'context-followup',projectId:project.id,source:'public-portfolio',
+   reply:'Entendi, estamos falando de “'+project.title+'”. Pelos dados públicos, essa obra '+missing+'. Podemos acrescentar uma breve proposta da obra, as ferramentas usadas e um resumo das decisões criativas. Assim a apresentação ganha contexto sem inventar detalhes sobre a imagem.'
+  };
+ }
+ // A question explicitly asking about the prior answer, not a new unrelated fact.
+ if(/\b(?:por que voce acha isso|pq voce acha isso|porque voce acha isso|por que disse isso|o que voce quis dizer|me explica melhor isso)\b/.test(q)){
+  return {intent:'context-followup',
+   reply:'Estou me referindo à sugestão anterior: “'+prior.slice(0,230)+'”. Foi uma observação baseada nos dados disponíveis, não uma inspeção completa da arte. Posso detalhar um ponto específico se você indicar qual.'};
+ }
+ if(acknowledgement&&q.length<155&&(
+   /\b(?:justo|realmente|faz sentido|verdade|vdd|concordo|entendi|exato)\b/.test(q)||
+   (refersBack&&/\b(?:melhorar|informac|descric|detalh)\b/.test(q))
+  )){
+  const contextText=project?'“'+project.title+'”':'a sugestão anterior';
+  return {intent:'context-followup',...(project?{projectId:project.id}:{})
+   ,reply:'Faz sentido. Continuando sobre '+contextText+': posso ajudar a estruturar uma descrição curta, um resumo do processo e um destaque dos aspectos técnicos. O ideal é acrescentar somente informações que você confirmar.'};
+ }
+ return null;
+}
+
 export function respondToChat(input,context={}){
  const raw=safeChatText(input),q=plain(raw);
  const name=context.name||'Alquimago',mood=context.mood||'curioso';
@@ -58,6 +100,8 @@ export function respondToChat(input,context={}){
  if(followup)return followup;
  const calculation=calculateBasic(raw);
  if(calculation)return {reply:'O resultado é '+calculation.text+'. ✦',intent:'math'};
+ const contextual=respondToContextFollowup(raw,context);
+ if(contextual)return contextual;
  const grounded=answerFromKnowledge(raw,{knowledge:context.knowledge,lastProjectId:context.lastProjectId,focusTitle:context.focusTitle});
  if(grounded)return grounded;
  if(/\b(o que (voce|vc) (pode|consegue|sabe) fazer|(voce|vc) (pode|consegue|sabe) fazer (o que|oque)|o que voce faz|quais (suas|as) (funcoes|habilidades|capacidades)|para que voce serve|como voce funciona)\b/.test(q))
