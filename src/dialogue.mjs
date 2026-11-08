@@ -23,7 +23,10 @@ export function respondToContextFollowup(input,context={}){
  const prior=previous?.text||'';
  if(!prior)return null;
  const projects=Array.isArray(context.knowledge?.projects)?context.knowledge.projects:[];
- const project=projects.find(p=>p.id===context.lastProjectId)||null;
+ const lastKnownProject=projects.find(p=>p.id===context.lastProjectId)||null;
+ // A previous project id can be stale after discussing the site in general.
+ const project=lastKnownProject&&plain(prior).includes(plain(lastKnownProject.title))?
+  lastKnownProject:null;
  const refersBack=/\b(?:ela|ele|dela|dele|nela|nele|nessa|nesse|isso|aquilo|esse ponto|essa parte)\b/.test(q);
  const acknowledgement=/^(?:(?:sim|ss|justo|verdade|vdd|faz sentido|concordo|realmente|entendi|exato|ok|ta|pois e|isso mesmo)\b)/.test(q);
  const lacksInfo=/\b(?:pouc[ao]s?|falta|faltando|sem|vazia|vazio|melhorar|adicionar|colocar|deixei|nao coloquei|incomplet[ao]s?)\b.{0,65}\b(?:informac|descric|detalh|text|conteud)|\b(?:sem descric|sem muita informac|faltou a descric)\b/.test(q);
@@ -39,7 +42,7 @@ export function respondToContextFollowup(input,context={}){
  // A question explicitly asking about the prior answer, not a new unrelated fact.
  if(/\b(?:por que voce acha isso|pq voce acha isso|porque voce acha isso|por que disse isso|o que voce quis dizer|me explica melhor isso)\b/.test(q)){
   return {intent:'context-followup',
-   reply:'Estou me referindo à sugestão anterior: “'+prior.slice(0,230)+'”. Foi uma observação baseada nos dados disponíveis, não uma inspeção completa da arte. Posso detalhar um ponto específico se você indicar qual.'};
+   reply:'Estou me referindo à sugestão anterior: “'+prior.trim().replace(/[.!?]+$/,'').slice(0,230)+'”. Foi uma observação baseada nos dados disponíveis, não uma inspeção completa da arte. Posso detalhar um ponto específico se você indicar qual.'};
  }
  if(acknowledgement&&q.length<155&&(
    /\b(?:justo|realmente|faz sentido|verdade|vdd|concordo|entendi|exato)\b/.test(q)||
