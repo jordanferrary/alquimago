@@ -19,6 +19,7 @@ import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
 import {askLanguageModel,validateModelEndpoint} from './llm.mjs';
 import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,summarizeApprovedFiles} from './learning.mjs';
 import {answerFromSemanticMemory} from './semantic-memory.mjs';
+import {TEACHING_INTENTS,TEACHING_TONES,teachingLabelsFromLegacy,normalizeTeachingMemory,readTeachingExamples,writeTeachingExamples,approveTeachingExample,recognizeTeachingLabels} from './teaching-intents.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -287,6 +288,16 @@ const STYLE = `
 .reviewed-learning textarea{resize:vertical;max-height:200px}
 .reviewed-learning .actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
 
+/* Human-reviewed multi-label training, kept compact inside the Grimório. */
+.learning-multilabel{display:block}
+.learning-multilabel .muted{margin:2px 0 9px}
+.learning-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:195px;overflow-y:auto;margin-bottom:10px}
+.learning-option{display:flex;align-items:flex-start;gap:5px;padding:6px;background:#281735;border:1px solid #715288;border-radius:8px;line-height:1.35;font:11px system-ui;color:#ead9f5}
+.learning-option input{accent-color:#bd8aff;flex-shrink:0;margin:1px 0}
+.learning-controls{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;align-items:center;margin-bottom:9px}
+.learning-controls select,.learning-controls input{min-width:0;width:100%;box-sizing:border-box;background:#20122f;color:#fff;border:1px solid #906ab7;border-radius:8px;padding:7px}
+.learning-controls label{font:11px system-ui}
+.learning-multilabel>button{width:100%;padding:9px}
 /* v0.9: conversation-first design, high contrast and carefully bounded chat. */
 .panel{
  width:min(400px,calc(100vw - 20px))!important;
@@ -434,7 +445,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
-    this.lessons=normalizeLessons(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
+    this.lessons=normalizeLessons(null);this.teaching=normalizeTeachingMemory(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
     this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
     this.links = [];
     this.audit = null;
@@ -604,6 +615,7 @@ class AlquimagoFamiliar extends HTMLElement {
       // installations. Refresh and deploy do not erase them, and publish
       // snapshots never upload them as publicly readable JSON.
       this.lessons=readLessons(storage(),config.memory.namespace);
+      this.teaching=readTeachingExamples(storage(),config.memory.namespace);
       this.message=config.identity.greeting;
       this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?this.neural:(readNeural(storage(),config.memory.namespace)||this.neural);
@@ -1501,19 +1513,41 @@ class AlquimagoFamiliar extends HTMLElement {
       }else{
         add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Quanto é 2 + 2?">Matemática</button></div>');
       }
-      const teacher=document.createElement('div');teacher.className='neural-teach';
-      const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
-      const chooser=document.createElement('select');chooser.id='alquimago-teach';
-      const intentLabels={greeting:'Saudação',identity:'Identidade',status:'XP e status',pet:'Carinho',play:'Brincar',brew:'Poção',rest:'Descanso',navigate:'Navegação',insight:'Sugestão',help:'Ajuda',mood:'Humor',thanks:'Agradecimento'};
-      for(const intent of INTENTS){
-        const option=document.createElement('option');option.value=intent;option.textContent=this.language.intentLabels?.[intent]||intentLabels[intent]||intent;
-        option.selected=intent===this.lastNeuralIntent;chooser.appendChild(option);
+      const teacher=document.createElement('div');teacher.className='neural-teach learning-multilabel';
+      const info=document.createElement('p');info.className='muted';
+      info.textContent='Uma frase pode ter vários significados. Selecione todos os que se aplicam, indique o tom e ensine usando a última mensagem.';
+      const choices=document.createElement('div');choices.className='learning-options';
+      choices.id='alquimago-teach-intents';
+      choices.setAttribute('role','group');
+      choices.setAttribute('aria-label','Significados da frase');
+      const inferred=recognizeTeachingLabels(this.lastUserText,this.teaching);
+      const initial=inferred?.intents||teachingLabelsFromLegacy(this.lastNeuralIntent).intents;
+      for(const [key,caption] of Object.entries(TEACHING_INTENTS)){
+        const option=document.createElement('label');option.className='learning-option';
+        const input=document.createElement('input');input.type='checkbox';input.value=key;
+        input.checked=this.lastUserText&&initial.includes(key)&&key!=='other';
+        option.append(input,document.createTextNode(caption));choices.appendChild(option);
       }
-      const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
+      const controls=document.createElement('div');controls.className='learning-controls';
+      const toneLabel=document.createElement('label');toneLabel.textContent='Tom da mensagem';
+      const tone=document.createElement('select');tone.id='alquimago-teach-tone';
+      for(const [key,caption] of Object.entries(TEACHING_TONES)){
+        const option=document.createElement('option');option.value=key;option.textContent=caption;
+        tone.appendChild(option);
+      }
+      tone.value=inferred?.tone||'neutral';
+      const topicLabel=document.createElement('label');topicLabel.textContent='Assunto (opcional)';
+      const topic=document.createElement('input');topic.id='alquimago-teach-topic';
+      topic.type='text';topic.maxLength=80;topic.placeholder='Ex.: programação, conversa';
+      topic.value=inferred?.topic||'';
+      controls.append(toneLabel,tone,topicLabel,topic);
+      const teach=document.createElement('button');teach.type='button';
+      teach.dataset.action='teach-neural';teach.textContent='Aprender significados selecionados';
       teach.disabled=!this.lastUserText;
-      teacher.append(lbl,chooser,teach);
+      teacher.append(info,choices,controls,teach);
       const lesson=document.createElement('details');lesson.className='neural-lesson';
-      const summary=document.createElement('summary');summary.textContent='✦ Ensinar a reconhecer uma frase';
+      const summary=document.createElement('summary');
+      summary.textContent='✦ Ensinar significados e reações (múltipla escolha)';
       lesson.append(summary,teacher);this.$content.appendChild(lesson);
       const lessonBox=document.createElement('details');
       lessonBox.className='neural-lesson reviewed-learning';
