@@ -1,1 +1,31 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Alquimago — demonstração</title><style>body{margin:0;background:radial-gradient(circle at 75% 20%,#33234b,#17101f 60%);font:16px/1.5 system-ui;color:#f4e6ff}main{max-width:850px;margin:8vh auto;padding:30px}a{color:#d7aaff}h1{font-size:clamp(36px,7vw,60px)}p{max-width:560px;color:#ddcce8}.panel{background:#ffffff0d;border:1px solid #ffffff22;border-radius:16px;padding:18px;max-width:520px}</style></head><body><main><span>✦ COMPANHEIRO ARCANO DIGITAL</span><h1>Alquimago</h1><p>Um familiar curioso para páginas React e para sua área de trabalho. Abra o pequeno grimório no canto inferior direito, arraste o personagem, brinque e experimente a inspeção desta página.</p><div class="panel"><h2>Laboratório</h2><p>Página demonstrativa. O assistente funciona isolado do design do site.</p><button>Botão de exemplo</button> <a href="./guia.html">Rota de exemplo</a></div></main><script data-config="./alquimago.config.json" src="./alquimago.js" defer></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Alquimago, um familiar digital expressivo de código aberto com aprendizado local e integração opcional Gemini.">
+<title>Alquimago — Familiar digital</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 76% 10%,#483058 0%,#20142c 42%,#120d1a 90%);color:#f4eafb;font:15px/1.6 system-ui,sans-serif}
+main{max-width:960px;margin:auto;padding:clamp(30px,6vw,74px) 24px 125px}
+h1{font-size:clamp(48px,9vw,100px);line-height:1;margin:12px 0 22px;letter-spacing:-.06em}h2{font-size:20px;margin:0 0 8px}
+.kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:#dbb7ff}.intro{font-size:clamp(16px,2.2vw,21px);max-width:670px;color:#d0bddb}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:45px}
+article{background:#ffffff0a;border:1px solid #ffffff20;border-radius:18px;padding:20px}article p{margin:0;color:#cbbbd8}
+a{color:#dfb9ff}a:focus-visible,button:focus-visible{outline:3px solid #e9b9ff}
+footer{margin-top:33px;color:#ac9cb9;font-size:13px}.hint{display:inline-block;padding:9px 15px;border:1px solid #a97ac85c;background:#4a2e6342;border-radius:99px}
+</style></head>
+<body><main>
+<span class="kicker">✦ Código aberto · MIT · v0.11.3</span>
+<h1>Alquimago.</h1>
+<p class="intro">Um pequeno robô arcano para dar personalidade a sites e projetos criativos. Ele observa o contexto público autorizado, conversa com seu cérebro local e expressa emoções usando a skin Orb 2D.</p>
+<p class="hint">Esta demonstração funciona sem serviços de IA. Experimente as interações com o mascote no canto da página.</p>
+<section class="grid" aria-label="Recursos">
+<article><h2>🧠 Aprendizado local</h2><p>Memória, associações e lições aprovadas pelo usuário. Não é um LLM nem aprende sem limites.</p></article>
+<article><h2>🎭 Expressões</h2><p>Olhos robóticos, gestos e reações animadas que dão vida ao familiar.</p></article>
+<article><h2>🖼️ Feedback de imagem</h2><p>Em sites com Gemini habilitado, o usuário escolhe a imagem e autoriza a análise. A prévia é local; o feedback da IA é remoto.</p></article>
+<article><h2>🔒 Integração responsável</h2><p>O núcleo é reutilizável, e as obras e regras particulares ficam na configuração de cada site.</p></article>
+</section>
+<footer>Esta demo não inclui chave Gemini. <a href="https://github.com/jordanferrary/alquimago">Código-fonte e documentação</a> · <a href="./guia.html">Guia rápido</a>.</footer>
+</main>
+<script data-config="./alquimago.config.json" src="./alquimago.js" defer></script>
+</body></html>
