@@ -21,6 +21,8 @@ import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,sum
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
+.familiar-title{display:none!important}
+
 
 /* Visitor mode is a living character, not a floating stat/minigame widget. */
 :host([data-public-mode="true"]) .familiar-title,
@@ -431,7 +433,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
-    this.lessons=normalizeLessons(null);this.lessonDraft=null;this.fileContextAllowed=false;
+    this.lessons=normalizeLessons(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
     this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
     this.links = [];
     this.audit = null;
@@ -1226,19 +1228,23 @@ class AlquimagoFamiliar extends HTMLElement {
       pending:this.pendingQuestion,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
       focusTitle:this.selectedProject?.title||'',
-      neuralIntent:prediction.confidence>=.55?prediction.intent:null,
+      neuralIntent:prediction.confidence>=.55&&
+       !/\b(qual|quais|como|porque|por que|quando|onde|explique|diferenca|diferença|what|why|how|which)\b/.test(String(user).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase())
+       ?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    const known=['private','math','followup','decline','clarify','navigate','empty',
+      'project-fact','project-list','project-info','approved-lesson',
+      'greeting','identity','status','pet','play','brew','rest','help','mood','thanks'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
-      !['private','math','followup','decline','clarify','navigate','empty','project-fact','project-list','project-info','approved-lesson'].includes(response.intent)&&
-      user.length>=3;
+      !known.includes(response.intent)&&user.length>=3;
     if(canGenerate){
       const history=this.dialogue.slice(-8);
       const project=this.knowledge.projects.find(p=>p.id===(response.projectId||this.lastProjectId))||null;
       const request=++this.modelSequence;
-      this.modelBusy=true;
+      this.modelBusy=true;this.lastAnswerSource='Aguardando Gemini';
       this.pendingQuestion=null;
       this.lastUserText='';this.lastNeuralIntent='';
       this.dialogue=[...this.dialogue,{role:'user',text:user},
@@ -1256,12 +1262,14 @@ class AlquimagoFamiliar extends HTMLElement {
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
         this.message=answer.reply;
         this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (revisado pelo usuário)'};
+        this.lastAnswerSource='Gemini · ainda não aprendido';
         this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
       }).catch(error=>{
         if(!this.isConnected||request!==this.modelSequence)return;
         const reason=error?.name==='AbortError'?
          'A consulta demorou demais.':error instanceof Error?error.message:'Não consegui conectar à IA.';
         const fallback=reason+' Resposta local: '+response.reply;
+        this.lastAnswerSource='Resposta local · Gemini indisponível';
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:fallback};
         this.message=fallback;
       }).finally(()=>{
@@ -1302,6 +1310,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
+    this.lastAnswerSource=response.intent==='approved-lesson'?'Memória aprovada · offline':'Cérebro local · sem Gemini';
     if(response.store!==false&&response.intent!=='empty'){
       this.lessonDraft={question:user,answer:['project-fact','project-info','project-list'].includes(response.intent)?response.reply:'',source:'ensinado manualmente'};
     }
@@ -1547,7 +1556,7 @@ class AlquimagoFamiliar extends HTMLElement {
         this.$content.appendChild(share);
       }
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Modo '+(this.modelEnabled?'Gemini assistido':'contextual local')+' · '+this.knowledge.projects.length+' obras públicas · '+this.lessons.lessons.length+' lições aprovadas neste navegador.';
+      message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' lições aprovadas neste navegador · '+this.knowledge.projects.length+' obras públicas.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -1683,6 +1692,7 @@ class AlquimagoFamiliar extends HTMLElement {
         this.renderHeader();return;
       }
       this.lessons=result.library;this.lessonDraft=null;
+      this.lastAnswerSource='Conhecimento aprovado · disponível offline';
       this.message='Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
       this.render();return;
     }
