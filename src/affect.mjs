@@ -11,7 +11,7 @@ const AFFECT_IMPULSES=Object.freeze({
  surprised:{tension:.39,energy:.25,calm:-.21,curiosity:.2},
  curious:{curiosity:.24,energy:.05},
  focused:{curiosity:.25,calm:.03,energy:-.025},
- tired:{energy:-.26,curiosity:-.1,calm:.05},
+ tired:{energy:-.43,curiosity:-.12,calm:.05},
  talk:{warmth:.08,curiosity:.08},
  project:{curiosity:.17,energy:.05},
  return:{warmth:.2,curiosity:.1},
@@ -22,7 +22,7 @@ export function createAffect(seed=123456789,now=0){
  const initial=(Number(seed)>>>0)||123456789;
  return {
   calm:.56,curiosity:.45,warmth:.50,tension:.12,energy:.57,
-  music:false,expression:'idle',changedAt:now,lastAt:now,
+  music:false,startle:0,expression:'idle',changedAt:now,lastAt:now,lastSignalAt:0,
   seed:initial
  };
 }
@@ -31,7 +31,9 @@ export function affectSignal(state,signal,now=state.lastAt){
  // Salient cues prompt an early *decision*, never a hardcoded face.
  if(['pet','happy','sad','angry','surprised','music','return','away'].includes(signal))
   next.changedAt=Math.min(next.changedAt,now-3700);
+ next.lastSignalAt=now;
  const impulse=AFFECT_IMPULSES[signal]||{};
+ if(signal==='surprised')next.startle=clampAffect((next.startle||0)+.78);
  for(const key of ['calm','curiosity','warmth','tension','energy']){
   next[key]=clampAffect(next[key]+(impulse[key]||0));
  }
@@ -52,6 +54,7 @@ function nextRandom(state){
 export function affectTick(state,now){
  const elapsed=Math.max(0,Math.min(15000,now-state.lastAt));
  const next={...state,lastAt:now};
+ next.startle=clampAffect((next.startle||0)*Math.exp(-elapsed/4000));
  const target={
   calm:next.music?.85:.55,
   curiosity:.47,warmth:.52,
@@ -64,27 +67,27 @@ export function affectTick(state,now){
  }
  // A short period of expression inertia prevents twitchy face switching.
  if(now-next.changedAt<3500)return next;
- const {calm,curiosity,warmth,tension,energy,music}=next;
+ const {calm,curiosity,warmth,tension,energy,music,startle}=next;
  const scores={
   idle:.28+calm*.5+(1-tension)*.11,
   breath:.10+calm*.48+(music?.18:0),
   serene:music?.48+calm*.62-tension*.43:.02+calm*.15,
-  happy:.05+warmth*.62+energy*.14-tension*.13,
-  curious:.05+curiosity*.66+energy*.09,
-  focused:.04+curiosity*.63+calm*.11,
+  happy:.08+warmth*.84+energy*.12-tension*.13,
+  curious:.04+curiosity*.9+energy*.07,
+  focused:.01+curiosity*.88+calm*.08,
   thinking:.04+curiosity*.56+(1-energy)*.12,
-  pet:Math.max(0,warmth-.56)*2.5+calm*.09,
+  pet:Math.max(0,warmth-.56)*3.7+calm*.09,
   love:Math.max(0,warmth-.64)*2.25,
   angry:Math.max(0,tension-.21)*1.24+(1-calm)*.12,
   worried:Math.max(0,tension-.29)*.97+(1-warmth)*.17,
-  surprised:Math.max(0,tension-.27)*1.03+Math.max(0,energy-.57)*.35,
+  surprised:Math.max(0,tension-.27)*.55+Math.max(0,energy-.57)*.18+startle*.95,
   sad:Math.max(0,.40-warmth)*2.35+(1-energy)*.08,
-  tired:Math.max(0,.40-energy)*1.65+(1-curiosity)*.05,
+  tired:Math.max(0,.42-energy)*2.9+(1-curiosity)*.05,
   sleep:Math.max(0,.30-energy)*2.05+calm*.08
  };
  // Seeded microvariations produce variety while keeping tests deterministic.
  const previous=next.expression;
- let best=previous,bestScore=(scores[previous]??0)+.075;
+ let best=previous,bestScore=(scores[previous]??0)+(now-next.lastSignalAt<500?.025:.075);
  for(const [name,value] of Object.entries(scores)){
   const jitter=(nextRandom(next)-.5)*.085;
   if(value+jitter>bestScore){
