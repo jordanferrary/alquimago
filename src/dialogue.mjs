@@ -17,6 +17,19 @@ export function respondToChat(input,context={}){
  const tips=Array.isArray(context.suggestions)?context.suggestions:[];
  if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
  if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
+ // Questions about the familiar's own progress are facts about its LOCAL
+ // state, never open-domain prompts for the Gemini mentor.
+ const asksLearning=/(?:\b(?:vc|voce|alquimago)\b.{0,38}\b(?:treinand[oa]|treinad[oa]|treinou|treina|aprendend[oa]|aprendid[oa]|aprendeu|aprende|estudand[oa]|estudad[oa]|estudou|evoluindo|evoluiu)\b|\b(?:seu|sua|teu|tua)\b.{0,22}\b(?:treinamento|aprendizado|aprendizagem|memoria|conhecimento|evolucao)\b|\b(?:como|quando|quanto|quantas|o que)\b.{0,26}\b(?:voce|vc)\b.{0,20}\b(?:aprende|treina|aprendeu|treinou))/i.test(q);
+ if(asksLearning){
+  const count=Math.max(0,Number(context.approvedLessons)||0);
+  const corrections=Math.max(0,Number(context.neuralCorrections)||0);
+  const lessonText=count===1?'1 lição aprovada':count+' lições aprovadas';
+  const correctionText=corrections>0?' Também recebi '+corrections+' correções de classificação local.':'';
+  return {reply:'Tenho estudado com sua ajuda! Neste navegador, guardo '+lessonText+'.'+correctionText+' Eu não fico treinando sozinho em segundo plano: primeiro tento usar meu conhecimento local e, se faltar algo, posso consultar o professor Gemini quando você autorizar. A resposta dele só vira conhecimento meu quando você revisa e aprova no Grimório. ✦',intent:'self-learning'};
+ }
+
+
+
  // Help about THIS portfolio must reference the owner-facing Local Studio,
  // never generic suggestions to open source files or edit CSS by hand.
  // This branch is deliberately deterministic and does not consult Gemini.
