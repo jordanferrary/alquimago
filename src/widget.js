@@ -871,9 +871,8 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!card||card.closest('alquimago-familiar'))return;
       const name=(card.getAttribute('data-alquimago-project')||'').trim();
       if(!name)return;
-      const line=/frankie/i.test(name)
-       ?'Frankie is quite the star, huh? Go on, take a closer look!'
-       :'This is '+name.slice(0,58)+'. Click to see the full project!';
+      const spotlight=this.config.assistant.spotlights.find(x=>name.toLowerCase().includes(x.title.toLowerCase()));
+      const line=spotlight?.hoverMessage||'This is '+name.slice(0,58)+'. Click to see the full project!';
       this.speakPublic(line,'hover:project:'+name,{hold:5800,interval:180000,priority:2});
       return;
     }
@@ -1015,16 +1014,15 @@ class AlquimagoFamiliar extends HTMLElement {
     const comparison=project?.querySelector('.comparison-block input[type="range"]');
     const gallerySearch=document.querySelector('.gallery .search input,.toolbar input[aria-label="Search for projects"]');
     const galleryCard=document.querySelector('.gallery-card[data-alquimago-project]');
+    const spotlight=this.config.assistant.spotlights.find(x=>title.toLowerCase().includes(x.title.toLowerCase()));
     if(video)return this.speakPublic(
-      /frankie/i.test(title)?'Frankie looks amazing, right? Try the video player to see more!':
-      'Psst! There is a video in this project. Press Play to explore it.',
+      spotlight?.videoMessage||'Psst! There is a video in this project. Press Play to explore it.',
       'feature:video:'+title,{hold:6800,interval:120000,priority:2});
     if(comparison)return this.speakPublic(
       'Drag the before-and-after slider! Even my magic wand cannot do that.',
       'feature:comparison:'+title,{hold:6600,interval:120000,priority:2});
-    if(/frankie/i.test(title))return this.speakPublic(
-      'Frankie is stealing the spotlight again. Honestly, can you blame him?',
-      'feature:frankie',{hold:6700,interval:120000,priority:2});
+    if(spotlight?.message)return this.speakPublic(
+      spotlight.message,'feature:spotlight:'+title,{hold:6700,interval:120000,priority:2});
     if(project&&title)return this.speakPublic(
       'Welcome to '+title.slice(0,55)+'! Explore the details—every artwork has a story.',
       'feature:project:'+title,{hold:6500,interval:160000,priority:2});
@@ -1515,7 +1513,8 @@ class AlquimagoFamiliar extends HTMLElement {
     // boundary, not backend authentication: the Gemini API gateway is public.
     const studioMode=document.documentElement.dataset.alquimagoStudio==='true';
     this.setAttribute('data-public-mode',String(!studioMode));
-    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;this.clearReviewImage();this.state.open=false;}
+    this.modelAvailable=this.config.llm.enabled&&!!validateModelEndpoint(this.config.llm.endpoint,{pageUrl:location.href});
+    if(!studioMode){this.modelEnabled=false;this.clearReviewImage();this.state.open=false;}
     const flags=studioMode?this.config.features:{...this.config.features,
       dialogue:false,pageAudit:false,routes:false,projectFiles:false,assistants:false,memoryTools:false};
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
