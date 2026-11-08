@@ -7,3 +7,10 @@ src-tauri/target/
 .env.*
 !*.example
 memory/
+
+# Material confidencial local não deve ser enviado ao Git
+.env
+.env.*
+!.env.example
+private/
+secrets/
