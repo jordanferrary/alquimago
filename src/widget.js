@@ -808,7 +808,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   projectPointerOver(e){
     if(this.isPublicVisitor()){
-      const card=e.target instanceof Element?e.target.closest('[data-alquimago-project]'):null;
+      const card=e.target instanceof Element?e.target.closest('.gallery-card[data-alquimago-project]'):null;
       if(!card||card.closest('alquimago-familiar'))return;
       const name=(card.getAttribute('data-alquimago-project')||'').trim();
       if(!name)return;
@@ -1096,7 +1096,26 @@ class AlquimagoFamiliar extends HTMLElement {
       if(event.target.closest('[data-alquimago-project],a[href],button'))
         this.reactPageEmotion('focused',1450,2,4200);
     },{passive:true});
-    const navigation=()=>{touchActivity();this.reactPageEmotion('curious',2100,2,3000)};
+    const navigation=()=>{
+      touchActivity();
+      this.reactPageEmotion('curious',2100,2,3000);
+      // Wait for the React route to render its real media before suggesting it.
+      if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+      this.publicIntroTimer=setTimeout(()=>{
+        this.publicIntroTimer=null;
+        this.publicSceneTip();
+      },1900);
+    };
+    on(document,'pointerover',event=>{
+      if(!this.isPublicVisitor()||!(event.target instanceof Element))return;
+      if(event.target.closest('.project-video-poster')){
+        this.speakPublic('Found the video! Press Play to see the project in motion.',
+          'feature:video-hover:'+location.hash,{priority:3,interval:210000,hold:6200});
+      }else if(event.target.closest('.comparison-block input[type="range"]')){
+        this.speakPublic('Try dragging that slider. Before and after, wizard-approved!',
+          'feature:comparison-hover:'+location.hash,{priority:2,interval:210000,hold:6300});
+      }
+    },{passive:true});
     on(window,'hashchange',navigation);
     on(window,'popstate',navigation);
     on(document,'visibilitychange',()=>{
