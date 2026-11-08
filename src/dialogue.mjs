@@ -17,6 +17,24 @@ export function respondToChat(input,context={}){
  const tips=Array.isArray(context.suggestions)?context.suggestions:[];
  if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
  if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
+ // Help about THIS portfolio must reference the owner-facing Local Studio,
+ // never generic suggestions to open source files or edit CSS by hand.
+ // This branch is deliberately deterministic and does not consult Gemini.
+ const studioChange=/\b(onde|como|local|lugar|alterar|altero|alteracao|modificar|mudar|mudo|trocar|troco|editar|edito|configurar|personalizar|ajustar|ajusto)\b/.test(q);
+ const siteContext=/\b(site|portfolio|pagina|paleta|tema|cores|cor|visual|aparencia|studio)\b/.test(q);
+ if(siteContext&&(
+    /\b(paleta de cores|cores? (do|da|de|no|na|do meu|deste) (site|portfolio|pagina)|cor (principal|secundaria|do site|de fundo)|tema (do|do meu) (site|portfolio)|fundo do (site|portfolio))\b/.test(q)
+    ||studioChange&&/\b(cores?|paleta|tema|aparencia)\b/.test(q)
+  ))
+  return {reply:'Para mudar as cores deste portfólio, desbloqueie o Local Studio e abra Ferramentas → Identidade → Paleta de cores. Lá você pode escolher uma cor pelo seletor cromático, HEX ou RGB, experimentar presets e conferir o resultado em tempo real. Clique em “Salvar paleta” e depois em “Publicar” para aplicar aos visitantes. Não precisa editar nenhum arquivo!',intent:'studio-guide'};
+ if(studioChange&&/\b(projetos?|obras?)\b/.test(q)&&/\b(adicionar|adiciono|criar|crio|novo|editar|edito|alterar|mudar)\b/.test(q))
+  return {reply:'No Local Studio, abra Ferramentas → Projetos → Novo projeto para cadastrar uma obra. Para ajustar uma obra existente, abra a página dela e use “Editar obra atual”. Revise o resultado e clique em “Publicar” quando estiver pronto.',intent:'studio-guide'};
+ if(studioChange&&/\b(redes sociais|instagram|links? sociais)\b/.test(q))
+  return {reply:'Para atualizar suas redes, abra Local Studio → Ferramentas → Conteúdo → Redes sociais. Edite os links, confira a prévia e publique as mudanças quando estiver satisfeito.',intent:'studio-guide'};
+ if(studioChange&&/\b(skins?|mascote|modelo 3d|alquimago)\b/.test(q))
+  return {reply:'Para personalizar meu modelo, abra Local Studio → Ferramentas → Familiar → Ateliê do Alquimago. Lá você importa o GLB e ajusta expressões, câmera e animações. Depois revise e publique.',intent:'studio-guide'};
+
+
  // Handle a user's answer BEFORE unrelated neural intent classification.
  const followup=answerFollowUp(raw,context.pending,{suggestions:context.suggestions});
  if(followup)return followup;
