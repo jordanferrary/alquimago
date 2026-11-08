@@ -186,3 +186,42 @@ A orbe arcana e botões de brincadeiras sem função foram removidos da interfac
 - [ ] Mover rapidamente o cursor perto dele; verificar surpresa discreta.
 - [ ] Desbloquear o Local Studio e confirmar que Grimório, Gemini e o Ateliê continuam funcionando.
 - [ ] Testar o GLB com suas Shape Keys e verificar a transição sem tremulação.
+
+
+## Diálogos públicos em inglês — guia de arte bem-humorado
+
+O Alquimago usa uma camada de falas **totalmente separada** do Grimório do Local Studio. O visitante recebe somente mensagens curtas em inglês, com humor leve e orientação baseada em recursos **realmente existentes na página**:
+
+| Contexto verificado | Exemplo de fala pública |
+|---|---|
+| Projeto com player de vídeo | "Psst! There is a video in this project. Press Play to explore it." |
+| Vídeo no projeto Frankie | "Frankie looks amazing, right? Try the video player to see more!" |
+| Projeto Frankie sem vídeo | "Frankie is stealing the spotlight again. Honestly, can you blame him?" |
+| Projeto com comparação antes/depois | "Drag the before-and-after slider! Even my magic wand cannot do that." |
+| Busca na galeria | "Looking for something? Try the project search. Even my crystal ball has filters!" |
+| Card de projeto na galeria | "This is [project]. Click to see the full project!" |
+| Seleção de texto público | "Hey! Are you copying my master's sacred words? At least credit the wizard!" |
+| Cursor deixa a janela | "Leaving already? I'll keep the tiny portal warm." |
+| Cursor retorna | "You're back! I definitely wasn't rehearsing my dramatic farewell." |
+| Carinho | "Careful! That's my thinking hat." |
+| Cursor muito rápido perto do personagem | "WHOA! That cursor has turbo mode!" |
+
+**Regras:**
+- As dicas são mostradas apenas quando o DOM contém o respectivo recurso. Um vídeo não é anunciado numa página que não tem vídeo.
+- O nome do projeto é obtido do atributo público do próprio card/página, nunca inventado por IA.
+- Nenhuma mensagem pública chama Gemini. O Grimório continua separado e pode operar em português no Local Studio.
+- O personagem não pode afirmar que o usuário realmente copiou texto. As falas são piadas com formato de pergunta, sem limitar seleção/cópia.
+- Mensagens não ameaçam a segurança do visitante nem fazem pressão para permanecer no site; humor sobre sair e voltar é leve.
+- Uma fala expira automaticamente, e há cooldown por situação e prioridade para reações relevantes. O usuário deve poder apreciar a obra sem interrupções incessantes.
+- O conteúdo do texto selecionado **não** é lido, salvo nem enviado; apenas o fato de existir uma seleção pública é detectado.
+- A conversa pública não modifica o comportamento do chat de treinamento/Gemini no modo Studio.
+
+### Teste de aceitação das falas
+
+- [ ] Na galeria, balão aparece em inglês e sugere um recurso de navegação real.
+- [ ] No projeto com vídeo, fala menciona Play apenas quando o player está presente.
+- [ ] No projeto Frankie, fala usa seu nome; nenhum outro projeto recebe o nome Frankie.
+- [ ] Ao selecionar texto, aparece humor leve em inglês, sem impedir copiar.
+- [ ] Ao sair/voltar da janela, surgem frases curtas diferentes e não insistentes.
+- [ ] O balão desaparece automaticamente e não cobre os controles do visitante.
+- [ ] Dentro do Local Studio, o Grimório permanece funcional e suas mensagens técnicas não vazam para o site público.
