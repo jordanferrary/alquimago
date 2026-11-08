@@ -17,7 +17,7 @@ import {recognizeStudioCommand} from './commands.mjs';
 import {pendingFromReply} from './conversation.mjs';
 import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
 import {askLanguageModel,validateModelEndpoint} from './llm.mjs';
-import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,summarizeApprovedFiles} from './learning.mjs';
+import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,recallLessonFollowup,summarizeApprovedFiles} from './learning.mjs';
 import {answerFromSemanticMemory} from './semantic-memory.mjs';
 import {TEACHING_INTENTS,TEACHING_TONES,teachingLabelsFromLegacy,normalizeTeachingMemory,readTeachingExamples,writeTeachingExamples,approveTeachingExample,recognizeTeachingLabels} from './teaching-intents.mjs';
 
@@ -1235,7 +1235,8 @@ class AlquimagoFamiliar extends HTMLElement {
       return;
     }
     const learnedMeaning=recognizeTeachingLabels(user,this.teaching);
-    const approved=recallLesson(user,this.lessons)||answerFromSemanticMemory(user,this.lessons);
+    const approved=recallLesson(user,this.lessons)||answerFromSemanticMemory(user,this.lessons)||
+      recallLessonFollowup(user,this.dialogue,this.lessons);
     const prediction=approved?{intent:'approved-lesson',confidence:1}:neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     let response=approved?{...approved,store:true}:respondToChat(user,{
@@ -1618,7 +1619,8 @@ class AlquimagoFamiliar extends HTMLElement {
         this.$content.appendChild(share);
       }
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' lições aprovadas neste navegador · '+this.knowledge.projects.length+' obras públicas.';
+      message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' de 128 lições aprovadas · '+
+        this.teaching.examples.length+' de 160 exemplos de linguagem · '+this.knowledge.projects.length+' obras públicas.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -1631,7 +1633,8 @@ class AlquimagoFamiliar extends HTMLElement {
     if(cortexStats){
       const stats=cortexSummary(this.cortex.state);
       cortexStats.textContent=stats.neurons+' neurônios • '+stats.synapses.toLocaleString('pt-BR')+
-        ' conexões • '+stats.sensors+' sensores • '+stats.motors+' ações. '+stats.feedback+' aprendizados.';
+        ' sinapses simuladas ('+stats.plasticSynapses+' adaptadas) • '+stats.sensors+
+         ' sensores • '+stats.motors+' ações • '+stats.feedback+' feedbacks.';
     }
     const last=this.$content.querySelector('#cortex-last');
     if(last)last.textContent=this.lastAutoDecision?
