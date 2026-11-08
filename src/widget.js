@@ -1240,7 +1240,7 @@ class AlquimagoFamiliar extends HTMLElement {
       'project-fact','project-list','project-info','approved-lesson','studio-guide',
       'greeting','identity','status','pet','play','brew','rest','help','mood','thanks','self-learning'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
-      !known.includes(response.intent)&&user.length>=3;
+      response.intent==='unknown'&&user.length>=3;
     if(canGenerate){
       const history=this.dialogue.slice(-8);
       const project=this.knowledge.projects.find(p=>p.id===(response.projectId||this.lastProjectId))||null;
@@ -1263,7 +1263,7 @@ class AlquimagoFamiliar extends HTMLElement {
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
         this.message=answer.reply;
         this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (revisado pelo usuário)'};
-        this.lastAnswerSource='Gemini · ainda não aprendido';
+        this.lastAnswerSource='Gemini professor · aguarda aprovação';
         this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
       }).catch(error=>{
         if(!this.isConnected||request!==this.modelSequence)return;
