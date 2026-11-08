@@ -1236,7 +1236,7 @@ class AlquimagoFamiliar extends HTMLElement {
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     const known=['private','math','followup','decline','clarify','navigate','empty',
-      'project-fact','project-list','project-info','approved-lesson',
+      'project-fact','project-list','project-info','approved-lesson','studio-guide',
       'greeting','identity','status','pet','play','brew','rest','help','mood','thanks'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
       !known.includes(response.intent)&&user.length>=3;
