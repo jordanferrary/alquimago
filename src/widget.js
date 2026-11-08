@@ -1241,6 +1241,7 @@ class AlquimagoFamiliar extends HTMLElement {
     let response=approved?{...approved,store:true}:respondToChat(user,{
       pending:this.pendingQuestion,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
+      history:this.dialogue.slice(-8),
       focusTitle:this.selectedProject?.title||'',
       neuralIntent:prediction.confidence>=.55&&
        !/\b(qual|quais|como|porque|por que|quando|onde|explique|diferenca|diferença|what|why|how|which)\b/.test(String(user).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase())
@@ -1752,6 +1753,22 @@ class AlquimagoFamiliar extends HTMLElement {
       this.lastAnswerSource='Conhecimento aprovado · disponível offline';
       this.message='Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
       this.render();return;
+    }
+    if(action==='clear-chat'){
+      if(!window.confirm('Limpar somente esta conversa? O que eu aprendi e as lições aprovadas serão preservados.'))return;
+      // Cancel stale professor replies; a completed request may not repopulate
+      // a newly cleared dialogue.
+      ++this.modelSequence;this.modelAbort?.abort();this.modelAbort=null;
+      this.modelBusy=false;this.dialogue=[];
+      this.lastUserText='';this.lastNeuralIntent='';this.lastProjectId=null;
+      this.pendingQuestion=null;this.lessonDraft=null;
+      writeDialogue(storage(),this.config.memory.namespace,[]);
+      this.lastAnswerSource='Nova conversa · aprendizado preservado';
+      this.message='Conversa limpa. Meu aprendizado aprovado continua disponível.';
+      this.lastSpoken=this.message;this.lastSpokenAt=Date.now();
+      this.render();
+      this.$content.querySelector('#alquimago-message')?.focus();
+      return;
     }
     if(action==='clear-lessons'){
       if(!window.confirm('Apagar todas as lições ensinadas neste navegador? Isso não altera o GitHub.'))return;
