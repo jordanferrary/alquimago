@@ -200,7 +200,11 @@ export function tickCortex(engine,info={},now=Date.now()){
   state.autonomousCount=0;state.lastActiveDay=day;
  }
  const sensory=behaviorSense(info,info.brain||state);
- const motorSignals=pulseCortex(engine,sensory);
+ // The background brain does not consume neural cycles in hidden, paused
+ // or busy views. It resumes with fresh activity traces on the next pulse.
+ const networkActive=info.enabled===true&&!info.hidden&&!info.userBusy&&!info.panelOpen;
+ const motorSignals=networkActive?pulseCortex(engine,sensory):Array(CORTEX_MOTORS).fill(0);
+ if(!networkActive)engine.eligibility.fill(0);
  state.stimulation=bClamp(state.stimulation+(sensory[8]+sensory[9]+sensory[10]?2:-.25));
  state.curiosity=bClamp(state.curiosity+(sensory[9]?2:-.08));
  state.energy=bClamp(state.energy+(info.working?-.35:.15));
