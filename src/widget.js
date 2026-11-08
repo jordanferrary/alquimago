@@ -18,6 +18,7 @@ import {pendingFromReply} from './conversation.mjs';
 import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
 import {askLanguageModel,validateModelEndpoint} from './llm.mjs';
 import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,summarizeApprovedFiles} from './learning.mjs';
+import {answerFromSemanticMemory} from './semantic-memory.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -1221,7 +1222,7 @@ class AlquimagoFamiliar extends HTMLElement {
       }));
       return;
     }
-    const approved=recallLesson(user,this.lessons);
+    const approved=recallLesson(user,this.lessons)||answerFromSemanticMemory(user,this.lessons);
     const prediction=approved?{intent:'approved-lesson',confidence:1}:neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     const response=approved?{...approved,store:true}:respondToChat(user,{
@@ -1237,7 +1238,7 @@ class AlquimagoFamiliar extends HTMLElement {
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
     const known=['private','math','followup','decline','clarify','navigate','empty',
-      'project-fact','project-list','project-info','approved-lesson','studio-guide',
+      'project-fact','project-list','project-info','approved-lesson','semantic-memory','studio-guide',
       'greeting','identity','status','pet','play','brew','rest','help','mood','thanks','self-learning'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
       response.intent==='unknown'&&user.length>=3;
@@ -1311,7 +1312,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
-    this.lastAnswerSource=response.intent==='approved-lesson'?'Memória aprovada · offline':'Cérebro local · sem Gemini';
+    this.lastAnswerSource=['approved-lesson','semantic-memory'].includes(response.intent)?'Memória aprovada · offline':'Cérebro local · sem Gemini';
     if(response.store!==false&&response.intent!=='empty'){
       this.lessonDraft={question:user,answer:['project-fact','project-info','project-list'].includes(response.intent)?response.reply:'',source:'ensinado manualmente'};
     }
