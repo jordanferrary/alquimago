@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.11.4 — familiar com comportamento adaptativo e aprendizado local aprovado. Não é um modelo de linguagem autônomo. O professor Gemini é opcional e depende de um backend do site integrador. Código e ilustrações sob licença MIT.
+**Versão:** 0.11.5 — familiar com comportamento adaptativo e aprendizado local aprovado. Não é um modelo de linguagem autônomo. O professor Gemini é opcional e depende de um backend do site integrador. Código e ilustrações sob licença MIT.
 
 ## Recursos
 
@@ -247,3 +247,11 @@ A interface interna continua usando as funções de leitura/gravação já exist
 **O que não é criptografado:** o snapshot do Studio que o proprietário decide publicar em `public/alquimago/project-memory.json` continua público, assim como o JSON de projetos e o conteúdo do site. O backup de memória exportado manualmente ainda é **JSON sem criptografia** — trate-o como confidencial. A IA Gemini continua recebendo os dados enviados com consentimento, fora do cofre.
 
 Leia a [arquitetura e o modelo de ameaças](docs/ALQ_VAULT.md).
+
+## Publicação por comando e cofre de credencial (v0.11.5)
+
+A frase configurável **“vai comprar pão”** é um atalho para abrir o diálogo de revisão de publicação no Local Studio. O bot consulta um **status de autorização** enviado pelo site integrador, sem ler nem registrar o valor da credencial: `missing` (“você ainda não me deu o dinheiro”), `ready` (autorização disponível), `expired` (“o pão mofou, posso jogar fora?”), `forbidden` (permissões insuficientes), `offline` e `unavailable`.
+
+O núcleo **não recebe nem guarda tokens GitHub**. No portfólio que instala o Alquimago, o responsável pode guardar opcionalmente uma credencial de publicação no cofre AES-256-GCM do navegador, usando apenas a interface protegida de publicação, ou preferir a sessão GitHub App com criptografia no servidor. O bot só usa o status informado por evento; nenhuma credencial deve ser escrita no chat, enviada ao Gemini, incluída em memória ou publicada no repositório.
+
+O comando nunca publica sozinho: o proprietário ainda precisa conferir as alterações e confirmar a publicação. A exclusão de um token inválido também exige confirmação explícita. Um cofre com chave local não exportável protege contra leitura casual do armazenamento, mas **não impede** que scripts maliciosos da mesma origem usem a autorização.
