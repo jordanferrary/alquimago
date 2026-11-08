@@ -473,6 +473,7 @@ const STYLE = `
 .grimoire-conversation-title strong{
  font:750 15px/1.3 system-ui;color:#f6eaff
 }
+.grimoire-mood-indicator{display:block;color:#b9e2f0;font:600 10px/1.5 system-ui;letter-spacing:0}
 .grimoire-answer-source{
  display:block;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
  border:1px solid #7c589a73;background:#352448;color:#dabcf0;
@@ -1861,6 +1862,17 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.dataset.reaction=''; // Legacy hardwired CSS must not override the chosen face.
     this.$character.dataset.affect=internal;
     this.$character.dataset.music=this.affect?.music?'playing':'paused';
+    // Visible creator-only diagnostic of the affect model, not a claim
+    // that the mascot experiences human emotions.
+    const moodLabel=this.$content?.querySelector('.grimoire-mood-indicator');
+    if(moodLabel){
+      const moodNames={serene:'Sereno',breath:'Tranquilo',idle:'Neutro',happy:'Alegre',
+        pet:'Afetuoso',love:'Carinhoso',excited:'Animado',curious:'Curioso',
+        focused:'Concentrado',thinking:'Pensativo',surprised:'Surpreso',
+        worried:'Preocupado',angry:'Irritado',sad:'Triste',tired:'Cansado',sleep:'Sonolento'};
+      moodLabel.textContent='Humor interno: '+(moodNames[internal]||internal)+
+        (this.affect?.music?' · Música tocando':'');
+    }
     if(!this.skinAdapter)this.$character.dataset.expression=effective;
     if(this.skinAdapter?.setExpression){
       try{this.skinAdapter.setExpression(effective)}catch{/* optional renderer */}
@@ -1998,7 +2010,9 @@ class AlquimagoFamiliar extends HTMLElement {
       const headingText=document.createElement('div');headingText.className='grimoire-conversation-title';
       const eyebrow=document.createElement('span');eyebrow.textContent='CONVERSA ATIVA';
       const headingName=document.createElement('strong');headingName.textContent='Converse com o Alquimago';
-      headingText.append(eyebrow,headingName);
+      const moodHint=document.createElement('small');moodHint.className='grimoire-mood-indicator';
+      moodHint.textContent='Humor interno: calculando…';
+      headingText.append(eyebrow,headingName,moodHint);
       const source=document.createElement('span');source.className='grimoire-answer-source';
       source.textContent=this.lastAnswerSource||'Cérebro local';
       source.title='Origem da última resposta';
