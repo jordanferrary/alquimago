@@ -24,9 +24,11 @@ export function respondToChat(input,context={}){
  if(calculation)return {reply:'O resultado é '+calculation.text+'. ✦',intent:'math'};
  const grounded=answerFromKnowledge(raw,{knowledge:context.knowledge,lastProjectId:context.lastProjectId,focusTitle:context.focusTitle});
  if(grounded)return grounded;
+ if(/\b(o que (voce|vc) (pode|consegue|sabe) fazer|(voce|vc) (pode|consegue|sabe) fazer (o que|oque)|o que voce faz|quais (suas|as) (funcoes|habilidades|capacidades)|para que voce serve|como voce funciona)\b/.test(q))
+  return {reply:'Sou o Alquimago! Posso explicar recursos do portfólio, reconhecer projetos públicos, fazer contas simples, mostrar meu estado e reutilizar lições que você aprovou. Quando eu não souber algo, posso consultar o Gemini com sua permissão; a resposta só vira meu conhecimento após sua revisão. ✦',intent:'help'};
  if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
   return {reply:'Oi! Sou '+name+'. Conheço os projetos públicos deste site, posso resolver contas e sugerir melhorias. Diga o nome de uma obra ou faça uma pergunta.',intent:'greeting'};
- if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
+ if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|qual (e|eh) (o )?seu nome|como voce se chama|o que voce (e|eh)|vc (e|eh))\b/.test(q))
   return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
  if(context.neuralIntent==='status'||/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
   return {reply:'Meu grimório registra nível '+level+' e '+xp+' XP. Carinhos aumentam nossa afinidade, mas não geram XP infinito. Explorar uma rota ou realizar uma tarefa relevante ajuda na evolução.',intent:'status'};
@@ -47,7 +49,7 @@ export function respondToChat(input,context={}){
   return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer que eu mostre como continuar com uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight',...(tip?{pending:{kind:'ai-handoff'}}:{})};
  }
  if(context.neuralIntent==='help'||/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
-  return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também sei responder sim ou não conforme a pergunta anterior e calcular contas como 2 + 2 ou 12 dividido por 4.',intent:'help'};
+  return {reply:'Posso orientar sobre obras públicas, recursos da página, contas, minhas emoções e memória aprovada. Se o assunto exigir conhecimento novo, consulto o Gemini somente quando habilitado e ofereço a resposta para revisão antes de aprender.',intent:'help'};
  if(context.neuralIntent==='mood'||/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
   return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
  if(context.neuralIntent==='thanks'||/\b(obrigado|valeu|agradeco)\b/.test(q))
