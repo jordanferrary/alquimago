@@ -7,7 +7,8 @@
  * deliberately DOES NOT enter a public GitHub publication or a snapshot.
  */
 const lObj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
-export const LESSONS_LIMIT=64;
+export const LESSONS_LIMIT=128;
+export const LESSONS_STORAGE_MAX=180000;
 export const canonicalLesson=x=>String(x||'').normalize('NFD')
  .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ')
  .replace(/\s+/g,' ').trim()
@@ -91,7 +92,7 @@ export const lessonsKey=ns=>'alquimago:lessons:v1:'+(/^[a-zA-Z0-9_-]{1,48}$/.tes
 export function readLessons(storage,namespace='default'){
  try{
   const raw=storage?.getItem(lessonsKey(namespace));
-  if(!raw||raw.length>100000)return normalizeLessons(null);
+  if(!raw||raw.length>LESSONS_STORAGE_MAX)return normalizeLessons(null);
   return normalizeLessons(JSON.parse(raw));
  }catch{return normalizeLessons(null);}
 }
@@ -99,7 +100,7 @@ export function writeLessons(storage,namespace,library){
  try{
   if(!storage)return false;
   const raw=JSON.stringify(normalizeLessons(library));
-  if(raw.length>100000)return false;
+  if(raw.length>LESSONS_STORAGE_MAX)return false;
   storage.setItem(lessonsKey(namespace),raw);return true;
  }catch{return false;}
 }
