@@ -3,6 +3,6 @@ export const OFFLINE_PREFIX="<!doctype html>\n<html lang=\"pt-BR\">\n<head>\n<me
 export const OFFLINE_SUFFIX="</script>\n</body>\n</html>\n";
 export function renderOfflineDemo(bundle,version){
  if(typeof bundle!=='string'||!bundle.includes('window.Alquimago'))throw Error('Distribuição Alquimago inválida.');
- if(!/^\\d+\\.\\d+\\.\\d+$/.test(version))throw Error('Versão inválida.');
- return OFFLINE_PREFIX.replaceAll('%%VERSION%%',version)+bundle.replace(/<\\/script/gi,'<\\\\/script')+OFFLINE_SUFFIX;
+ if(!/^\d+\.\d+\.\d+$/.test(version))throw Error('Versão inválida.');
+ return OFFLINE_PREFIX.replaceAll('%%VERSION%%',version)+bundle.replace(/<\/script/gi,'<\\/script')+OFFLINE_SUFFIX;
 }
