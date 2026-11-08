@@ -1550,7 +1550,7 @@ class AlquimagoFamiliar extends HTMLElement {
         input.checked=this.lastUserText&&initial.includes(key)&&key!=='other';
         option.append(input,document.createTextNode(caption));choices.appendChild(option);
       }
-      const controls=document.createElement('div');controls.className='learning-controls';
+      const teachingControls=document.createElement('div');teachingControls.className='learning-controls';
       const toneLabel=document.createElement('label');toneLabel.textContent='Tom da mensagem';
       const tone=document.createElement('select');tone.id='alquimago-teach-tone';
       for(const [key,caption] of Object.entries(TEACHING_TONES)){
@@ -1562,11 +1562,11 @@ class AlquimagoFamiliar extends HTMLElement {
       const topic=document.createElement('input');topic.id='alquimago-teach-topic';
       topic.type='text';topic.maxLength=80;topic.placeholder='Ex.: programação, conversa';
       topic.value=inferred?.topic||'';
-      controls.append(toneLabel,tone,topicLabel,topic);
+      teachingControls.append(toneLabel,tone,topicLabel,topic);
       const teach=document.createElement('button');teach.type='button';
       teach.dataset.action='teach-neural';teach.textContent='Aprender significados selecionados';
       teach.disabled=!this.lastUserText;
-      teacher.append(info,choices,controls,teach);
+      teacher.append(info,choices,teachingControls,teach);
       const lesson=document.createElement('details');lesson.className='neural-lesson';
       const summary=document.createElement('summary');
       summary.textContent='✦ Ensinar significados e reações (múltipla escolha)';
