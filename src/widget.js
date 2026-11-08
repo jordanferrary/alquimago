@@ -12,6 +12,7 @@ import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
 import {ROBOT_SVG,ROBOT_STYLES,ORB_EXPRESSIONS} from './orb-skin.mjs';
 import {createAffect,affectSignal,affectTick,setAffectMusic} from './affect.mjs';
 import {inspectCover,imageMetricAdvice,validateReviewImageFile,prepareReviewImage} from './image-insight.mjs';
+import {createAlquimagoVault,unavailableVault} from './vault.mjs';
 import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
 import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
 import {createOrb,stepOrb,tossOrb} from './physics.mjs';
@@ -376,7 +377,10 @@ ${ROBOT_STYLES}
 const MAIN_TABS=[{index:5,key:'chat'},{index:1,key:'insights'},{index:0,key:'actions'}];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
-const storage=()=>{try{return window.localStorage;}catch{return null;}};
+// A synchronous adapter for legacy learning helpers. Plaintext is never a
+// fallback: it is replaced only after the async encrypted vault is unlocked.
+let activeVaultStorage=unavailableVault('Preparando cofre criptografado.').storage;
+const storage=()=>activeVaultStorage;
 function findSameOriginLinks() {
   if (typeof document === 'undefined') return [];
   const unique = new Map();
@@ -416,6 +420,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
     this.lessons=normalizeLessons(null);this.teaching=normalizeTeachingMemory(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
     this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;this.pendingImageFile=null;this.imagePreviewUrl=null;
+    this.vault=null;this.vaultStatus='initializing';
     this.links = [];
     this.audit = null;
     this.timer = null;
@@ -583,7 +588,21 @@ class AlquimagoFamiliar extends HTMLElement {
     };
     window.addEventListener('alquimago:publish-dialog',this.publishDialogHandler);
     window.dispatchEvent(new Event('alquimago:request-context'));
-    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
+    void (CONFIG_URL?loadConfig(CONFIG_URL,{origin:location.origin}):Promise.resolve(normalizeConfig(null))).then(async config=>{
+      let legacyStorage=null;
+      try{legacyStorage=window.localStorage;}catch{}
+      this.vault=await createAlquimagoVault({
+        namespace:config.memory.namespace,legacyStorage,
+        onStatus:state=>{
+          this.vaultStatus=state.status;
+          if(state.status==='error'){
+            this.message='Não consegui gravar o cofre criptografado. Nenhuma cópia em texto puro será criada.';
+            if(this.isConnected)this.renderHeader();
+          }
+        }
+      });
+      activeVaultStorage=this.vault.storage;
+      this.vaultStatus=this.vault.status;
       this.config=config;
       this.modelAvailable=config.llm.enabled&&!!validateModelEndpoint(config.llm.endpoint,{pageUrl:location.href});
       if(config.knowledge.file){
@@ -613,8 +632,9 @@ class AlquimagoFamiliar extends HTMLElement {
       // snapshots never upload them as publicly readable JSON.
       this.lessons=readLessons(storage(),config.memory.namespace);
       this.teaching=readTeachingExamples(storage(),config.memory.namespace);
-      this.message=config.identity.greeting;
-      this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
+      this.message=this.vault.status==='protected'?config.identity.greeting:
+        '⚠ Cofre indisponível: posso conversar, mas não salvarei novas lições neste navegador.';
+      this.lastSpoken=this.message;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?this.neural:(readNeural(storage(),config.memory.namespace)||this.neural);
       this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
@@ -1750,6 +1770,11 @@ class AlquimagoFamiliar extends HTMLElement {
           box.appendChild(analyze);this.$content.appendChild(box);
         }
       }
+      const vaultLine=document.createElement('p');vaultLine.className='muted';
+      vaultLine.textContent=this.vaultStatus==='protected'?
+        '🔐 Cofre ALQ-V1 ativo · AES-256-GCM · chave local não exportável.':
+        '⚠️ Cofre indisponível · as lições locais não serão salvas sem criptografia.';
+      this.$content.appendChild(vaultLine);
       const message=document.createElement('p');message.className='muted';
       message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' de 128 lições aprovadas · '+
         this.teaching.examples.length+' de 160 exemplos de linguagem · '+this.knowledge.projects.length+' obras públicas.';
@@ -2045,7 +2070,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.11.3',
+    version: '0.11.4',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');

@@ -7,6 +7,7 @@ const clean=code=>code.replace(/^import .*?;\s*$/gm,'').replace(/\bexport (const
 const brain=clean(await load('brain.mjs'));
 const config=clean(await load('config.mjs'));
 const storage=clean(await load('storage.mjs'));
+const vault=clean(await load('vault.mjs'));
 const project=clean(await load('project.mjs'));
 const awareness=clean(await load('awareness.mjs'));
 const gestures=clean(await load('gestures.mjs'));
@@ -31,7 +32,7 @@ const pragmatics=clean(await load('pragmatics.mjs'));
 const semantic=clean(await load('semantic-memory.mjs'));
 const widget=(await load('widget.js')).replace(/^import .*?;\s*$/gm,'');
 const pretrain='const ALQUIMAGO_PRETRAINED='+JSON.stringify(serializeSeed(generateSeed()))+';';
-const bundle=['/* ALQUIMAGO v0.11.3 • MIT */','(() => {','"use strict";',pretrain,brain,config,storage,project,awareness,gestures,dialogue,neural,insight,imageInsight,language,skin,orbSkin,affect,episodic,behavior,physics,commands,conversation,knowledge,llm,learning,teaching,pragmatics,semantic,widget,'})();',''].join('\n');
+const bundle=['/* ALQUIMAGO v0.11.4 • MIT */','(() => {','"use strict";',pretrain,brain,config,storage,vault,project,awareness,gestures,dialogue,neural,insight,imageInsight,language,skin,orbSkin,affect,episodic,behavior,physics,commands,conversation,knowledge,llm,learning,teaching,pragmatics,semantic,widget,'})();',''].join('\n');
 await mkdir(path.join(root,'dist'),{recursive:true});
 await writeFile(path.join(root,'dist/alquimago.js'),bundle);
 await writeFile(path.join(root,'dist/alquimago.config.json'),await readFile(path.join(root,'alquimago.config.json'),'utf8'));
