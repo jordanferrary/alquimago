@@ -2,7 +2,7 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.11.3 — familiar com comportamento adaptativo e aprendizado local aprovado. Não é um modelo de linguagem autônomo. O professor Gemini é opcional e depende de um backend do site integrador. Código e ilustrações sob licença MIT.
+**Versão:** 0.11.4 — familiar com comportamento adaptativo e aprendizado local aprovado. Não é um modelo de linguagem autônomo. O professor Gemini é opcional e depende de um backend do site integrador. Código e ilustrações sob licença MIT.
 
 ## Recursos
 
@@ -235,3 +235,15 @@ A análise local de pixels (`imageMetrics`) calcula luz, contraste e cor e **nã
 A versão independente do bot não exige conta Gemini; cabe ao site integrador implementar o proxy `/api/assistant` mantendo sua chave somente no servidor. As obras e falas específicas do portfólio devem ficar em `assistant.spotlights` na configuração do host, e não no código genérico do bot.
 
 Leia também [Integração e privacidade](docs/INTEGRACAO_PRIVACIDADE.md) e [Auditoria v0.11.3](docs/AUDITORIA_0_11_3.md).
+
+## Cofre ALQ-V1 — criptografia de memória local (v0.11.4)
+
+O Alquimago agora utiliza o formato próprio de cofre **ALQ-V1**, baseado em **AES-256-GCM da Web Crypto API**. Não utiliza um algoritmo criptográfico inventado, pois criptografia personalizada sem auditoria não é confiável. Uma chave AES de 256 bits, marcada como *não exportável*, é criada para cada namespace da instalação e armazenada no IndexedDB local, junto dos registros cifrados. Cada gravação usa um IV novo de 96 bits e autenticação de dados associada à versão e namespace para detectar adulterações.
+
+A interface interna continua usando as funções de leitura/gravação já existentes, mas um adaptador seguro mantém os dados em memória durante a sessão e persiste o cofre cifrado no IndexedDB. Isso inclui diálogo, lições aprovadas, exemplos de linguagem, preferências, memória numérica, classificadores e estados de comportamento local. O bot tenta migrar os registros antigos do `localStorage`; só remove o texto legível **depois que o arquivo cifrado está gravado**. Em caso de falha de suporte, chave ausente ou corrupção, ele não faz fallback para novas gravações sem proteção.
+
+**Limitação essencial:** uma chave não exportável dificulta extrair o valor bruto, mas não impede que outro script autorizado da **mesma origem** solicite operações de decriptação usando a chave. O cofre protege os dados em repouso contra leitura casual; ele não garante exclusividade absoluta do bot nem protege contra XSS, extensões maliciosas, comprometimento do dispositivo ou administradores do navegador. A perda do IndexedDB/chave torna a memória cifrada irrecuperável sem outro mecanismo de backup.
+
+**O que não é criptografado:** o snapshot do Studio que o proprietário decide publicar em `public/alquimago/project-memory.json` continua público, assim como o JSON de projetos e o conteúdo do site. O backup de memória exportado manualmente ainda é **JSON sem criptografia** — trate-o como confidencial. A IA Gemini continua recebendo os dados enviados com consentimento, fora do cofre.
+
+Leia a [arquitetura e o modelo de ameaças](docs/ALQ_VAULT.md).
