@@ -1321,8 +1321,10 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     this.pendingQuestion=pendingFromReply(response);
     if(response.projectId)this.lastProjectId=response.projectId;
+    // Any non-private user utterance can be reviewed in "Ensinar".
+    // Safe deterministic replies don't invalidate the last teaching example.
     if(['math','followup','decline','clarify'].includes(response.intent)){
-      this.lastUserText='';this.lastNeuralIntent='';
+      this.lastNeuralIntent='';
     }
     if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
       response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
