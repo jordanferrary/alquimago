@@ -1,7 +1,9 @@
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';
+import {renderOfflineDemo} from './offline-demo.mjs';
 import {seedNeuralModel as generateSeed,serializeNeuralModel as serializeSeed} from '../src/neural.mjs';
 const root=process.cwd();
+const version=JSON.parse(await readFile(path.join(root,'package.json'),'utf8')).version;
 const load=async name=>(await readFile(path.join(root,'src',name),'utf8'));
 const clean=code=>code.replace(/^import .*?;\s*$/gm,'').replace(/\bexport (const|function|async function)\b/g,'$1');
 const brain=clean(await load('brain.mjs'));
@@ -32,8 +34,17 @@ const pragmatics=clean(await load('pragmatics.mjs'));
 const semantic=clean(await load('semantic-memory.mjs'));
 const widget=(await load('widget.js')).replace(/^import .*?;\s*$/gm,'');
 const pretrain='const ALQUIMAGO_PRETRAINED='+JSON.stringify(serializeSeed(generateSeed()))+';';
-const bundle=['/* ALQUIMAGO v0.11.5 • MIT */','(() => {','"use strict";',pretrain,brain,config,storage,vault,project,awareness,gestures,dialogue,neural,insight,imageInsight,language,skin,orbSkin,affect,episodic,behavior,physics,commands,conversation,knowledge,llm,learning,teaching,pragmatics,semantic,widget,'})();',''].join('\n');
+const bundle=['/* ALQUIMAGO v'+version+' • MIT */','(() => {','"use strict";',pretrain,brain,config,storage,vault,project,awareness,gestures,dialogue,neural,insight,imageInsight,language,skin,orbSkin,affect,episodic,behavior,physics,commands,conversation,knowledge,llm,learning,teaching,pragmatics,semantic,widget,'})();',''].join('\n');
 await mkdir(path.join(root,'dist'),{recursive:true});
 await writeFile(path.join(root,'dist/alquimago.js'),bundle);
 await writeFile(path.join(root,'dist/alquimago.config.json'),await readFile(path.join(root,'alquimago.config.json'),'utf8'));
-console.log('Alquimago: '+(bundle.length/1024).toFixed(1)+' KiB');
+const offline=renderOfflineDemo(bundle,version);
+// Keep both the root download and the hosted dist copy on the EXACT same build.
+// No CDN, fetch, JSON config or file:// module imports are needed to open this file.
+await writeFile(path.join(root,'Alquimago_Demo_Offline.html'),offline);
+await writeFile(path.join(root,'dist/Alquimago_Demo_Offline.html'),offline);
+const index=await readFile(path.join(root,'dist/index.html'),'utf8');
+const updated=index.replace(/v0\.\d+\.\d+/g,'v'+version);
+if(index!==updated)await writeFile(path.join(root,'dist/index.html'),updated);
+
+console.log('Alquimago: '+(bundle.length/1024).toFixed(1)+' KiB; demo offline: '+(offline.length/1024).toFixed(1)+' KiB');
