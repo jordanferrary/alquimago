@@ -348,6 +348,272 @@ const STYLE = `
 .arcane-skin-image{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 13px #07020e88)}
 
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
+
+/* GRIMORIO 2.0 — a real creator workspace rather than a 360px widget. */
+:host([data-public-mode="false"]:not([data-mode="desktop"])) .panel{
+ position:fixed!important;
+ right:clamp(152px,11vw,194px)!important;left:auto!important;
+ top:auto!important;bottom:16px!important;
+ width:min(790px,calc(100vw - 188px))!important;
+ height:min(710px,calc(100dvh - 32px))!important;
+ min-height:360px!important;max-height:calc(100dvh - 32px)!important;
+ border:1px solid #9169bd!important;border-radius:24px!important;
+ background:linear-gradient(145deg,#24162f 0%,#160f23 45%,#0e0b19 100%)!important;
+ box-shadow:0 25px 85px #07020cdb,0 0 0 1px #d4a7fa21 inset!important;
+ isolation:isolate;overflow:hidden!important;backdrop-filter:none!important;
+}
+:host([data-public-mode="false"]) .panel.open{display:flex!important;flex-direction:column!important}
+:host([data-public-mode="false"]) .panel.expanded{
+ right:clamp(18px,3vw,45px)!important;
+ width:min(1100px,calc(100vw - 72px))!important;
+}
+:host([data-position="bottom-left"][data-public-mode="false"]) .panel{
+ right:auto!important;left:clamp(152px,11vw,194px)!important
+}
+:host([data-position="bottom-left"][data-public-mode="false"]) .panel.expanded{
+ left:clamp(18px,3vw,45px)!important;right:auto!important
+}
+:host([data-public-mode="false"]) .panel-header{
+ flex:0 0 auto!important;padding:19px 23px 17px!important;
+ background:radial-gradient(ellipse at 5% 0%,#74439930,transparent 67%),#22152f!important;
+ border-bottom:1px solid #8662a74d!important
+}
+:host([data-public-mode="false"]) .panel-header .row{
+ display:flex!important;align-items:center!important;justify-content:flex-start!important;
+ gap:12px!important
+}
+.grimoire-brand-mark{
+ width:43px;height:43px;display:grid;place-items:center;flex:0 0 43px;
+ border:1px solid #b984e28c;border-radius:13px;color:#f4d8ff;
+ background:radial-gradient(circle at 32% 21%,#8152b2,#482664 76%);
+ box-shadow:0 7px 22px #8b50b831;font:24px/1 system-ui
+}
+.grimoire-brand{display:flex;flex-direction:column;min-width:0;gap:2px;flex:1}
+.grimoire-kicker{color:#cba1e9;font:700 9px/1.4 system-ui;letter-spacing:.14em}
+:host([data-public-mode="false"]) .panel-header .grimoire-brand b{
+ font:750 22px/1.18 system-ui!important;color:#fff0ff;letter-spacing:-.025em!important
+}
+:host([data-public-mode="false"]) .panel-header .subtitle{
+ margin:7px 0 0 55px;color:#bba6cb;font-size:11px!important;line-height:1.45!important
+}
+:host([data-public-mode="false"]) .panel-header .badge{
+ padding:6px 10px;font-size:10px;border-radius:999px;
+ background:#423056;border-color:#9570b38e;color:#ead7ff;white-space:nowrap
+}
+:host([data-public-mode="false"]) .panel-close{
+ flex:0 0 34px;width:34px;height:34px;border-radius:10px;
+ background:#342145;border:1px solid #8f63ad;color:#f7ddff;
+ transition:background .15s,border-color .15s;cursor:pointer
+}
+:host([data-public-mode="false"]) .panel-close:hover{background:#5e3c79;border-color:#bf90de}
+.grimoire-size-toggle{font:22px/1 system-ui!important}
+.grimoire-layout{
+ flex:1 1 auto;min-height:0;min-width:0;display:grid;
+ grid-template-columns:164px minmax(0,1fr);overflow:hidden
+}
+:host([data-public-mode="false"]) .panel .grimoire-layout>.tabs{
+ min-height:0!important;min-width:0!important;
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ gap:7px!important;grid-template-columns:none!important;
+ padding:20px 11px!important;margin:0!important;
+ background:linear-gradient(180deg,#21152f,#160e22)!important;
+ border-bottom:0!important;border-right:1px solid #66487864;
+ overflow-y:auto!important;overflow-x:hidden!important;
+}
+:host([data-public-mode="false"]) .grimoire-layout .tab{
+ width:100%;display:flex;align-items:center;justify-content:flex-start;
+ gap:10px;flex:0 0 auto!important;padding:12px 13px!important;
+ text-align:left;min-height:46px!important;
+ background:transparent!important;border:1px solid transparent!important;
+ color:#c7b4d8!important;border-radius:12px!important;
+ font:650 12px/1.3 system-ui!important;
+ transition:background .15s,border-color .15s,color .15s
+}
+.grimoire-nav-icon{
+ flex:0 0 24px;height:24px;width:24px;display:grid;place-items:center;
+ border-radius:7px;background:#ffffff0b;color:#c49de0;font:16px/1 system-ui
+}
+:host([data-public-mode="false"]) .grimoire-layout .tab.selected{
+ background:linear-gradient(105deg,#69428e9a,#4e306e7c)!important;
+ border-color:#a679cf7d!important;color:#fff!important;
+ box-shadow:inset 3px 0 #d398f6!important
+}
+:host([data-public-mode="false"]) .grimoire-layout .tab:hover{
+ background:#764d962b!important;border-color:#9e74b553!important
+}
+:host([data-public-mode="false"]) .grimoire-layout .tab:focus-visible,
+:host([data-public-mode="false"]) .panel-close:focus-visible,
+:host([data-public-mode="false"]) .chat-send:focus-visible,
+:host([data-public-mode="false"]) .chat-suggestions button:focus-visible{
+ outline:2px solid #e9b8ff!important;outline-offset:2px!important
+}
+:host([data-public-mode="false"]) .grimoire-layout>.content{
+ flex:1 1 auto!important;min-width:0!important;min-height:0!important;
+ max-height:none!important;overflow:auto!important;
+ background:radial-gradient(ellipse at 92% 4%,#6e448b18,transparent 62%),#150f21;
+ padding:22px!important;scrollbar-gutter:stable
+}
+:host([data-public-mode="false"]) .grimoire-layout>.content:has(.grimoire-conversation){
+ padding:0!important;overflow:hidden!important;scrollbar-gutter:auto
+}
+.grimoire-conversation{
+ display:flex;flex-direction:column;height:100%;min-height:0;min-width:0;
+ overflow:hidden
+}
+.grimoire-conversation-header{
+ flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+ gap:12px;padding:16px 22px 14px;border-bottom:1px solid #5c407145;
+ background:#22172e6b
+}
+.grimoire-conversation-title{display:flex;flex-direction:column;gap:4px;min-width:0}
+.grimoire-conversation-title>span{
+ font:700 9px/1.3 system-ui;letter-spacing:.14em;color:#bd90db
+}
+.grimoire-conversation-title strong{
+ font:750 15px/1.3 system-ui;color:#f6eaff
+}
+.grimoire-answer-source{
+ display:block;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+ border:1px solid #7c589a73;background:#352448;color:#dabcf0;
+ padding:6px 9px;border-radius:999px;font:600 10px/1.3 system-ui
+}
+:host([data-public-mode="false"]) .grimoire-conversation .chat-history{
+ flex:1 1 auto!important;min-height:0!important;max-height:none!important;
+ overflow-y:auto!important;overscroll-behavior:contain;
+ margin:0!important;padding:24px 24px 20px!important;
+ display:flex;flex-direction:column;align-items:stretch;gap:13px!important;
+ border:0!important;border-radius:0!important;
+ background:transparent!important;scrollbar-gutter:stable!important
+}
+:host([data-public-mode="false"]) .chat-bubble{
+ max-width:min(86%,540px)!important;
+ padding:13px 16px!important;font:500 13px/1.65 system-ui!important;
+ border-radius:16px!important;box-shadow:0 4px 18px #06021146!important;
+ overflow-wrap:anywhere;white-space:pre-wrap
+}
+:host([data-public-mode="false"]) .chat-bubble.from-familiar{
+ background:linear-gradient(135deg,#362347,#251932)!important;
+ border:1px solid #765391a6!important;border-radius:5px 17px 17px 17px!important;
+ color:#f3e9ff
+}
+:host([data-public-mode="false"]) .chat-bubble.from-user{
+ background:linear-gradient(130deg,#8353b1,#633d92)!important;
+ border:1px solid #b28bdb!important;border-radius:17px 17px 5px 17px!important;
+ color:#fff
+}
+.grimoire-composer{
+ flex:0 0 auto;display:flex;flex-direction:column;gap:10px;
+ padding:13px 22px 15px;background:linear-gradient(180deg,#1c132a,#20132e);
+ border-top:1px solid #76529062
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-form{
+ display:flex!important;align-items:stretch!important;gap:10px!important;
+ margin:0!important;padding:0!important;border:0!important
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-form input{
+ flex:1;min-width:0;min-height:48px!important;
+ background:#100b1a!important;border:1px solid #8967a8!important;
+ border-radius:13px!important;color:#fff;font:500 13px/1.4 system-ui!important;
+ padding:13px 16px!important
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-form input:focus{
+ border-color:#cb94f4!important;box-shadow:0 0 0 3px #a26ed82b!important
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-send{
+ flex:0 0 51px;min-width:51px!important;min-height:48px!important;height:auto!important;
+ display:grid;place-items:center;border-radius:13px!important;
+ background:linear-gradient(135deg,#a16bd9,#7047a1)!important;
+ border:1px solid #c396e6!important;color:#fff;font-size:19px
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-suggestions{
+ display:flex;gap:7px!important;flex-wrap:wrap;margin:0!important
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-suggestions button{
+ border-radius:999px!important;font:600 10px/1.3 system-ui!important;
+ padding:7px 11px!important;color:#dfc8ef!important;
+ border:1px solid #8763a484!important;background:#4530548a!important
+}
+:host([data-public-mode="false"]) .grimoire-composer .chat-suggestions button:hover{
+ background:#62447d!important;border-color:#bd8bdf!important
+}
+.grimoire-mentor{
+ flex:0 0 auto;max-height:min(29dvh,240px);
+ overflow-y:auto;background:#1c142b;border-top:1px solid #64497b5e;
+ color:#d7c3e8
+}
+.grimoire-mentor>summary{
+ list-style:none;cursor:pointer;padding:13px 22px;
+ display:flex;align-items:center;gap:8px;
+ font:700 11px/1.45 system-ui;color:#e9d2f7
+}
+.grimoire-mentor>summary::-webkit-details-marker{display:none}
+.grimoire-mentor>summary:after{content:'⌄';margin-left:auto;font-size:14px;color:#b99aca}
+.grimoire-mentor[open]>summary:after{content:'⌃'}
+.grimoire-mentor>summary:hover{background:#39234775}
+.grimoire-mentor>.neural-teach,.grimoire-mentor>.neural-lesson,
+.grimoire-mentor>.arcane-ai-consent,.grimoire-mentor>.session-note,
+.grimoire-mentor>.grimoire-diagnostics{margin:9px 18px!important}
+.grimoire-conversation>.alquimago-lesson-review{
+ flex:0 0 auto;margin:10px 20px;max-height:min(26dvh,240px);overflow-y:auto
+}
+:host([data-public-mode="false"]) .panel:has(.grimoire-conversation)>.feedback{display:none!important}
+:host([data-public-mode="false"]) .panel>.feedback{
+ flex:0 0 auto;min-height:36px;max-height:60px;padding:10px 20px;
+ font:11px/1.4 system-ui;color:#bca6cb;background:#170e22
+}
+@media(max-width:1010px){
+ :host([data-public-mode="false"]:not([data-mode="desktop"])) .panel{
+  width:min(700px,calc(100vw - 172px))!important;right:148px!important
+ }
+ :host([data-position="bottom-left"][data-public-mode="false"]) .panel{
+  left:148px!important;right:auto!important
+ }
+ :host([data-public-mode="false"]) .grimoire-layout{grid-template-columns:146px minmax(0,1fr)}
+}
+@media(max-width:760px){
+ :host([data-public-mode="false"]:not([data-mode="desktop"])) .panel,
+ :host([data-position="bottom-left"][data-public-mode="false"]) .panel{
+  top:9px!important;left:9px!important;right:9px!important;bottom:9px!important;
+  width:calc(100vw - 18px)!important;height:calc(100dvh - 18px)!important;
+  min-height:0!important;max-height:calc(100dvh - 18px)!important;
+  border-radius:17px!important
+ }
+ :host([data-public-mode="false"]) .panel.expanded{left:9px!important;right:9px!important;width:calc(100vw - 18px)!important}
+ :host([data-public-mode="false"]) .grimoire-layout{
+  display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)
+ }
+ :host([data-public-mode="false"]) .panel .grimoire-layout>.tabs{
+  flex-direction:row!important;gap:7px!important;overflow-x:auto!important;overflow-y:hidden!important;
+  border-bottom:1px solid #66487864!important;border-right:0!important;padding:9px 12px!important
+ }
+ :host([data-public-mode="false"]) .grimoire-layout .tab{
+  width:auto!important;min-width:0!important;min-height:40px!important;
+  padding:9px 11px!important;flex:1 0 auto!important;justify-content:center
+ }
+ :host([data-public-mode="false"]) .panel-header{padding:12px 13px!important}
+ .grimoire-brand-mark{width:36px;height:36px;flex-basis:36px}
+ :host([data-public-mode="false"]) .panel-header .grimoire-brand b{font-size:18px!important}
+ :host([data-public-mode="false"]) .panel-header .subtitle{margin-left:0;font-size:10px!important}
+ :host([data-public-mode="false"]) .grimoire-conversation-header{padding:10px 13px}
+ :host([data-public-mode="false"]) .grimoire-conversation .chat-history{padding:15px 13px!important}
+ :host([data-public-mode="false"]) .grimoire-composer{padding:10px 12px}
+ :host([data-public-mode="false"]) .chat-bubble{font-size:12px!important;max-width:92%!important}
+ .grimoire-mentor>summary{padding:10px 13px}
+}
+@media(max-width:410px){
+ :host([data-public-mode="false"]) .panel-header .badge{display:none}
+ .grimoire-kicker{font-size:8px}
+ .grimoire-answer-source{max-width:44%;font-size:9px}
+ .grimoire-conversation-title strong{font-size:13px}
+ :host([data-public-mode="false"]) .grimoire-layout .tab{font-size:10px!important;gap:5px;padding:8px!important}
+ .grimoire-nav-icon{width:18px;height:18px;flex-basis:18px}
+}
+@media(prefers-reduced-motion:reduce){
+ :host([data-public-mode="false"]) .grimoire-layout .tab,
+ :host([data-public-mode="false"]) .panel-close{transition:none!important}
+}
+
+
 `;
 const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
 <defs>
@@ -466,13 +732,27 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel" role="dialog" aria-label="Grimório do Alquimago" aria-modal="false"><header class="panel-header"><div class="row"><span class="grimoire-brand-mark" aria-hidden="true">✦</span><div class="grimoire-brand"><span class="grimoire-kicker">ALQUIMAGO / LOCAL STUDIO</span><b id="wizard-title">Grimório</b></div><span class="badge" id="level">Nível 1</span><button type="button" id="grimoire-size-toggle" aria-label="Expandir grimório" aria-pressed="false" title="Expandir ou restaurar tamanho" class="panel-close grimoire-size-toggle">⤢</button><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Conversa e aprendizado local</div></header><div class="grimoire-layout"><nav class="tabs" id="tabs" aria-label="Seções do grimório"></nav><div class="content" id="content"></div></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
     this.$thought.addEventListener('click',()=>{if(document.documentElement.dataset.alquimagoStudio!=='true')return;this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
     this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
+    this.grimoireExpanded=storage()?.getItem('alquimago-grimoire-expanded')==='true';
+    this.$panel.classList.toggle('expanded',this.grimoireExpanded);
+    const expand=this.shadowRoot.getElementById('grimoire-size-toggle');
+    expand.setAttribute('aria-pressed',String(this.grimoireExpanded));
+    expand.setAttribute('aria-label',this.grimoireExpanded?'Restaurar tamanho do grimório':'Expandir grimório');
+    expand.textContent=this.grimoireExpanded?'⤡':'⤢';
+    expand.addEventListener('click',()=>{
+      this.grimoireExpanded=!this.grimoireExpanded;
+      this.$panel.classList.toggle('expanded',this.grimoireExpanded);
+      expand.setAttribute('aria-pressed',String(this.grimoireExpanded));
+      expand.setAttribute('aria-label',this.grimoireExpanded?'Restaurar tamanho do grimório':'Expandir grimório');
+      expand.textContent=this.grimoireExpanded?'⤡':'⤢';
+      try{storage()?.setItem('alquimago-grimoire-expanded',String(this.grimoireExpanded))}catch{/* optional */}
+    });
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
@@ -1345,9 +1625,9 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop||document.documentElement.dataset.alquimagoStudio!=='true') return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.10';
+    this.shadowRoot.getElementById('wizard-title').textContent='Grimório';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
-    this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
+    this.shadowRoot.getElementById('wizard-subtitle').textContent='Conversa, lições aprovadas e ferramentas do familiar';
     this.style.setProperty('--violet',this.config.appearance.accent);
     this.style.setProperty('--gold',this.config.appearance.gold);
 
@@ -1383,7 +1663,11 @@ class AlquimagoFamiliar extends HTMLElement {
       button.className='tab'+(item.index===this.state.tab?' selected':'');
       button.dataset.tab=String(item.index);
       button.setAttribute('aria-pressed',String(item.index===this.state.tab));
-      button.textContent=this.language.tabs[item.key]||item.key;
+      const icon=document.createElement('span');
+      icon.className='grimoire-nav-icon';
+      icon.textContent=item.index===5?'◈':item.index===1?'◎':'✧';
+      icon.setAttribute('aria-hidden','true');
+      button.append(icon,document.createTextNode(this.language.tabs[item.key]||item.key));
       this.$tabs.appendChild(button);
     }
     this.$content.replaceChildren();
@@ -1482,6 +1766,18 @@ class AlquimagoFamiliar extends HTMLElement {
       add('<button type="button" class="action" data-action="go-actions">← Voltar às interações</button>');
       add('<p class="muted">Para questões que ultrapassem meu diálogo local, posso preparar um resumo e abrir ChatGPT ou Gemini, sempre por escolha do usuário.</p><div class="actions"><button class="action primary" data-action="chatgpt">ChatGPT ↗</button><button class="action" data-action="gemini">Gemini ↗</button></div>');
     } else if(this.state.tab===5){
+      const conversation=document.createElement('section');conversation.className='grimoire-conversation';
+      this.$content.appendChild(conversation);
+      const heading=document.createElement('div');heading.className='grimoire-conversation-header';
+      const headingText=document.createElement('div');headingText.className='grimoire-conversation-title';
+      const eyebrow=document.createElement('span');eyebrow.textContent='CONVERSA ATIVA';
+      const headingName=document.createElement('strong');headingName.textContent='Converse com o Alquimago';
+      headingText.append(eyebrow,headingName);
+      const source=document.createElement('span');source.className='grimoire-answer-source';
+      source.textContent=this.lastAnswerSource||'Cérebro local';
+      source.title='Origem da última resposta';
+      heading.append(headingText,source);
+      conversation.appendChild(heading);
       const history=document.createElement('div');
       history.className='chat-history';
       history.setAttribute('role','log');
@@ -1493,12 +1789,12 @@ class AlquimagoFamiliar extends HTMLElement {
         bubble.textContent=item.text;
         history.appendChild(bubble);
       }
-      this.$content.appendChild(history);
+      conversation.appendChild(history);
       add('<form id="alquimago-chat-form" class="chat-form" autocomplete="off"><label for="alquimago-message" class="sr-only">Mensagem para o familiar</label><input name="message" id="alquimago-message" maxlength="320" placeholder="Converse com seu familiar..." aria-label="Sua mensagem" required><button type="submit" class="chat-send" aria-label="Enviar mensagem">➤</button></form>');
       if(this.pendingQuestion&&Date.now()-this.pendingQuestion.at<300000){
         add('<div class="chat-suggestions" aria-label="Responder à pergunta"><button type="button" data-say="sim">✓ Sim</button><button type="button" data-say="não">✕ Não</button></div>');
       }else{
-        add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Quanto é 2 + 2?">Matemática</button></div>');
+        add('<div class="chat-suggestions"><button type="button" data-say="O que você aprendeu?">Seu aprendizado</button><button type="button" data-say="Como mudar as cores do meu site?">Paleta de cores</button><button type="button" data-say="Quais projetos você conhece?">Projetos</button><button type="button" data-say="Quem é você?">Apresentação</button></div>');
       }
       const teacher=document.createElement('div');teacher.className='neural-teach';
       const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
@@ -1560,6 +1856,23 @@ class AlquimagoFamiliar extends HTMLElement {
       message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' lições aprovadas neste navegador · '+this.knowledge.projects.length+' obras públicas.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
+      // A readable conversation occupies the available height. Teaching,
+      // consent and technical controls live in a separate expandable section.
+      const composer=document.createElement('div');composer.className='grimoire-composer';
+      for(const node of this.$content.querySelectorAll('#alquimago-chat-form,.chat-suggestions'))
+        composer.appendChild(node);
+      conversation.appendChild(composer);
+      const review=this.$content.querySelector('.alquimago-lesson-review');
+      if(review)conversation.insertBefore(review,composer);
+      const mentor=document.createElement('details');mentor.className='grimoire-mentor';
+      // Review after a teacher reply is a high-priority action, not hidden.
+      const mentorSummary=document.createElement('summary');mentorSummary.textContent='✦ Mentor Gemini e treinamento';
+      mentor.appendChild(mentorSummary);
+      for(const node of this.$content.querySelectorAll('.neural-teach,.neural-lesson,.arcane-ai-consent,.session-note'))
+        mentor.appendChild(node);
+      const technical=Array.from(this.$content.children).find(node=>node.matches?.('p.muted'));
+      if(technical){technical.classList.add('grimoire-diagnostics');mentor.appendChild(technical)}
+      if(mentor.children.length>1)conversation.appendChild(mentor);
       history.scrollTop=history.scrollHeight;
     }
     const cortexToggle=this.$content.querySelector('#toggle-cortex');
