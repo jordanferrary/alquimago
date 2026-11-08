@@ -1,5 +1,6 @@
 import {calculateBasic,answerFollowUp} from './conversation.mjs';
 import {answerFromKnowledge} from './knowledge.mjs';
+import {respondUsingApprovedMeanings} from './pragmatics.mjs';
 // Local, transparent conversation engine. Not a model of language or remote chat API.
 // It only reads text the visitor explicitly enters into the familiar's own chat.
 export function safeChatText(input){
@@ -107,6 +108,11 @@ export function respondToChat(input,context={}){
  if(contextual)return contextual;
  const grounded=answerFromKnowledge(raw,{knowledge:context.knowledge,lastProjectId:context.lastProjectId,focusTitle:context.focusTitle});
  if(grounded)return grounded;
+ // Teachings about a phrase now guide conversation and can also enrich
+ // Alquimago's own speech when an explicit achievement warrants it.
+ // This bridge cannot override facts, private text, commands or follow-ups.
+ const pragmatic=respondUsingApprovedMeanings(raw,context.teachingMemory,context);
+ if(pragmatic)return pragmatic;
  if(/\b(o que (voce|vc) (pode|consegue|sabe) fazer|(voce|vc) (pode|consegue|sabe) fazer (o que|oque)|o que voce faz|quais (suas|as) (funcoes|habilidades|capacidades)|para que voce serve|como voce funciona)\b/.test(q))
   return {reply:'Sou o Alquimago! Posso explicar recursos do portfólio, reconhecer projetos públicos, fazer contas simples, mostrar meu estado e reutilizar lições que você aprovou. Quando eu não souber algo, posso consultar o Gemini com sua permissão; a resposta só vira meu conhecimento após sua revisão. ✦',intent:'help'};
  if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
