@@ -24,8 +24,13 @@ export function respondToChat(input,context={}){
   const count=Math.max(0,Number(context.approvedLessons)||0);
   const corrections=Math.max(0,Number(context.neuralCorrections)||0);
   const lessonText=count===1?'1 lição aprovada':count+' lições aprovadas';
+  const latest=typeof context.lastApprovedTopic==='string'&&context.lastApprovedTopic.trim()
+   ?' Minha última lição aprovada foi: “'+context.lastApprovedTopic.trim().slice(0,110)+'”.':'';
   const correctionText=corrections>0?' Também recebi '+corrections+' correções de classificação local.':'';
-  return {reply:'Tenho estudado com sua ajuda! Neste navegador, guardo '+lessonText+'.'+correctionText+' Eu não fico treinando sozinho em segundo plano: primeiro tento usar meu conhecimento local e, se faltar algo, posso consultar o professor Gemini quando você autorizar. A resposta dele só vira conhecimento meu quando você revisa e aprova no Grimório. ✦',intent:'self-learning'};
+  const introduction=count>0
+   ?'Heh, meu grimório anda crescendo! Guardo '+lessonText+' neste navegador.'+latest
+   :'Heh, ainda estou preparando minhas páginas! Não tenho lições aprovadas neste navegador.';
+  return {reply:introduction+correctionText+' Não me treino sozinho em segundo plano. Tento responder com meus conhecimentos antes de consultar o professor Gemini; o que ele ensinar só entra na minha memória depois que você revisar e aprovar. ✦',intent:'self-learning'};
  }
 
 
