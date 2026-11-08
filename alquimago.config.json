@@ -40,13 +40,12 @@
     "dragging": true
   },
   "memory": {
-    "namespace": "meu-projeto",
-    "remoteSnapshot": "./alquimago/project-memory.json"
+    "namespace": "alquimago-demo",
+    "remoteSnapshot": "",
+    "mode": "local"
   },
   "project": {
-    "files": [
-      "./alquimago/project-context.json"
-    ]
+    "files": []
   },
   "messages": {
     "pet": "Um pouco de magia! ✧",
