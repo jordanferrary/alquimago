@@ -18,6 +18,7 @@ import {pendingFromReply} from './conversation.mjs';
 import {normalizeKnowledge,loadKnowledge} from './knowledge.mjs';
 import {askLanguageModel,validateModelEndpoint} from './llm.mjs';
 import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,summarizeApprovedFiles} from './learning.mjs';
+import {createAffect,affectSignal,setAffectMusic,affectTick} from './affect.mjs';
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
@@ -623,6 +624,7 @@ const STYLE = `
 .character[data-expression]:not([data-expression="idle"]) .orb-expression-idle{opacity:0}
 .character[data-expression="idle"] .orb-expression-idle,
 .character[data-expression="breath"] .orb-expression-breath,
+.character[data-expression="serene"] .orb-expression-serene,
 .character[data-expression="blink"] .orb-expression-blink,
 .character[data-expression="happy"] .orb-expression-happy,
 .character[data-expression="excited"] .orb-expression-excited,
@@ -667,6 +669,11 @@ const STYLE = `
 .character[data-expression="sad"] .orb-robot{animation:orb-sigh 4.6s ease-in-out infinite}
 .character[data-expression="tired"] .orb-robot{animation:orb-sigh 5s ease-in-out infinite}
 .character[data-expression="sleep"] .orb-robot{animation:orb-breath 6s ease-in-out infinite}
+.character[data-expression="serene"] .orb-robot{animation:orb-breath 6s ease-in-out infinite}
+.character[data-expression="serene"] .orb-crest{animation:orb-twinkle 6s ease-in-out infinite}
+.character[data-music="playing"] .orb-audio-bars{animation:orb-neon 3.6s ease-in-out infinite}
+.character[data-music="playing"] .orb-orbit{animation:orb-orbit-shimmer 11s ease-in-out infinite}
+.character[data-music="playing"] .orb-shadow-ring{animation:orb-neon 7s ease-in-out infinite}
 .character[data-expression="pet"] .orb-crest,
 .character[data-expression="love"] .orb-crest{animation:orb-twinkle .64s ease-in-out infinite}
 .character[data-expression="curious"] .orb-robot,
@@ -705,6 +712,10 @@ const orbNeutral=orbEye(60)+orbEye(100);
 const ORB_EXPRESSIONS={
  idle:orbFace(orbNeutral,orbSmile),
  breath:orbFace(orbClosed,orbSmile),
+ serene:orbFace(
+  orbArc('M50 82q10 8 20 0','#a9faff',3)+orbArc('M90 82q10 8 20 0','#a9faff',3),
+  orbMouth('M73 100q7 10 14 0'),
+  '<path d="M49 95q5 3 11 0m40 0q5 3 11 0" fill="none" stroke="#e79bf1" stroke-width="1.4" opacity=".75"/>'),
  blink:orbFace(orbClosed,orbSmile),
  happy:orbFace(orbArc('M51 82q9-11 18 0')+orbArc('M91 82q9-11 18 0'),
   '<path d="M70 98q10 20 20 0Z" fill="#ffa0e7" stroke="#ffcefb" stroke-width="2"/>'),
@@ -842,7 +853,10 @@ class AlquimagoFamiliar extends HTMLElement {
     this.behaviorAllowed=false;this.behaviorMode='equilibrado';
     this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
     this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
+    this.affect=createAffect((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0,Date.now());
+    this.affectTicker=null;this.musicHandler=null;
     this.pageEmotion=null;this.pageAwayAt=0;this.pageActivityAt=Date.now();this.pageReactions=null;
+
     this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;this.pageHeadStart=0;
     this.pageLastReaction=Object.create(null);this.pageLastMouse=null;
     this.publicMessage='';this.publicUntil=0;this.publicLastSpokenAt=0;
@@ -957,6 +971,22 @@ class AlquimagoFamiliar extends HTMLElement {
     this.lastSpoken=this.config.identity.greeting;this.lastSpokenAt=Date.now();this.updateThought();
     this.startObservation();
     this.startPageReactions();
+    this.musicHandler=event=>{
+      const playing=event?.detail?.playing===true;
+      const justStarted=playing&&!this.affect.music;
+      this.affect=setAffectMusic(this.affect,playing,Date.now());
+      this.affect=affectTick(this.affect,Date.now());
+      if(justStarted)this.speakPublic(
+        "Oh, music! Activating my best floating-and-vibing mode.",
+        'music:play',{priority:1,interval:150000,hold:5700}
+      );
+      if(this.isConnected)this.renderHeader();
+    };
+    window.addEventListener('alquimago:music-state',this.musicHandler);
+    // Sync if the visitor pressed Play before the mascot finished loading.
+    const media=document.querySelector('.music-widget audio');
+    if(media instanceof HTMLAudioElement&&!media.paused&&!media.ended)
+      this.musicHandler({detail:{playing:true}});
     this.studioHandler=event=>{
       const d=event?.detail;
       if(!d||typeof d.section!=='string')return;
@@ -1044,9 +1074,19 @@ class AlquimagoFamiliar extends HTMLElement {
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick();this.tickPageReactions(); this.renderHeader(); }, 10000);
+    // Runs quietly with no API calls or audio inspection.
+    this.affectTicker=setInterval(()=>{
+      if(!this.isConnected||document.hidden)return;
+      this.affect=affectTick(this.affect,Date.now());
+      this.renderHeader();
+    },2600);
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
+    if(this.affectTicker)clearInterval(this.affectTicker);
+    this.affectTicker=null;
+    if(this.musicHandler)window.removeEventListener('alquimago:music-state',this.musicHandler);
+    this.musicHandler=null;
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.speechTimer)clearTimeout(this.speechTimer);
     this.modelAbort?.abort();this.modelSequence++;
@@ -1383,23 +1423,31 @@ class AlquimagoFamiliar extends HTMLElement {
     this.updateThought();
     return true;
   }
-  speakForReaction(name){
+  speakForReaction(trigger){
     if(!this.isPublicVisitor())return;
-    const lines={
-      sad:["Leaving already? I'll keep the tiny portal warm.","Off to another tab? I'll guard the pixels."],
-      happy:["You're back! I definitely wasn't rehearsing my dramatic farewell.","Welcome back! The art missed you. Probably."],
-      angry:["Hey! Are you copying my master's sacred words? At least credit the wizard!","Hold on—are you borrowing that text? My legal department is a very small owl."],
-      pet:["Careful! That's my thinking hat.","Oh! A head pat. I shall allow this."],
-      surprised:["WHOA! That cursor has turbo mode!","Easy there, speedster! My hat nearly flew away."],
-      tired:["I'm practicing my sleepy spell. The art isn't going anywhere.","Even tiny wizards need a dramatic yawn."]
+    const mood=this.affect?.expression||'idle';
+    // The internal mood selects the tone; interactions merely provide context.
+    const calm=['serene','breath','idle','sleep','tired'].includes(mood);
+    const tense=['angry','worried','surprised'].includes(mood);
+    const words={
+      sad:calm?["I will be here, keeping the pixels peaceful.","Enjoy your adventure beyond this tab!"]:
+        ["Leaving already? My tiny circuits will miss the company.","Off to another tab? I'll guard the artwork."],
+      happy:calm?["Welcome back. Everything is nicely in orbit.","You're back! I saved the calm vibes for you."]:
+        ["Welcome back! The art missed you. Probably.","My sensors picked up your return!"],
+      angry:tense?["Copying text? My copyright sensors are watching!","Careful with those sacred words, human!"]:
+        ["Found a sentence worth keeping? Interesting.","Research mode? I can respect that."],
+      pet:["Easy on the headset! Those are premium sensors.","Oh! A head pat. My circuits approve."],
+      surprised:tense?["Whoa! That cursor nearly scrambled my sensors!","Easy there, speedster!"]:
+        ["Fast cursor! My scanners almost missed it.","Impressive pointer speed. Very futuristic."],
+      tired:calm?["Quiet mode feels nice right now.","A little floating recharge sounds perfect."]:
+        ["Even a tiny robot deserves a dramatic yawn.","Power-saving mode, but make it stylish."]
     };
-    const set=lines[name];
-    if(!set)return;
-    const priority={angry:8,pet:7,happy:7,sad:6,surprised:5,tired:1}[name]||1;
-    const hold={sad:3600,angry:7000,pet:3400,happy:4200,surprised:3000,tired:5000}[name]||5000;
-    const interval={sad:90000,happy:45000,angry:95000,pet:26000,surprised:110000,tired:180000}[name]||60000;
-    const index=this.publicSpeechCount%set.length;
-    this.speakPublic(set[index],'reaction:'+name,{priority,interval,hold});
+    const lines=words[trigger];
+    if(!lines)return;
+    const priority={angry:5,pet:7,happy:6,sad:4,surprised:3,tired:1}[trigger]||1;
+    const interval={sad:90000,happy:50000,angry:95000,pet:26000,surprised:110000,tired:180000}[trigger]||60000;
+    this.speakPublic(lines[this.publicSpeechCount%lines.length],'reaction:'+trigger,
+      {priority,interval,hold:trigger==='angry'?6900:4700});
   }
   // Only describe features that actually exist on the current page.
   publicSceneTip(){
@@ -1473,6 +1521,9 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pageEmotion&&this.pageEmotion.until>now&&this.pageEmotion.priority>priority)return;
     this.pageLastReaction[name]=now;
     this.pageEmotion={name,until:now+duration,priority};
+    // Event is a stimulus, NOT a command to show that named expression.
+    this.affect=affectSignal(this.affect,name,now);
+    this.affect=affectTick(this.affect,now);
     this.speakForReaction(name);
     this.renderHeader();
     if(this.pageReactionTimer)clearTimeout(this.pageReactionTimer);
@@ -1504,7 +1555,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
       this.pageLeaveTimer=setTimeout(()=>{
         this.pageLeaveTimer=null;
-        if(this.pageAwayAt&&this.isConnected){this.renderHeader();this.speakForReaction('sad');}
+        if(this.pageAwayAt&&this.isConnected)this.reactPageEmotion('sad',2700,5,24000);
       },420);
     });
     on(document.documentElement,'mouseenter',()=>{
@@ -1805,12 +1856,14 @@ class AlquimagoFamiliar extends HTMLElement {
 
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
-    const behavior=this.pageEmotion&&Date.now()<this.pageEmotion.until?this.pageEmotion.name:null;
-    const effective=(!this.desktop&&this.pageAwayAt?'sad':behavior);
-    this.$character.dataset.reaction=effective||'';
-    if(!this.skinAdapter)this.$character.dataset.expression=effective||skinExpression(mood);
+    const internal=this.affect?.expression||skinExpression(mood);
+    const effective=this.skin?.type==='model3d'&&internal==='serene'?'breath':internal;
+    this.$character.dataset.reaction=''; // Legacy hardwired CSS must not override the chosen face.
+    this.$character.dataset.affect=internal;
+    this.$character.dataset.music=this.affect?.music?'playing':'paused';
+    if(!this.skinAdapter)this.$character.dataset.expression=effective;
     if(this.skinAdapter?.setExpression){
-      try{this.skinAdapter.setExpression(effective||skinExpression(mood))}catch{/* optional 3D adapter */}
+      try{this.skinAdapter.setExpression(effective)}catch{/* optional renderer */}
     }
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
