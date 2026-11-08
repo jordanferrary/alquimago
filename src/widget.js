@@ -1253,7 +1253,7 @@ class AlquimagoFamiliar extends HTMLElement {
     // A recent autonomous initiative can be corrected by conversational
     // praise/reprimand, not only by buttons. Do not mistake a question about
     // a problem for explicit behavioral feedback.
-    const qForm=/[?]|\\b(?:por que|porque|pq|como|qual|explique)\\b/i.test(user);
+    const qForm=/[?]|\b(?:por que|porque|pq|como|qual|explique)\b/i.test(user);
     const taughtFeedback=learnedMeaning?.intents.includes('reprimand')?-1:
       learnedMeaning?.intents.includes('praise')?1:null;
     const explicitFeedback=/^(?:vc |voce |você )?(?:errou|fez errado|não gostei disso|nao gostei disso|pare com isso)[!. ]*$/i.test(user)?-1:
@@ -1573,6 +1573,7 @@ class AlquimagoFamiliar extends HTMLElement {
       lesson.append(summary,teacher);this.$content.appendChild(lesson);
       const lessonBox=document.createElement('details');
       lessonBox.className='neural-lesson reviewed-learning';
+      lessonBox.open=Boolean(this.lessonDraft?.answer);
       const lessonTitle=document.createElement('summary');
       lessonTitle.textContent='📚 Ensinar um conhecimento verdadeiro';
       const note=document.createElement('p');note.className='muted';
