@@ -30,3 +30,11 @@ test('unrelated question remains independent of previous context',()=>{
  assert.equal(result.intent,'math');
  assert.match(result.reply,/4/);
 });
+
+test('old project context is not reused after a site-wide answer',()=>{
+ const result=respondToChat('Justo, realmente deixei ela sem muitas informações',{
+  ...context,history:[{role:'familiar',text:'Posso sugerir melhorias para o site em geral.'}]
+ });
+ assert.equal(result.intent,'context-followup');
+ assert.doesNotMatch(result.reply,/Alice/);
+});
