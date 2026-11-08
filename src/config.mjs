@@ -2,7 +2,7 @@
 export const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
-  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
+  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago Orb 2D — animado',type:'svg'}],selectedSkin:'padrao'},
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
   behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:false},
@@ -35,8 +35,13 @@ export function normalizeConfig(input){
     src:typeof entry.src==='string'?entry.src.slice(0,500):'',
     shapeKeys:obj(entry.shapeKeys)
   })):[];
-  const validSkins=skins.length?skins:d.appearance.skins;
-  const selectedSkin=validSkins.some(x=>x.id===app.selectedSkin)?app.selectedSkin:validSkins[0].id;
+  // The built-in `padrao` is always the restored expressive robot, even
+  // when a previously published config still describes the old wizard sprite.
+  const retiredSkins=new Set(['wizard','mage','classic','maguinho','original']);
+  const validSkins=[{...d.appearance.skins[0]},...
+    skins.filter(x=>x.id!=='padrao'&&!retiredSkins.has(x.id))].slice(0,12);
+  const requestedSkin=retiredSkins.has(app.selectedSkin)?'padrao':app.selectedSkin;
+  const selectedSkin=validSkins.some(x=>x.id===requestedSkin)?requestedSkin:'padrao';
   return {
     schemaVersion:1,
     identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
