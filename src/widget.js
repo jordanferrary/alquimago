@@ -11,7 +11,7 @@ import {normalizeLanguage,loadLanguage} from './i18n.mjs';
 import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
 import {ROBOT_SVG,ROBOT_STYLES,ORB_EXPRESSIONS} from './orb-skin.mjs';
 import {createAffect,affectSignal,affectTick,setAffectMusic} from './affect.mjs';
-import {inspectCover,imageMetricAdvice} from './image-insight.mjs';
+import {inspectCover,imageMetricAdvice,validateReviewImageFile,prepareReviewImage} from './image-insight.mjs';
 import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
 import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
 import {createOrb,stepOrb,tossOrb} from './physics.mjs';
@@ -362,6 +362,14 @@ const STYLE = `
 .arcane-skin-image{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 13px #07020e88)}
 
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
+
+.image-feedback{display:grid;gap:7px;margin:9px 0;padding:11px;border:1px solid #9770bd70;border-radius:12px;background:#251630}
+.image-feedback label{font-size:12px;font-weight:650;color:#f4e1ff}
+.image-feedback input[type=file]{display:block;box-sizing:border-box;max-width:100%;width:100%;font:11px system-ui;color:#eee0fa}
+.image-feedback input[type=file]::file-selector-button{background:#39234d;color:#f3e3ff;border:1px solid #9676b6;border-radius:7px;padding:5px 8px;margin-right:8px;cursor:pointer}
+.image-feedback img{max-height:135px;max-width:100%;object-fit:contain;border-radius:8px;background:#180e22}
+.image-feedback .muted{font-size:10.5px;margin:0}
+.image-feedback .action:disabled{opacity:.5;cursor:default}
 ${ROBOT_STYLES}
 `;
 
@@ -407,7 +415,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
     this.lessons=normalizeLessons(null);this.teaching=normalizeTeachingMemory(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
-    this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
+    this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;this.pendingImageFile=null;this.imagePreviewUrl=null;
     this.links = [];
     this.audit = null;
     this.timer = null;
@@ -472,6 +480,16 @@ class AlquimagoFamiliar extends HTMLElement {
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
     this.$content.addEventListener('change',e=>{
+      if(e.target?.id==='alquimago-image-input'){
+        const file=e.target.files?.[0]||null;
+        try{
+          if(file)validateReviewImageFile(file);
+          this.clearReviewImage();
+          if(file){this.pendingImageFile=file;this.imagePreviewUrl=URL.createObjectURL(file);}
+          this.message=file?'Imagem selecionada. A análise só começa ao clicar em Analisar imagem.':'Nenhuma imagem selecionada.';
+        }catch(error){this.clearReviewImage();this.message=error instanceof Error?error.message:'Arquivo inválido.';}
+        this.render();return;
+      }
       if(e.target?.id==='alquimago-skin-choice'){
         const chosen=this.skinProfiles.find(x=>x.id===e.target.value);
         if(chosen){
@@ -499,6 +517,7 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       if(e.target?.id==='toggle-llm'){
         this.modelEnabled=this.modelAvailable&&!!e.target.checked;
+        if(!this.modelEnabled)this.clearReviewImage();
         this.message=this.modelEnabled?'Professor Gemini ativado nesta sessão apenas para dúvidas sem resposta local.':'Modo local ativado, sem consulta ao Gemini.';
         this.renderHeader();
       }
@@ -638,7 +657,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.musicHandler=null;
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.speechTimer)clearTimeout(this.speechTimer);
-    this.modelAbort?.abort();this.modelSequence++;
+    this.modelAbort?.abort();this.modelSequence++;this.clearReviewImage();
     if(this.expressionTimer)clearTimeout(this.expressionTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
@@ -1240,6 +1259,50 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     if(this.$character.hasPointerCapture(e.pointerId))this.$character.releasePointerCapture(e.pointerId);
   }
+  clearReviewImage(){
+    if(this.imagePreviewUrl){URL.revokeObjectURL(this.imagePreviewUrl);this.imagePreviewUrl=null;}
+    this.pendingImageFile=null;
+  }
+  async reviewImage(){
+    if(!this.modelAvailable||!this.modelEnabled||this.modelBusy||!this.pendingImageFile)return;
+    const file=this.pendingImageFile;
+    const question=safeChatText(this.$content.querySelector('#alquimago-message')?.value||
+      'Avalie esta arte visual e dê sugestões objetivas para melhorar composição, silhueta, materiais, iluminação e apresentação.');
+    const history=this.dialogue.slice(-8);
+    const request=++this.modelSequence;
+    const controller=new AbortController();this.modelAbort?.abort();this.modelAbort=controller;
+    this.modelBusy=true;this.lastAnswerSource='Preparando imagem localmente';
+    this.dialogue=[...this.dialogue,{role:'user',text:'[Imagem escolhida para feedback] '+question},
+      {role:'familiar',text:'Preparando a imagem e consultando o Gemini…'}].slice(-24);
+    this.render();
+    let timer;
+    try{
+      const image=await prepareReviewImage(file);
+      if(!this.isConnected||request!==this.modelSequence)return;
+      timer=setTimeout(()=>controller.abort(),18000);
+      const result=await askLanguageModel({
+        endpoint:this.config.llm.endpoint,prompt:question,history,image,
+        files:this.fileContextAllowed?summarizeApprovedFiles(this.projectFiles):[],
+        pageUrl:location.href,signal:controller.signal
+      });
+      if(!this.isConnected||request!==this.modelSequence)return;
+      const feedback='Feedback visual do Gemini: '+result.reply;
+      this.dialogue[this.dialogue.length-1]={role:'familiar',text:feedback};
+      this.message=feedback;this.lastAnswerSource='Gemini · feedback visual';
+      this.lastSpoken=feedback;this.lastSpokenAt=Date.now();
+    }catch(error){
+      if(!this.isConnected||request!==this.modelSequence)return;
+      const reason=error?.name==='AbortError'?'Tempo de análise excedido.':
+        error instanceof Error?error.message:'Não foi possível analisar a imagem.';
+      this.dialogue[this.dialogue.length-1]={role:'familiar',text:reason};
+      this.message=reason;this.lastAnswerSource='Imagem não analisada';
+    }finally{
+      clearTimeout(timer);
+      if(this.isConnected&&request===this.modelSequence){
+        this.modelBusy=false;this.modelAbort=null;this.clearReviewImage();this.render();
+      }
+    }
+  }
   sendMessage(text){
     this.lastUserActivity=Date.now();
     const user=safeChatText(text);
@@ -1452,7 +1515,7 @@ class AlquimagoFamiliar extends HTMLElement {
     // boundary, not backend authentication: the Gemini API gateway is public.
     const studioMode=document.documentElement.dataset.alquimagoStudio==='true';
     this.setAttribute('data-public-mode',String(!studioMode));
-    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;this.state.open=false;}
+    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;this.clearReviewImage();this.state.open=false;}
     const flags=studioMode?this.config.features:{...this.config.features,
       dialogue:false,pageAudit:false,routes:false,projectFiles:false,assistants:false,memoryTools:false};
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
@@ -1662,6 +1725,31 @@ class AlquimagoFamiliar extends HTMLElement {
         consent.append(choice,details);
         this.$content.appendChild(consent);
         this.$content.appendChild(share);
+        if(this.modelEnabled){
+          const box=document.createElement('section');box.className='image-feedback';
+          const label=document.createElement('label');label.htmlFor='alquimago-image-input';
+          label.textContent='Feedback de arte por imagem';
+          const input=document.createElement('input');input.type='file';
+          input.id='alquimago-image-input';input.accept='image/jpeg,image/png,image/webp';
+          input.disabled=this.modelBusy;
+          const note=document.createElement('p');note.className='muted';
+          note.textContent='JPG, PNG ou WebP · até 8 MB. A imagem é reduzida neste navegador e enviada ao Gemini somente após clicar no botão. Não é salva no servidor nem aprendida automaticamente.';
+          box.append(label,input,note);
+          if(this.pendingImageFile){
+            const selected=document.createElement('span');selected.className='muted';
+            selected.textContent='Selecionada: '+this.pendingImageFile.name.slice(0,90);
+            box.appendChild(selected);
+            if(this.imagePreviewUrl){
+              const preview=document.createElement('img');preview.alt='Prévia da imagem selecionada';
+              preview.src=this.imagePreviewUrl;box.appendChild(preview);
+            }
+          }
+          const analyze=document.createElement('button');analyze.type='button';
+          analyze.className='action primary';analyze.dataset.action='review-image';
+          analyze.textContent=this.modelBusy?'Analisando…':'Analisar imagem com Gemini';
+          analyze.disabled=this.modelBusy||!this.pendingImageFile;
+          box.appendChild(analyze);this.$content.appendChild(box);
+        }
       }
       const message=document.createElement('p');message.className='muted';
       message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' de 128 lições aprovadas · '+
@@ -1773,6 +1861,7 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     const action = button.dataset.action;
     if (!action) return;
+    if(action==='review-image'){void this.reviewImage();return;}
     if(['pet','stroke'].includes(action)){this.reactPageEmotion('pet',1600,7,500);return;}
     if(['focus','rest','explore'].includes(action))return this.action(action);
     if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
@@ -1809,7 +1898,7 @@ class AlquimagoFamiliar extends HTMLElement {
       // Cancel stale professor replies; a completed request may not repopulate
       // a newly cleared dialogue.
       ++this.modelSequence;this.modelAbort?.abort();this.modelAbort=null;
-      this.modelBusy=false;this.dialogue=[];
+      this.modelBusy=false;this.clearReviewImage();this.dialogue=[];
       this.lastUserText='';this.lastNeuralIntent='';this.lastProjectId=null;
       this.pendingQuestion=null;this.lessonDraft=null;
       writeDialogue(storage(),this.config.memory.namespace,[]);
