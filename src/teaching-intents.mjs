@@ -63,7 +63,7 @@ export function validateTeachingExample(text, labels) {
  * GitHub, cannot trigger privileged actions and are not automatically sent to
  * Gemini. Ambiguous matches are intentionally ignored.
  */
-export const TEACHING_EXAMPLES_LIMIT = 80;
+export const TEACHING_EXAMPLES_LIMIT = 160;
 const teachingKey = ns => 'alquimago:teaching:v2:' + (/^[a-zA-Z0-9_-]{1,48}$/.test(ns) ? ns : 'default');
 export function normalizeTeachingMemory(value) {
   const examples = Array.isArray(value?.examples) ? value.examples : [];
@@ -91,14 +91,14 @@ export function approveTeachingExample(memory, text, labels) {
 export function readTeachingExamples(storage, namespace='default') {
   try {
     const value = storage?.getItem(teachingKey(namespace));
-    return value && value.length<=90000 ? normalizeTeachingMemory(JSON.parse(value)) : normalizeTeachingMemory(null);
+    return value && value.length<=180000 ? normalizeTeachingMemory(JSON.parse(value)) : normalizeTeachingMemory(null);
   } catch { return normalizeTeachingMemory(null); }
 }
 export function writeTeachingExamples(storage, namespace, memory) {
   try {
     if (!storage) return false;
     const value = JSON.stringify(normalizeTeachingMemory(memory));
-    if (value.length>90000) return false;
+    if (value.length>180000) return false;
     storage.setItem(teachingKey(namespace),value);
     return true;
   } catch {return false;}
