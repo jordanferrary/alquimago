@@ -2,11 +2,11 @@
 
 Mascote visual independente, configurável por JSON, para **React, Vite, HTML e Windows (Tauri 2)**.
 
-**Versão:** 0.7.0 — protótipo funcional. Não é uma IA autônoma, nem controla contas ou aplicativos de terceiros. Código e ilustrações originais sob licença MIT.
+**Versão:** 0.11.3 — familiar com comportamento adaptativo e aprendizado local aprovado. Não é um modelo de linguagem autônomo. O professor Gemini é opcional e depende de um backend do site integrador. Código e ilustrações sob licença MIT.
 
 ## Recursos
 
-- Familiar alquimista redesenhado com frasco brilhante, símbolos arcanos, humor visual e gestos de carinho (deslize curto sobre o personagem).
+- Skin padrão Orb 2D: robô esférico expressivo, animações, emoções simbólicas e gestos de carinho (deslize curto sobre o personagem).
 - XP com regras de anti-repetição: carinho/descanso não concedem XP, habilidades possuem intervalo, exploração de cada rota rende no máximo uma vez ao dia e publicações confirmadas podem conceder XP uma vez por revisão.
 - Personalidade, emoções simbólicas, energia, foco, curiosidade e níveis.
 - Configuração por arquivo `alquimago.config.json`, com nome, paleta, mensagens, recursos e regras de projeto.
@@ -225,3 +225,13 @@ O avanço principal da v0.9 é **responder melhor**, não inflar números de neu
 Veja [Assistente contextual e IA opcional](docs/ASSISTENTE_CONTEXTUAL.md).
 
 **O que ainda não é verdade:** o Alquimago não virou um modelo generativo independente por causa do número de neurônios. O recurso de geração depende de um servidor e pode ter custos. No projeto padrão ele está desativado até que o responsável configure uma integração segura.
+
+## Feedback visual com Gemini (v0.11.3)
+
+Na integração do Local Studio, o usuário habilita o Gemini, escolhe um arquivo **JPEG, PNG ou WebP** de até **8 MB** e clica em **Analisar imagem com Gemini**. A prévia e o redimensionamento (lado maior até 1024 px) são locais. Somente o clique de análise envia o JPEG compactado ao endpoint seguro do host, que o encaminha ao Gemini. A imagem não é salva em lições, backups nem Git; a resposta textual aparece no grimório.
+
+A análise local de pixels (`imageMetrics`) calcula luz, contraste e cor e **não reconhece objetos**. O Gemini oferece análise semântica remota, depende de rede e de quota e pode cometer erros. Nenhum conteúdo é aprendido a partir de um feedback visual sem aprovação.
+
+A versão independente do bot não exige conta Gemini; cabe ao site integrador implementar o proxy `/api/assistant` mantendo sua chave somente no servidor. As obras e falas específicas do portfólio devem ficar em `assistant.spotlights` na configuração do host, e não no código genérico do bot.
+
+Leia também [Integração e privacidade](docs/INTEGRACAO_PRIVACIDADE.md) e [Auditoria v0.11.3](docs/AUDITORIA_0_11_3.md).
