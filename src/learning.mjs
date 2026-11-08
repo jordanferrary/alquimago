@@ -10,6 +10,13 @@ const lObj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 export const LESSONS_LIMIT=64;
 export const canonicalLesson=x=>String(x||'').normalize('NFD')
  .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ')
+ .replace(/\s+/g,' ').trim()
+ .replace(/\b(?:vc|vcs|voce|voces|cê)\b/g,'voce')
+ .replace(/\b(?:oq|oque)\b/g,'o que')
+ .replace(/\b(?:pq|porq|porque)\b/g,'por que')
+ .replace(/\b(?:pra|pro)\b/g,'para')
+ .replace(/\b(?:ta|tá)\b/g,'esta')
+ .replace(/\b(?:eh)\b/g,'e')
  .replace(/\s+/g,' ').trim();
 const lSensitive=x=>/(?:github_pat_|gh[pousr]_|AIza[a-zA-Z0-9_-]{20,}|\bsk-[A-Za-z0-9_-]{12,}|\b(?:senha|password|secret|token|api[\s_-]*key|chave privada|credential)\b)/i.test(String(x||''));
 const lClean=(x,max)=>typeof x==='string'?x.trim().replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,max):'';
@@ -45,19 +52,40 @@ export function recallLesson(input,library){
  if(!query||!items.length)return null;
  const exact=items.find(item=>item.key===query);
  if(exact)return {reply:exact.answer,intent:'approved-lesson',source:exact.source};
- // Only near-exact questions, not a generic keyword match. This avoids
- // pretending an unrelated human-supplied answer is supported by evidence.
- const words=x=>new Set(x.split(' ').filter(t=>t.length>2));
- const terms=words(query);
- let selected=null,top=0;
+ // Conservative fuzzy matching: spelling, abbreviations and small rephrasings.
+ // Reject short/ambiguous inputs and ties to avoid confidently wrong answers.
+ const stop=new Set(['o','a','os','as','um','uma','de','do','da','dos','das','em','no','na','para','por','que','e','eu','me','meu','minha','voce','pode','poderia','favor','me','dizer']);
+ const words=x=>x.split(' ').filter(t=>t.length>2&&!stop.has(t));
+ const distance=(a,b)=>{
+  if(Math.abs(a.length-b.length)>2)return 3;
+  let prev=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+   const next=[i];
+   for(let j=1;j<=b.length;j++)next[j]=Math.min(next[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+   prev=next;
+  }
+  return prev[b.length];
+ };
+ const similar=(a,b)=>a===b||(a.length>=5&&b.length>=5&&distance(a,b)<=1);
+ const queryTerms=words(query);
+ if(queryTerms.length<2)return null;
+ const ranked=[];
  for(const item of items){
-  const other=words(item.key);
-  if(terms.size<2||other.size<2)continue;
-  const intersection=[...terms].filter(t=>other.has(t)).length;
-  const similarity=intersection/Math.max(terms.size,other.size);
-  if(similarity>.84&&similarity>top){selected=item;top=similarity;}
+  const terms=words(item.key);
+  if(terms.length<2)continue;
+  const matched=new Set();
+  let count=0;
+  for(const term of queryTerms){
+   const index=terms.findIndex((other,i)=>!matched.has(i)&&similar(term,other));
+   if(index>=0){matched.add(index);count++;}
+  }
+  const precision=count/queryTerms.length,recall=count/terms.length;
+  const score=2*precision*recall/(precision+recall||1);
+  if(score>=.83&&precision>=.8&&recall>=.8)ranked.push({item,score});
  }
- return selected?{reply:selected.answer,intent:'approved-lesson',source:selected.source}:null;
+ ranked.sort((a,b)=>b.score-a.score);
+ if(!ranked.length||(ranked[1]&&ranked[0].score-ranked[1].score<.08))return null;
+ return {reply:ranked[0].item.answer,intent:'approved-lesson',source:ranked[0].item.source};
 }
 export const lessonsKey=ns=>'alquimago:lessons:v1:'+(/^[a-zA-Z0-9_-]{1,48}$/.test(ns)?ns:'default');
 export function readLessons(storage,namespace='default'){
