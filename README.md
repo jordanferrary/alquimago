@@ -255,3 +255,11 @@ A frase configurável **“vai comprar pão”** é um atalho para abrir o diál
 O núcleo **não recebe nem guarda tokens GitHub**. No portfólio que instala o Alquimago, o responsável pode guardar opcionalmente uma credencial de publicação no cofre AES-256-GCM do navegador, usando apenas a interface protegida de publicação, ou preferir a sessão GitHub App com criptografia no servidor. O bot só usa o status informado por evento; nenhuma credencial deve ser escrita no chat, enviada ao Gemini, incluída em memória ou publicada no repositório.
 
 O comando nunca publica sozinho: o proprietário ainda precisa conferir as alterações e confirmar a publicação. A exclusão de um token inválido também exige confirmação explícita. Um cofre com chave local não exportável protege contra leitura casual do armazenamento, mas **não impede** que scripts maliciosos da mesma origem usem a autorização.
+
+## Demo offline oficial — mesma versão do portfólio
+
+Abra **[Alquimago_Demo_Offline.html](Alquimago_Demo_Offline.html)** diretamente no navegador depois de baixar **somente esse arquivo**. Ele já contém o JavaScript completo **v0.11.5**, a skin padrão **Orb 2D** (robô esférico com headset e olhos animados), expressões, grimório, diálogo e ferramentas locais. Não depende do arquivo `dist/alquimago.js`, de CDN, de hospedagem GitHub Pages ou de uma chave Gemini.
+
+**Como atualizar:** sempre que evoluir o mascote, execute `npm run build`. A compilação agora atualiza **simultaneamente** `dist/alquimago.js`, `Alquimago_Demo_Offline.html`, `dist/Alquimago_Demo_Offline.html` e o rótulo de versão em `dist/index.html`. A automação de testes verifica que a demo contém **o mesmo bundle**, não uma implementação paralela. Não edite o JavaScript da demo manualmente.
+
+**Limitação do modo `file://`:** alguns navegadores restringem WebCrypto ou IndexedDB em arquivos locais. O visual e as funcionalidades demonstrativas continuam disponíveis, mas o aprendizado persistente pode ficar desativado. O comando para publicar no GitHub depende da integração com o Local Studio no portfólio; a demo não recebe tokens nem cria commits. Gemini permanece desativado por padrão, pois o modo offline não tem API remota.

@@ -1,4 +1,4 @@
-/* ALQUIMAGO v0.9.0 • MIT */
+/* ALQUIMAGO v0.11.5 • MIT */
 (() => {
 "use strict";
 const ALQUIMAGO_PRETRAINED={"inputHidden":[0.75575,-0.1088,0.39229,0.70326,-0.10493,-0.20607,-0.1176,-0.09376,0.77487,0.76291,-0.36778,-0.82718,-0.37809,-0.01008,-0.3081,-0.85638,0.64439,0.39989,-1.27606,0.31826,-0.56029,-0.53346,-1.74248,0.05001,0.058,-0.25732,-0.11166,-0.35875,-0.00776,-0.13262,0.23988,-0.56583,-0.09773,-0.21057,0.05366,-0.26502,0.14082,-0.37169,0.3559,-0.11472,0.16435,-0.25115,0.13055,0.09016,0.77275,0.31053,0.80076,0.12843,-0.05062,0.04483,-1.01095,0.14786,0.53428,0.16955,0.32239,0.26429,0.31101,0.13107,0.51052,0.18345,0.2165,-0.08181,-0.39637,-0.30113,0.95449,0.67053,-0.7952,-0.5093,0.58076,-0.44882,-0.05805,0.39766,-0.63327,-0.67252,-0.91978,0.31451,0.48118,-0.04168,-0.09103,-0.20879,0.38776,0.11656,0.75219,0.62643,-0.82717,0.32655,0.73471,-0.04273,-0.4106,-0.20494,-0.28238,-0.26243,0.24722,-0.13058,0.43751,0.24482,-0.94075,0.81203,-0.11353,0.17241,-0.56752,-0.56728,0.26173,-0.00737,0.52232,-0.0555,-0.41109,0.06578,0.19962,-0.08145,-1.6747,-0.07486,-0.51612,0.71845,-0.62466,0.0141,0.23295,-0.65338,0.2459,0.61789,-0.65716,0.3966,1.03744,-0.10599,-0.36394,-0.28617,0.28587,-0.0157,0.46838,0.73453,-0.65919,-0.1257,-0.29398,0.409,-0.9407,0.0357,-0.76926,-0.343,0.3216,0.27228,-0.58416,0.10783,0.08027,0.23494,0.35646,-0.58118,0.0529,0.89467,-0.51955,-0.5496,-0.27239,-0.19047,0.01074,-0.35463,-0.01634,0.13703,0.06965,-0.02701,0.8367,-0.05986,0.17037,0.30606,-0.38663,0.10381,0.40505,0.12583,-0.33991,-0.07374,0.46158,-0.14684,-0.46999,0.15811,-0.25442,-0.21052,0.70138,0.94163,-0.08096,0.74762,0.2718,0.23663,-0.056,0.37793,0.31656,-0.03219,0.49409,0.35367,0.3713,-0.31899,0.69532,-0.70671,-0.65698,-0.16349,0.31925,0.11291,-0.15066,-0.78687,0.21619,0.7066,-0.53662,-0.17406,0.03731,-0.57419,-0.2607,-0.33157,-0.0296,-0.34935,0.01646,0.06035,0.31145,0.04037,0.64942,0.23273,-0.57144,0.1846,0.27388,-0.32733,-0.35504,-0.44517,-0.11985,0.39743,-0.01914,-0.49499,-0.02079,-0.05326,-0.48418,0.1206,0.17648,0.19764,0.22668,0.16932,-0.42943,0.08382,-0.43929,-0.33728,0.09042,0.14658,0.12662,0.20852,0.14621,-0.13474,-0.63494,0.16927,0.13604,0.36535,-0.19397,-0.40016,0.047,0.14064,-0.62272,0.34247,-0.16299,-0.15131,0.00841,0.13354,-0.85385,0.1613,-0.71548,-0.54802,0.9509,0.1821,0.05022,-0.15879,0.37384,-0.1192,-0.3759,-0.2966,-0.8259,0.36234,0.45545,-0.13353,-0.14027,0.19281,0.02277,-0.35526,0.79617,0.38102,0.11076,0.04918,-0.04809,0.20442,0.31898,-0.19225,-1.03839,-0.44914,0.04606,0.06789,0.21553,0.29621,-1.36437,-0.95431,-1.16978,0.29296,0.54187,-0.1332,-0.5469,-0.15652,0.33893,-0.04748,0.96077,0.51464,-1.09539,0.57103,-0.56278,0.05571,-1.14718,-0.48354,-0.06192,0.05123,-0.83046,-0.23988,0.34997,0.34399,-0.37761,0.50118,-0.02977,-0.38997,0.40627,1.02892,-0.67116,-0.2242,1.24843,-0.26578,-0.21121,0.02026,-0.87126,0.1657,-0.22122,-0.36431,-0.4149,0.99581,-0.05276,0.38728,-1.24706,-0.54117,-0.5475,0.06109,0.09773,0.06719,-0.51778,-0.39617,0.5966,0.63865,-0.51812,-0.30765,0.52365,-0.71505,0.10184,0.60886,-0.28511,0.05027,1.05424,0.05725,0.10984,-0.08071,-0.55378,-0.14432,-0.99515,0.45086,0.07016,-0.11265,0.87676,0.81069,1.34417,-0.26601,-0.45908,-0.18548,0.39636,-0.22773,1.01261,0.59154,-1.62306,-0.91602,0.24654,-0.35843,-0.31246,-0.71422,0.65506,0.5901,-0.40009,0.33268,-0.24956,-0.24274,-1.11932,-0.09422,1.32991,0.69516,0.64459,-0.34656,-0.06527,0.00985,0.76404,0.57756,-0.65934,0.5241,-1.27274,-0.72227,0.83184,-0.36569,0.05746,-0.05437,1.14978,-0.34236,0.38653,-0.25499,-0.17451,0.06993,-0.24656,-0.52871,0.00631,0.39559,-0.19468,0.06418,-0.1607,0.04562,-0.08092,0.18743,-0.17513,-0.78526,-0.32361,0.90125,0.19382,-0.05482,0.75755,0.50463,0.27168,0.08237,0.00713,-0.26587,0.08742,0.39235,0.38143,-0.00519,-0.36753,0.13638,0.88948,-0.98152,-0.95938,-0.43107,0.74248,-0.37998,1.64883,0.5543,-0.60996,0.55509,-0.94272,0.47742,1.53554,-0.16072,-0.74246,0.67813,-0.10978,0.19103,0.48275,0.1979,-0.30198,0.48559,0.68572,0.01446,-0.33513,-0.22026,0.8265,0.77899,-0.01775,-0.31254,0.09383,-0.41677,0.21973,-0.42108,0.09849,-0.37551,0.50409,-0.39678,1.28723,0.35055,-0.46707,-0.10737,-0.10433,0.10214,0.01941,-0.04074,0.05937,0.03692,0.72848,-0.38831,-0.13535,-0.41191,0.78241,-0.31169,0.08138,0.94404,-0.19367,-0.57637,-0.23515,0.15323,1.02455,-0.50085,-0.20432,-0.09895,0.18479,0.26622,0.73855,0.5188,-0.01633,0.04903,-0.43722,0.03297,-0.45402,-0.39969,-0.1166,-0.47005,0.53251,-0.14962,0.80287,0.54681,0.10781,-0.17488,-0.59919,0.04362,0.42851,-0.48192,0.31917,0.39899,-0.59003,-0.1822,0.9202,-0.33185,0.26081,0.64558,-0.51657,0.17814,-0.75319,0.92108,-0.53449,-0.35346,0.1121,0.35082,0.1406,-0.16829,-0.07046,0.64022,-0.04531,-0.07041,-0.41794,0.02982,0.03786,1.15554,0.45494,-0.05145,1.20166,-1.05279,-0.00129,0.13055,-0.47743,0.36266,0.41324,-0.65593,-0.30783,0.69183,-0.5783,-0.07718,0.56468,-0.93143,-0.68542,1.01369,-0.46519,0.25621,0.66063,0.67498,-0.84695,0.20731,0.13323,0.2284,-1.30267,0.38617,0.16111,-0.09441,-0.0818,0.37959,0.09312,-0.35892,-0.3657,-0.14211,0.17256,0.36179,-0.14269,0.14963,-0.17653,-0.23433,0.31418,-0.23203,-0.87527,0.16089,0.01365,0.00808,-0.05195,-0.10599,0.04912,-0.13148,0.05206,0.0025,-0.82313,-0.65995,-0.3503,0.08457,0.23023,-0.25716,-0.42801,-0.01676,0.03849,0.26511,0.72759,0.18425,-0.73549,0.486,0.19144,0.09872,-1.06983,-0.5095,0.26689,0.20121,-0.57545,-0.13825,0.29656,0.04683,-0.70674,-0.00704,1.1234,0.29501,-0.2558,0.18269,0.11784,0.01221,-0.12296,0.52641,0.50973,0.55063,-0.25663,0.65216,0.64329,0.23074,-1.64915,0.15191,0.82626,0.26306,-0.24467,0.49817,-0.00456,-0.37849,-0.02418,-0.79525,-0.33177,0.9689,-0.19124,-0.57771,-0.81883,-0.53475,0.10083,-0.88518,0.43132,0.19525,0.40272,-0.29459,-0.45991,-0.07819,0.1725,0.13299,-1.62041,-0.00685,0.19167,-0.02111,-0.47391,0.23278,-0.68327,1.25175,-0.38606,-1.49251,0.84974,1.09408,0.31713,0.08881,1.7316,0.32926,-0.47223,0.52241,-1.28867,0.63502,0.81373,-0.13978,-0.18677,0.52168,-0.06416,-0.16222,-0.85953,0.07435,0.73528,0.66058,-0.15472,-1.29002,-0.0153,0.79439,-0.46464,-1.12068,0.57408,-0.29835,-0.21256,0.5067,1.04821,-0.31903,-0.02598,0.20294,0.79594,-0.24248,-0.35036,-0.23946,-0.3475,0.00599,1.65482,0.2429,-0.00318,0.33412,-0.59266,0.30896,0.41218,-0.20372,0.14456,-0.0858,0.18166,-0.36277,1.1803,-0.05701,0.1337,0.78818,-0.51806,0.4859,1.73786,-0.02871,-0.20076,0.32488,-1.38878,-0.26718,0.17107,0.75445,0.16993,0.69654,-0.32122,-0.23431,-1.09582,-0.06658,0.47053,-0.02137,-0.34853,-0.26616,-0.12141,-0.86384,0.77272,0.24671,0.10586,0.00534,-0.23967,0.35519,0.40886,-0.74919,-0.52218,-0.4015,0.08258,0.35386,1.1334,0.45744,-0.00364,0.40215,-0.48209,0.30515,0.09978,-0.70705,0.29658,0.23058,-0.74553,0.21346,-0.07619,-0.1735,0.65663,-0.08863,-1.09409,-0.02575,0.30067,-0.82825,-0.14273,-0.31935,0.02925,-0.11611,0.3304,-0.11107,-0.6835,-0.12328,0.72439,-0.31215,-0.63149,-0.14813,-0.02331,-0.4411,0.05615,-0.58373,0.20221,0.30194,0.12025,-0.21129,0.14033,0.19676,-0.98123,0.40902,0.28351,0.37522,0.56233,0.30114,0.74933,0.23886,-0.27422,-0.45834,0.03583,1.24197,-0.07376,-0.5638,-0.12376,-0.82619,0.43921,0.34401,0.05495,-0.25251,-0.3997,-0.13928,-0.12334,-0.69526,0.06104,0.77225,-0.41728,0.33359,0.80637,-0.42267,-0.4335,0.25,-0.13458,1.34387,0.55777,0.22437,-0.7998,-0.30833,0.65097,-0.11515,0.30141,-0.33529,-1.15193,-0.0209,0.98783,-0.74684,-1.33708,-0.14407,0.51307,1.0403,-0.72426,-0.07203,0.91717,-0.35614,-0.02859,0.32582,0.44191,0.91304,0.39598,-0.65488,-0.21283,-0.03398,0.77687,0.36846,0.3264,0.55032,-0.69424,-0.77451,0.40028,-0.18646,-0.20554,-0.47082,0.85774,0.25304,-0.31716,-0.10791,0.35952,-0.25649,-0.35972,0.12515,0.35002,0.08841,0.55051,-0.06567,-0.51987,-0.70864,0.38247,0.15913,-0.83497,0.98787,-0.13932,-1.29842,0.46099,-0.0934,-1.63118,0.00283,-0.12758,-0.6933,0.73976,0.25425,0.25717,-0.30479,-0.12502,-0.07168,0.65487,-0.21497,0.70656,0.193,0.15044,0.59935,-0.70508,-0.89995,1.6754,-0.53118,-0.45255,-0.10141,-0.75133,-0.15669,1.34692,-0.68839,0.68247,1.05539,-1.29801,0.47971,-0.73018,-0.00304,-1.19743,0.18601,0.26357,-0.37157,0.15831,0.74887,0.44271,0.71715,-0.62063,-0.10667,-0.69854,-0.31134,0.48708,0.08166,-0.06504,-0.24682,0.37546,0.04125,-0.12786,0.10784,0.44911,0.27986,-0.69467,0.22686,-0.13228,-0.45366,0.98096,0.27671,-0.69032,-0.35767,0.61843,0.27341,0.54581,0.54436,0.18344,0.8156,-0.30153,-0.82175,-0.06354,-0.08153,-0.09087,-0.40602,1.63781,-0.21828,-0.1943,-0.37532,0.0587,-0.59201,-0.51354,-0.03422,-0.50581,0.26678,-0.37408,-0.08287,0.06168,-0.00186,0.33597,0.13723,0.39269,0.18581,0.18145,0.35326,-0.31218,0.289,-0.00749,0.14406,-0.22624,0.1331,-0.35945,-0.32594,0.04999,-0.04854,0.3375,0.30586,-0.61419,-0.87846,-0.76087,0.69496,-0.07493,-0.90645,0.20303,-0.15936,0.26528,0.75346,0.87233,-0.21303,-0.57763,0.143,-0.27773,-0.3378,-0.39998,-0.02954,-0.26957,-0.03573,0.94972,-0.73384,0.0845,0.52659,0.06482,-0.64577,-0.44758,0.40666,-0.03695,-0.53755,-0.01636,0.35219,-0.6901,0.19707,0.40629,-0.01618,0.31234,-0.00439,-0.31801,0.20179,0.0962,-0.73869,0.15585,-0.3175,0.11094,-0.08264,0.09017,-0.10096,-0.21236,0.99854,0.69703,0.10026,-0.43358,0.04772,0.28824,-0.0535,0.11048,-0.09458,-0.67688,0.16366,0.44364,-0.32884,-0.39008,-0.02265,-0.17411,0.6306,-0.03106,0.11382,0.4145,0.00196,0.11522,-0.02494,-0.26313,-0.45669,0.03577,0.00585,-0.22634,-0.15423,-0.35508,-0.22184,0.17587,-0.20216,0.13221,-0.20327,-0.04163,-0.05279,-0.31063,0.02105,-0.18442,0.07386,-0.12871,0.27436,-0.2267,-0.21393,0.06305,0.20434,-0.23435,0.615,-0.27708,-0.20483,-0.56046,-0.03483,0.25051,0.35493,0.50748,-0.35637,-0.64874,0.78506,0.02529,0.07017,-0.1041,0.32993,0.11197,0.84672,0.29021,-0.17338,0.6988,-0.53501,0.16217,0.13953,0.49513,-0.67768,0.35785,-0.41299,0.486,0.6326,-0.57775,0.01699,0.1342,-0.28931,0.50884,-0.51718,-0.05994,0.01044,0.12842,-0.17028,0.18958,-0.02774,-0.60454,0.06111,-0.79706,0.19733,-0.71227,-0.00982,-0.25014,0.33288,0.8811,-0.6707,-0.45782,-0.12296,0.12618,0.0957,0.33804,0.01218,-0.54569,-0.0307,-0.11554,0.28537,-0.08264,0.10489,-0.49336,-0.22923,-0.0672,0.44595,-0.54918,0.22041,-0.14243,0.03267,0.78338,0.90283,0.4163,-0.36027,0.60031,0.91767,0.07291,0.19087,-0.63377,-0.01814,-0.7363,-0.61892,0.23645,-0.26321,-0.28884,-0.12412,0.57804,-0.00187,0.97934,0.18083,-0.50698,-0.04778,-0.02543,-0.56599,-0.01413,-0.16575,-0.17703,-0.35913,0.439,0.15593,-0.21138,0.10477,-0.43467,-0.19755,0.30916,-0.00481,0.34257,0.18576,0.25108,0.36596,-0.09629,-0.85221,0.20209,-0.33659,-0.62373,0.23105,0.58365,0.0008,-0.33847,0.12401,-0.8207,-0.27456,0.79573,0.21071,-0.23802,0.27867,0.51061,0.93327,0.11567,-0.59619,-1.01004,0.28023,-1.42405,-0.45476,-0.39473,-0.42267,0.46222,0.18191,-1.19494,-0.68718,-0.2661,0.25824,0.24801,0.28154,-0.02459,-0.34398,-0.11591,0.64004,-0.35175,-0.08743,0.36301,-0.91328,-0.68042,0.86204,-0.16432,-0.02748,1.08679,0.53079,0.07802,0.50143,0.44352,0.02569,-0.42686,0.19814,-0.06403,-0.30887,0.78482,-0.24788,0.11521,-0.80706,0.03248,-0.27958,0.16069,0.10692,0.26295,0.36555,-0.10781,-0.62314,-0.10042,0.24345,0.45347,0.02686,0.36052,-0.63895,-0.21272,-0.28595,-0.0024,0.16201,-0.15297,0.05888,0.23167,0.73927,-0.11881,-1.06341,0.44039,0.65246,0.14028,1.02783,0.21523,0.43769,-0.50676,0.16304,-0.32705,0.49476,-0.11717,0.42855,0.28349,-0.74572,0.47001,-0.27953,-1.62647,-0.25256,-0.13463,-0.158,0.12348,-0.1923,0.70511,-0.2479,-0.17966,0.23689,-0.72137,-0.57468,-0.3957,-0.78942,-0.21012,-0.13232,0.23486,-0.43578,-0.46567,0.10507,-0.51715,-0.09235,0.18281,0.50135,-0.5883,0.4517,0.0687,-0.40618,-0.06182,0.28309,0.773,-0.89771,-0.09418,0.4422,-0.63856,-0.21812,0.99647,-0.64211,-0.60208,0.15205,-0.3697,0.31165,0.35708,0.17142,-0.52086,0.16571,-0.3696,0.31397,-1.25171,0.04095,-0.31713,0.08047,0.06816,0.24728,-1.78069,-1.39847,0.95753,0.70479,0.31882,1.12347,0.6971,0.18175,0.71694,0.37576,-0.6541,0.50436,0.40347,0.23744,0.79293,-0.55273,-0.2686,-0.9366,-0.75733,-0.35408,0.44271,0.47496,-0.20097,0.15841,-0.53994,-1.02323,0.10792,0.11488,0.46435,0.50899,0.72556,0.63258,0.0047,-0.37699,-0.39099,0.23816,-0.40655,-0.07838,0.44682,0.0151,-0.0729,-0.26608,0.19452,-0.66623,0.03168,0.54714,-0.20513,0.08126,-0.00217,-0.53806,0.38674,0.3862,-0.14647,-0.02538,0.46138,-0.32213,0.44631,0.21025,0.13663,0.24619,0.44371,0.05802,-0.05522,-0.09434,-0.80502,-0.22475,-0.06838,0.28662,0.225,0.54055,-0.36434,0.0663,-0.09644,-0.03703,-0.42662,-0.42722,0.40925,-0.13424,0.05821,0.27378,-0.32188,-0.17949,-0.1371,0.01126,-0.37467,-0.13518,-0.07127,0.23373,0.31055,0.23796,0.63987,-0.0669,0.32924,0.19344,-0.00641,0.75723,0.00964,-0.8083,-0.25784,-0.35671,0.73683,0.6706,1.1687,0.6663,-0.55584,0.26644,-0.10744,0.66437,0.51779,-0.0737,0.78023,-0.02538,-0.84722,-0.52862,0.08264,-0.22612,-0.34861,0.60804,0.53855,0.0098,0.98842,-0.33875,-0.03281,0.33808,-0.18901,-0.33267,-0.30242,-0.2627,-0.28858,-0.36142,0.50722,-0.23971,0.32235,-0.00734,0.02726,-0.02368,0.12939,0.41165,-0.19989,0.36217,-0.31616,-0.46288,0.04787,0.09199,-0.76816,-0.25844,0.31255,0.08121,0.09462,0.15606,-0.66417,-0.57076,0.16648,0.30847,0.35365,-0.23674,-0.26006,0.4045,0.34952,-0.7484,0.43123,-0.45342,0.07803,0.22409,0.75264,-0.09676,0.16555,0.64886,-0.5612,-0.26539,0.43037,0.35445,-0.01754,-0.14931,0.74412,-0.43185,-0.60056,0.01825,-0.00535,-0.27755,-0.42451,-0.11306,0.59212,0.18404,-0.53434,-0.0485,-0.67411,-0.13352,0.32768,0.24144,-0.20896,-0.687,-0.51185,0.49299,0.66556,-0.00757,-0.75451,-0.87934,-0.09356,-0.38532,0.05988,-0.51687,-0.40291,0.01346,-0.62592,-0.17882,-0.12266,-0.6132,-0.28071,0.32549,-0.61478,0.13272,0.26471,0.16745,-0.35317,-0.44112,0.14006,0.04394,0.29854,0.06269,-0.40635,-0.48604,0.92524,0.00751,0.00211,-0.10416,-0.94781,0.31696,0.66606,-0.17221,-0.60135,-0.00122,-0.28472,0.39568,-0.72638,0.28404,-0.46962,0.06665,0.16022,0.35588,0.13402,0.06215,-0.63811,-0.71721,1.09856,0.49908,-0.51941,0.88955,-0.0151,-0.36442,0.76727,-0.06669,-0.77349,-0.03197,0.28306,-0.18779,0.4286,-0.16033,1.25437,-0.31394,0.07772,-0.06964,-0.40955,0.28906,-0.76685,-0.54272,-0.05556,0.08873,0.16736,0.24195,0.50266,-0.56034,-0.05481,1.26339,-0.11308,0.38383,1.53647,0.71087,0.12899,0.10145,-0.03968,-0.52507,0.44524,0.26374,0.82531,0.34009,0.37264,0.46975,-0.55771,0.1966,-0.18257,0.06493,0.23592,0.85736,-0.73299,-0.19777,-0.23412,0.53655,0.8292,-0.20548,-0.38672,0.45969,0.74816,-0.05033,0.18521,-0.55258,0.29732,-0.28063,0.02772,-0.37767,-0.29596,0.04485,-1.3537,-0.65849,-0.16158,-0.4162,0.36624,0.69728,0.00568,-0.51622,0.84649,1.07286,0.4313,0.26192,0.78283,0.56961,0.52743,0.06389,-0.33461,-0.78465,1.66098,-0.17611,0.88969,0.40763,-0.07689,-0.20493,-0.29063,0.32564,0.64819,0.51157,-0.09109,0.46609,-0.3602,-0.04256,0.61445,0.62583,-0.18395,0.24141,0.70425,0.22139,-0.09308,-0.43069,-0.22043,-0.1946,-0.62097,0.50268,0.1188,-0.10925,0.11885,0.25945,0.67989,0.09632,-0.63675,-0.31118,-0.14855,-0.20185,0.21133,-0.54362,-0.91142,0.5031,0.52229,-0.21979,0.36569,0.31173,0.13791,-0.0384,-0.67831,-0.16573,-0.1062,0.5615,0.09641,-0.08068,-0.1837,-0.33494,0.16438,-0.3202,-0.12167,-0.04427,-0.88728,-0.58217,0.02007,-1.26763,-0.00227,-0.03893,0.22551,-0.08116,-0.22961,0.23211,-0.78572,-0.65046,-0.31421,0.22836,-1.00093,0.59607,0.37985,-0.02288,0.35725,0.0375,0.41847,0.38026,-0.08453,-0.19799,0.39262,-0.19124,-0.3508,0.13787,-0.39789,-0.07113,0.43519,0.00415,0.94553,-0.11269,0.36434,-0.2377,-0.02123,-0.03683,0.15287,0.52131,0.11372,-0.24854,0.37529,-0.85445,1.16009,0.06307,0.28544,0.04077,-0.45425,-0.70926,0.17394,-0.00972,0.25233,-0.50817,-0.51336,-0.05152,1.07857,-0.53265,-0.36307,-0.12865,-0.387,0.61995,-0.96271,0.63063,-0.74049,-0.21146,0.05887,-0.51175,-0.30155,0.06776,-0.59698,-0.17974,0.19453,0.29768,-0.56338,-0.28904,0.43492,0.17676,0.19191,0.03772,0.37087,0.40532,-0.13018,0.25708,1.05537,-0.04356,0.92592,-0.21365,0.09098,-0.31565,0.10538,0.1679,-0.39315,0.75144,-0.19231,-0.4536,0.00163,-0.05128,0.20848,-0.13907,-0.44695,0.11272,0.06464,-0.03065,-0.26073,-0.16963,0.4831,0.1353,-0.64707,-0.19304,0.16235,-0.35783,-0.31482,-0.00933,-0.37827,-0.77644,-0.36043,0.19378,0.46179,-0.05306,-0.77104,-0.27054,0.00102,-0.70423,1.14469,0.32272,-0.05318,0.20464,0.40785,0.0233,-0.30641,-0.5581,-0.9395,-0.0553,-0.40887,0.49055,0.25788,0.3388,0.41967,-0.34565,0.1138,0.75564,-0.35175,-0.078,0.18326,0.02714,-0.5959,-0.05976,0.37027,-0.23059,0.4991,-0.54872,-0.82006,-0.11602,0.55868,0.99059,0.29589,-0.08452,1.16744,-0.51055,-0.50256,-0.07392,0.44081,-0.41533,0.33985,-0.17439,0.14142,0.47981,-0.4953,-0.17924,0.42689,-0.71623,0.40288,0.13906,0.27592,0.02724,1.11285,0.14137,0.37229,0.35938,-1.23284,0.00589,-0.09107,0.47371,-0.41757,0.18096,-0.21197,-1.02127,0.09393,-0.05351,-0.21433,-0.69591,-0.1057,-0.51618,-0.53424,0.60396,0.1636,-0.68383,-0.23,0.05663,-1.04849,-0.09001,-0.79172,-1.08642,0.8092,0.47852,0.07317,0.18625,0.4591,-0.07681,0.07439,1.41342,-0.89215,-0.67066,1.06527,1.09632,-0.31504,0.08224,0.31674,-0.42403,-0.72688,-0.05029,-0.0316,-0.18217,-0.64417,-0.05588,0.73821,0.1257,-0.04434,-0.28876,-1.46057,-0.24162,0.39993,0.15626,-0.50322,0.22502,-0.93152,0.45713,0.37173,-0.18245,-0.19365,0.25427,-0.01358,-0.1661,0.08714,0.23322,-0.08539,-0.0187,-1.03231,0.05359,0.12739,-0.1961,-0.63368,-0.48136,-0.45664,-0.37713,0.32244,0.42145,0.20491,-0.23706,-1.03271,-0.76219,0.46407,-0.03229,0.20571,0.03461,-0.45143,-0.05368,0.05546,-0.44769,-0.02118,0.05104,0.04164,0.14886,0.48403,-0.93217,0.73848,-0.27464,0.34503,-0.04972,0.93074,0.00064,0.27501,0.35266,0.01197,-0.31244,0.53095,0.74167,0.12315,0.17075,0.08312,0.27013,-0.14897,-0.11081,-0.30429,0.01616,0.31315,-0.12184,0.46389,0.43245,0.43641,0.13525,-0.65381,-0.11436,-0.1048,-0.14208,-0.62837,-0.52073,-0.32031,0.98357,-0.233,-0.49231,0.24879,-0.50671,1.75819,0.97978,0.59379,0.1319,-1.27014,0.36278,0.82804,-1.03336,0.15204,1.50894,-1.50887,0.07606,1.35631,-0.63019,-1.09704,1.01814,-1.1563,0.18899,0.12662,0.63978,-0.591,-0.47931,0.35795,-0.0659,-0.07459,0.24577,0.02821,0.90755,-0.32123,0.52722,0.28714,0.33153,-1.34985,-0.21036,0.56768,0.05436,0.33707,0.11111,0.56148,0.104,0.14718,-0.32479,0.01966,-0.98724,0.1215,0.44993,-0.59276,-0.22196,0.49832,-0.34939,-0.11197,-0.26167,-0.39858,0.03322,-0.32457,0.20782,-0.05197,-0.1277,0.15587,0.1291,-0.90195,0.00687,-0.0321,0.05131,0.28558,0.49583,0.83825,0.30693,-0.50596,-1.08588,1.12443,0.58738,0.47348,1.46687,-0.46436,-0.27217,0.07286,0.20293,0.39026,-0.57521,0.48689,0.45115,-1.0358,-0.14498,0.76274,-0.32129,-1.16597,0.08493,0.97859,0.76301,0.97179,-0.12276,0.13725,0.48486,0.1465,0.29859,-0.17036,0.03409,-0.61668,-0.24598,0.68003,-0.10132,0.63547,-0.06335,0.79861,-0.06488,-0.37572,-0.04748,-0.7079,0.44445,-0.6627,-0.42652,0.63249,0.33626,0.50486,-0.12527,-0.28468,-0.14994,0.14701,-0.14988,-0.1284,-0.22019,-0.41899,-0.5795,0.482,-0.31112,0.07236,-0.24039,0.56909,0.06124,-0.12624,0.16232,-0.01945,0.14925,-0.19303,-0.18659,0.16916,0.65533,-0.39084,-0.67549,0.06959,0.40699,0.05284,-0.07693,0.42265,-0.33972,-0.52071,0.42861,-0.02012,-0.02913,-0.17909,0.0121,0.55453,0.39348,0.17806,-0.12135,-0.30367,0.04512,0.22534,0.02783,-0.52562,0.01827,-0.79055,0.42361,0.35895,-0.05174,-0.45362,-0.05852,0.00357,-0.46532,0.47422,0.40715,-0.2916,-0.06758,-0.51891,0.1237,-0.42783,0.19242,-0.15228,-0.01001,-0.36931,-0.2604,0.24452,0.26895,0.40018,-0.00741,-0.09797,0.85002,-0.10786,-0.75346,0.16139,0.177,-1.09988,0.28007,-0.05303,-0.76362,0.99441,-0.38158,-1.44154,-0.00473,0.27375,-0.62392,0.29038,-0.14108,0.29175,-0.1811,-0.15905,-0.51589,-0.38826,0.12959,1.14572,0.0567,-0.36937,-0.02242,-0.0461,-0.44514,0.36256,-0.21087,0.077,0.40348,0.34278,-0.0874,0.75845,-0.12818,-0.50753,0.4303,-0.83651,0.30278,0.29853,0.68368,0.17193,0.27066],"hiddenBias":[0.12548,-0.44488,0.03405,0.30151,-0.04562,-0.06278,-0.27363,-0.0468,-0.58952,-0.09059,0.25564,-0.47847,0.38659,-0.23816,-0.32682,0.13942,-0.20997,-0.12737,0.5963,0.20563,0.10802,0.02672,0.06897,-0.40785],"hiddenOutput":[-0.72913,-2.82985,1.46836,0.05511,0.0584,-1.31759,2.53574,-0.45834,-0.28822,-0.0219,-0.42411,1.86832,-1.40523,1.02404,2.32638,-2.06583,-0.20598,0.15141,0.89245,-2.28858,2.69506,-0.72737,0.12337,-0.40932,-0.75849,1.23529,-1.20206,-0.09609,-0.68006,-1.55774,1.12882,-2.29684,0.98749,3.2504,-2.37484,2.60092,2.03741,-0.44825,-1.22945,3.36136,0.03671,-1.01923,0.01897,1.13036,0.92694,-1.37062,-2.5529,-0.71812,-0.33958,0.03553,2.34466,-0.02438,-1.83947,0.73817,-0.41746,1.59438,-1.51654,-1.46099,0.47928,0.52382,-0.91714,0.58156,2.5178,-1.69026,-0.24787,1.08453,-0.54626,-0.2402,-1.08464,-1.55531,-0.23928,2.4462,-0.08291,0.93068,-0.09135,-0.15667,0.00991,-1.59058,2.15462,-1.85558,0.75292,-0.06782,1.79628,-1.72464,0.18094,-0.01023,0.08944,-2.32421,0.46623,-0.17428,2.49225,0.40075,0.14336,-1.19613,0.87188,-1.03906,-3.99449,1.31725,-1.34063,0.53749,-0.37799,1.61811,-1.29327,-0.51181,1.1605,-0.64243,1.99144,1.65621,0.16141,1.1794,-1.14269,1.07127,-2.44482,-0.30117,3.62338,-1.39801,-0.20099,-0.11515,1.32608,-1.3878,2.44135,0.58898,-1.33377,0.35313,-0.49774,-0.84313,-1.29354,2.65287,-2.37744,-1.0074,1.24109,0.1058,-0.94457,1.82212,-0.37051,-1.01019,3.02424,0.00537,-1.79273,1.61925,0.42391,-1.52493,-0.30681,-0.6346,1.84095,-1.79048,0.91405,-1.42905,0.79125,-2.40819,0.81569,-0.40837,1.52579,0.89428,-0.50536,-0.09097,-1.0195,1.42268,-0.9936,-0.5253,-0.11257,0.43924,0.13843,0.8911,-0.70471,0.05364,0.76976,-0.5315,-3.99415,2.79475,-0.07244,0.94852,2.99988,-2.97817,-0.50903,0.87503,-2.51144,-0.0953,0.54108,2.04247,0.32834,0.13591,0.29595,-2.04788,1.7951,0.17531,-0.48545,0.84934,-0.38518,0.29829,-0.30335,-0.65471,-1.0453,-3.25146,2.27618,0.2943,0.24088,-1.43052,1.91276,-0.25488,0.89335,-2.07266,1.68022,0.59396,-0.33251,0.98911,-0.83594,1.31942,0.86151,-0.20474,-0.63482,-2.32644,1.77438,-2.5703,-0.26578,1.94091,2.16458,0.83235,1.61433,-0.86705,1.15113,1.48744,1.39406,-2.25403,-2.49431,0.53876,-1.74051,-1.69541,0.21034,0.33666,-0.54218,0.93387,-0.56638,0.78861,-0.35302,-0.92084,-0.18594,1.07899,-1.35308,0.99904,2.33391,0.00582,-1.95018,2.00963,2.54851,-3.88663,0.28312,-2.19474,0.68073,-0.53478,2.52264,-1.96002,-0.58379,0.91451,0.68183,-0.51228,0.06246,-1.41352,-1.26509,0.61125,-0.78379,1.90403,-0.82037,0.75486,1.11397,1.07822,1.84815,-1.19832,0.90055,0.14159,-2.38326,0.26267,-0.82526,0.52041,1.04298,-2.39144,-0.52194,0.52751,-0.93503,0.26022,-0.42003,0.20902,-1.23664,0.19393,0.61903,-0.35291,2.0315,-0.37697],"outputBias":[-0.13119,0.1046,0.06366,0.26977,-0.49993,0.2291,-0.34743,-0.27957,0.82471,0.50246,-0.32671,-0.40947],"version":1,"learned":0,"prototypes":[],"seedVersion":2};
@@ -88,18 +88,18 @@ function levelFromXp(xp){return Math.max(1,Math.floor(Math.sqrt(Math.max(0,xp)/8
 const DEFAULT_CONFIG = Object.freeze({
   schemaVersion:1,
   identity:{name:'Alquimago',subtitle:'Familiar arcano • memória local',greeting:'Olá! Sou seu familiar arcano.'},
-  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago padrão',type:'svg'}],selectedSkin:'padrao'},
+  appearance:{accent:'#b58aff',gold:'#f9d891',position:'bottom-right',skin:{type:'svg'},skins:[{id:'padrao',label:'Alquimago Orb 2D — animado',type:'svg'}],selectedSkin:'padrao'},
   language:{code:'pt-BR',file:''},
   proactive:{projectHover:true,delayMs:1000,cooldownMs:45000},
-  behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:true},
+  behavior:{enabled:true,mode:'equilibrado',minIntervalMs:120000,maxPerDay:4,toy:false},
   commands:{publishPhrase:'vai comprar pão'},
   knowledge:{file:''},
-  llm:{enabled:false,endpoint:'',consentRequired:true},
+  llm:{provider:'gemini',enabled:false,endpoint:'',consentRequired:true},
   features:{actions:true,pageAudit:true,routes:true,assistants:true,memoryTools:true,dragging:true,projectFiles:true,dialogue:true},
   memory:{namespace:'default',remoteSnapshot:'',mode:'local'},
   project:{files:[]},
   messages:{pet:'Um brilho de amizade arcana! ✧',stroke:'Que carinho agradável! ✧',play:'Prepare-se: poção de diversão!',brew:'Elixir mágico concluído! ⚗',explore:'Rota estudada pelo familiar. ✦',focus:'Concentração ativada. 🜁',rest:'Meditando por alguns instantes.',study:'Analisando a energia da página.'},
-  assistant:{projectContext:'',guidelines:[]}
+  assistant:{projectContext:'',guidelines:[],spotlights:[]}
 });
 const obj = x => x && typeof x==='object' && !Array.isArray(x) ? x : {};
 const txt = (x, fallback, limit=160) => typeof x==='string' && x.trim() ? x.trim().slice(0,limit) : fallback;
@@ -121,8 +121,13 @@ function normalizeConfig(input){
     src:typeof entry.src==='string'?entry.src.slice(0,500):'',
     shapeKeys:obj(entry.shapeKeys)
   })):[];
-  const validSkins=skins.length?skins:d.appearance.skins;
-  const selectedSkin=validSkins.some(x=>x.id===app.selectedSkin)?app.selectedSkin:validSkins[0].id;
+  // The built-in `padrao` is always the restored expressive robot, even
+  // when a previously published config still describes the old wizard sprite.
+  const retiredSkins=new Set(['wizard','mage','classic','maguinho','original']);
+  const validSkins=[{...d.appearance.skins[0]},...
+    skins.filter(x=>x.id!=='padrao'&&!retiredSkins.has(x.id))].slice(0,12);
+  const requestedSkin=retiredSkins.has(app.selectedSkin)?'padrao':app.selectedSkin;
+  const selectedSkin=validSkins.some(x=>x.id===requestedSkin)?requestedSkin:'padrao';
   return {
     schemaVersion:1,
     identity:{name:txt(id.name,d.identity.name,40),subtitle:txt(id.subtitle,d.identity.subtitle,95),greeting:txt(id.greeting,d.identity.greeting,170)},
@@ -141,11 +146,15 @@ function normalizeConfig(input){
     project:{files:Array.isArray(project.files)?[...new Set(project.files.filter(x=>typeof x==='string'&&x.length<512))].slice(0,12):[]},
     commands:{publishPhrase:txt(commands.publishPhrase,d.commands.publishPhrase,80)},
     knowledge:{file:typeof knowledge.file==='string'?knowledge.file.trim().slice(0,500):''},
-    llm:{enabled:llm.enabled===true,endpoint:typeof llm.endpoint==='string'?llm.endpoint.trim().slice(0,500):'',consentRequired:true},
+    llm:{provider:'gemini',enabled:llm.enabled===true,endpoint:typeof llm.endpoint==='string'?llm.endpoint.trim().slice(0,500):'',consentRequired:true},
     messages:Object.fromEntries(Object.entries(d.messages).map(([key,defaultValue])=>[key,txt(messages[key],defaultValue,170)])),
     assistant:{
       projectContext:typeof agent.projectContext==='string'?agent.projectContext.trim().slice(0,700):'',
-      guidelines:Array.isArray(agent.guidelines)?agent.guidelines.filter(x=>typeof x==='string'&&x.trim()).slice(0,12).map(x=>x.trim().slice(0,220)):[]
+      guidelines:Array.isArray(agent.guidelines)?agent.guidelines.filter(x=>typeof x==='string'&&x.trim()).slice(0,12).map(x=>x.trim().slice(0,220)):[],
+      spotlights:Array.isArray(agent.spotlights)?agent.spotlights.slice(0,12)
+        .filter(x=>x&&typeof x==='object'&&typeof x.title==='string'&&x.title.trim())
+        .map(x=>({title:txt(x.title,'',65),message:txt(x.message,'',200),
+          videoMessage:txt(x.videoMessage,'',200),hoverMessage:txt(x.hoverMessage,'',200)})):[]
     }
   };
 }
@@ -205,6 +214,162 @@ function parseBackup(text){
   return cleanMemory(result);
 }
 const exportBackup=value=>JSON.stringify(cleanMemory(value),null,2);
+
+/**
+ * Alquimago Vault (ALQ-V1)
+ * At-rest protection for device-local familiar data.
+ * AES-256-GCM is a standard cryptographic primitive, not a homemade cipher.
+ * Its non-extractable WebCrypto key is stored in IndexedDB; same-origin scripts
+ * can still request decryption. This is not server-side authorization.
+ */
+const VAULT_VERSION=1;
+const VAULT_DATABASE='alquimago-private-vault';
+const toText=new TextEncoder(),fromText=new TextDecoder();
+const namespaceName=value=>typeof value==='string'&&/^[a-zA-Z0-9_-]{1,48}$/.test(value)?value:'default';
+function vaultKeys(namespace='default'){
+ const ns=namespaceName(namespace);
+ const keys=['memory:v2','dialogue:v1','lessons:v1','teaching:v2','neural:v1','prefs:v1','cortex:v1']
+  .map(part=>'alquimago:'+part+':'+ns);
+ if(ns==='default')keys.push('alquimago:v1');
+ return keys;
+}
+function createIndexedDbVaultStore(indexedDBFactory=globalThis.indexedDB){
+ if(!indexedDBFactory)throw Error('IndexedDB não disponível.');
+ const dbPromise=new Promise((resolve,reject)=>{
+  const open=indexedDBFactory.open(VAULT_DATABASE,1);
+  open.onupgradeneeded=()=>{if(!open.result.objectStoreNames.contains('records'))open.result.createObjectStore('records');};
+  open.onerror=()=>reject(open.error||Error('Falha ao abrir cofre.'));
+  open.onsuccess=()=>resolve(open.result);
+ });
+ const call=(mode,action)=>dbPromise.then(db=>new Promise((resolve,reject)=>{
+  const transaction=db.transaction('records',mode),store=transaction.objectStore('records');
+  let result;
+  let failed=false;
+  transaction.oncomplete=()=>resolve(result);
+  transaction.onabort=()=>{if(!failed){failed=true;reject(transaction.error||Error('Transação do cofre abortada.'));}};
+  transaction.onerror=()=>{if(!failed){failed=true;reject(transaction.error||Error('Falha de armazenamento do cofre.'));}};
+  try{
+   const request=action(store);
+   request.onsuccess=()=>{result=request.result;};
+   request.onerror=()=>{if(!failed){failed=true;reject(request.error||Error('Falha ao acessar cofre.'));}};
+  }catch(error){failed=true;reject(error);try{transaction.abort();}catch{}}
+ }));
+ return {
+  get:key=>call('readonly',s=>s.get(key)),
+  put:(key,value)=>call('readwrite',s=>s.put(value,key))
+ };
+}
+const bytesToBase64=bytes=>{
+ let string='';
+ for(let i=0;i<bytes.length;i+=0x8000)string+=String.fromCharCode(...bytes.subarray(i,i+0x8000));
+ return btoa(string);
+};
+const base64ToBytes=value=>{
+ if(typeof value!=='string'||value.length>800000)throw Error('Registro de cofre inválido.');
+ return Uint8Array.from(atob(value),c=>c.charCodeAt(0));
+};
+const emptyStorage=()=>({
+ getItem:()=>null,setItem:()=>{throw Error('Cofre não disponível. Dados não salvos.');},
+ removeItem:()=>{throw Error('Cofre não disponível.');}
+});
+function unavailableVault(reason='Cofre seguro não disponível.'){
+ return {status:'unavailable',reason,storage:emptyStorage(),flush:async()=>false};
+}
+async function createAlquimagoVault({
+ namespace='default',legacyStorage=null,cryptoProvider=globalThis.crypto,
+ persistence=null,indexedDBFactory=globalThis.indexedDB,onStatus=()=>{}
+}={}){
+ const ns=namespaceName(namespace),allowed=new Set(vaultKeys(ns));
+ if(!cryptoProvider?.subtle||!cryptoProvider.getRandomValues)return unavailableVault('WebCrypto indisponível: a memória não será salva sem proteção.');
+ let dataStore;
+ try{dataStore=persistence||createIndexedDbVaultStore(indexedDBFactory);}
+ catch{return unavailableVault('IndexedDB indisponível: a memória não será salva sem proteção.');}
+ const aad=toText.encode('alquimago:ALQ-V1:'+ns),keyName='key:'+ns,recordName='data:'+ns;
+ const values=new Map();
+ let key,record,failed=null,running=null,dirty=false;
+ const notify=(status,reason='')=>{try{onStatus({status,reason});}catch{}};
+ const seal=async value=>{
+  const iv=cryptoProvider.getRandomValues(new Uint8Array(12));
+  const encrypted=await cryptoProvider.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad},key,toText.encode(value));
+  return {format:'ALQ-V1',version:VAULT_VERSION,iv:bytesToBase64(iv),payload:bytesToBase64(new Uint8Array(encrypted))};
+ };
+ const unseal=async payload=>{
+  if(!payload||payload.format!=='ALQ-V1'||payload.version!==1)throw Error('Formato de cofre incompatível.');
+  const iv=base64ToBytes(payload.iv),cipher=base64ToBytes(payload.payload);
+  if(iv.length!==12||cipher.length<16)throw Error('Cofre inválido.');
+  const plain=await cryptoProvider.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad},key,cipher);
+  const parsed=JSON.parse(fromText.decode(plain));
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Dados incompatíveis.');
+  return parsed;
+ };
+ const persist=async()=>{
+  if(running)return running;
+  running=(async()=>{
+   while(dirty){
+    dirty=false;
+    try{
+     const payload=JSON.stringify(Object.fromEntries(values));
+     if(payload.length>800000)throw Error('Memória excedeu o limite do cofre.');
+     await dataStore.put(recordName,await seal(payload));
+     notify('protected');
+    }catch(error){
+     failed=error;notify('error','Não foi possível gravar a memória criptografada.');
+     return false;
+    }
+   }
+   return true;
+  })().finally(()=>{running=null;});
+  return running;
+ };
+ const storage={
+  getItem:name=>allowed.has(name)?values.get(name)??null:null,
+  setItem:(name,value)=>{
+   if(!allowed.has(name)||typeof value!=='string')throw Error('Registro não permitido pelo cofre.');
+   if(failed)throw Error('Cofre bloqueado após falha de gravação.');
+   values.set(name,value);dirty=true;void persist();
+  },
+  removeItem:name=>{
+   if(!allowed.has(name))return;
+   if(failed)throw Error('Cofre bloqueado após falha de gravação.');
+   values.delete(name);dirty=true;void persist();
+  }
+ };
+ try{
+  record=await dataStore.get(recordName);
+  key=await dataStore.get(keyName);
+  if(record&&!key)throw Error('Chave ausente: os dados anteriores não podem ser recuperados.');
+  if(!key){
+   key=await cryptoProvider.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+   await dataStore.put(keyName,key);
+  }
+  if(key.extractable!==false||key.algorithm?.name!=='AES-GCM')throw Error('Chave incompatível.');
+  if(record){
+   const entries=await unseal(record);
+   for(const [name,value] of Object.entries(entries))
+    if(allowed.has(name)&&typeof value==='string')values.set(name,value);
+  }else{
+   for(const name of allowed){
+    let old=null;
+    try{old=legacyStorage?.getItem(name);}catch{}
+    if(typeof old==='string')values.set(name,old);
+   }
+   // Durable authenticated ciphertext must be stored before removing plaintext.
+   await dataStore.put(recordName,await seal(JSON.stringify(Object.fromEntries(values))));
+  }
+  for(const name of allowed){
+   // Old localStorage copies are not used after the vault is unlocked.
+   try{legacyStorage?.removeItem(name);}catch{}
+  }
+  notify('protected');
+  return {
+   status:'protected',reason:'AES-256-GCM · chave local não exportável',storage,
+   flush:async()=>{while(running)await running;if(dirty)return persist();return !failed;}
+  };
+ }catch(error){
+  notify('unavailable','Cofre não pôde ser aberto. Os dados existentes foram preservados.');
+  return unavailableVault('Cofre não pôde ser aberto; não foram feitas gravações em texto puro.');
+ }
+}
 
 // Read-only inspection of explicit public file URLs. Not a filesystem scanner.
 const EXT=/\.(?:txt|md|json|csv|html|css|js|mjs|ts|tsx)$/i;
@@ -345,6 +510,7 @@ function updateHeadStroke(previous,point){
 
 
 
+
 // Local, transparent conversation engine. Not a model of language or remote chat API.
 // It only reads text the visitor explicitly enters into the familiar's own chat.
 function safeChatText(input){
@@ -355,6 +521,51 @@ const plain=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toL
 function sensitiveChatText(text){
  return /(?:github_pat_|gh[pousr]_|\bsk-[a-zA-Z0-9]{12,}|\bAIza[a-zA-Z0-9_-]{20,}|\b(?:senha|password|token|secret|api\s*key)\b)/i.test(text);
 }
+/**
+ * Bounded conversational continuity for a small LOCAL familiar. It interprets
+ * the prior exchange without inventing the contents of an image or a project.
+ * It does not replace an LLM or turn unrelated sentences into project facts.
+ */
+function respondToContextFollowup(input,context={}){
+ const q=plain(safeChatText(input)).replace(/[!?.,;:]+$/g,'').trim();
+ if(!q||q.length>190)return null;
+ const history=Array.isArray(context.history)?context.history.slice(-8):[];
+ const previous=[...history].reverse().find(x=>x?.role==='familiar'&&typeof x.text==='string');
+ const prior=previous?.text||'';
+ if(!prior)return null;
+ const projects=Array.isArray(context.knowledge?.projects)?context.knowledge.projects:[];
+ const lastKnownProject=projects.find(p=>p.id===context.lastProjectId)||null;
+ // A previous project id can be stale after discussing the site in general.
+ const project=lastKnownProject&&plain(prior).includes(plain(lastKnownProject.title))?
+  lastKnownProject:null;
+ const refersBack=/\b(?:ela|ele|dela|dele|nela|nele|nessa|nesse|isso|aquilo|esse ponto|essa parte)\b/.test(q);
+ const acknowledgement=/^(?:(?:sim|ss|justo|verdade|vdd|faz sentido|concordo|realmente|entendi|exato|ok|ta|pois e|isso mesmo)\b)/.test(q);
+ const lacksInfo=/\b(?:pouc[ao]s?|falta|faltando|sem|vazia|vazio|melhorar|adicionar|colocar|deixei|nao coloquei|incomplet[ao]s?)\b.{0,65}\b(?:informac|descric|detalh|text|conteud)|\b(?:sem descric|sem muita informac|faltou a descric)\b/.test(q);
+ // Follow-up to an explicitly discussed work: cite only stored metadata.
+ if(project&&(refersBack||acknowledgement)&&lacksInfo){
+  const description=typeof project.description==='string'&&project.description.trim();
+  const missing=description?'já possui uma descrição cadastrada, mas ela pode ser aprofundada':'ainda não tem uma descrição cadastrada';
+  return {
+   intent:'context-followup',projectId:project.id,source:'public-portfolio',
+   reply:'Entendi, estamos falando de “'+project.title+'”. Pelos dados públicos, essa obra '+missing+'. Podemos acrescentar uma breve proposta da obra, as ferramentas usadas e um resumo das decisões criativas. Assim a apresentação ganha contexto sem inventar detalhes sobre a imagem.'
+  };
+ }
+ // A question explicitly asking about the prior answer, not a new unrelated fact.
+ if(/\b(?:por que voce acha isso|pq voce acha isso|porque voce acha isso|por que disse isso|o que voce quis dizer|me explica melhor isso)\b/.test(q)){
+  return {intent:'context-followup',
+   reply:'Estou me referindo à sugestão anterior: “'+prior.trim().replace(/[.!?]+$/,'').slice(0,230)+'”. Foi uma observação baseada nos dados disponíveis, não uma inspeção completa da arte. Posso detalhar um ponto específico se você indicar qual.'};
+ }
+ if(acknowledgement&&q.length<155&&(
+   /\b(?:justo|realmente|faz sentido|verdade|vdd|concordo|entendi|exato)\b/.test(q)||
+   (refersBack&&/\b(?:melhorar|informac|descric|detalh)\b/.test(q))
+  )){
+  const contextText=project?'“'+project.title+'”':'a sugestão anterior';
+  return {intent:'context-followup',...(project?{projectId:project.id}:{})
+   ,reply:'Faz sentido. Continuando sobre '+contextText+': posso ajudar a estruturar uma descrição curta, um resumo do processo e um destaque dos aspectos técnicos. O ideal é acrescentar somente informações que você confirmar.'};
+ }
+ return null;
+}
+
 function respondToChat(input,context={}){
  const raw=safeChatText(input),q=plain(raw);
  const name=context.name||'Alquimago',mood=context.mood||'curioso';
@@ -362,16 +573,61 @@ function respondToChat(input,context={}){
  const tips=Array.isArray(context.suggestions)?context.suggestions:[];
  if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
  if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
+ // Questions about the familiar's own progress are facts about its LOCAL
+ // state, never open-domain prompts for the Gemini mentor.
+ const asksLearning=/(?:\b(?:vc|voce|alquimago)\b.{0,38}\b(?:treinand[oa]|treinad[oa]|treinou|treina|aprendend[oa]|aprendid[oa]|aprendeu|aprende|estudand[oa]|estudad[oa]|estudou|evoluindo|evoluiu)\b|\b(?:seu|sua|teu|tua)\b.{0,22}\b(?:treinamento|aprendizado|aprendizagem|memoria|conhecimento|evolucao)\b|\b(?:como|quando|quanto|quantas|o que)\b.{0,26}\b(?:voce|vc)\b.{0,20}\b(?:aprende|treina|aprendeu|treinou))/i.test(q);
+ if(asksLearning){
+  const count=Math.max(0,Number(context.approvedLessons)||0);
+  const corrections=Math.max(0,Number(context.neuralCorrections)||0);
+  const lessonText=count===1?'1 lição aprovada':count+' lições aprovadas';
+  const latest=typeof context.lastApprovedTopic==='string'&&context.lastApprovedTopic.trim()
+   ?' Minha última lição aprovada foi: “'+context.lastApprovedTopic.trim().slice(0,110)+'”.':'';
+  const correctionText=corrections>0?' Também recebi '+corrections+' correções de classificação local.':'';
+  const introduction=count>0
+   ?'Heh, meu grimório anda crescendo! Guardo '+lessonText+' neste navegador.'+latest
+   :'Heh, ainda estou preparando minhas páginas! Não tenho lições aprovadas neste navegador.';
+  return {reply:introduction+correctionText+' Não me treino sozinho em segundo plano. Tento responder com meus conhecimentos antes de consultar o professor Gemini; o que ele ensinar só entra na minha memória depois que você revisar e aprovar. ✦',intent:'self-learning'};
+ }
+
+
+
+ // Help about THIS portfolio must reference the owner-facing Local Studio,
+ // never generic suggestions to open source files or edit CSS by hand.
+ // This branch is deliberately deterministic and does not consult Gemini.
+ const studioChange=/\b(onde|como|local|lugar|alterar|altero|alteracao|modificar|mudar|mudo|trocar|troco|editar|edito|configurar|personalizar|ajustar|ajusto)\b/.test(q);
+ const siteContext=/\b(site|portfolio|pagina|paleta|tema|cores|cor|visual|aparencia|studio)\b/.test(q);
+ if(siteContext&&(
+    /\b(paleta de cores|cores? (do|da|de|no|na|do meu|deste) (site|portfolio|pagina)|cor (principal|secundaria|do site|de fundo)|tema (do|do meu) (site|portfolio)|fundo do (site|portfolio))\b/.test(q)
+    ||studioChange&&/\b(cores?|paleta|tema|aparencia)\b/.test(q)
+  ))
+  return {reply:'Para mudar as cores deste portfólio, desbloqueie o Local Studio e abra Ferramentas → Identidade → Paleta de cores. Lá você pode escolher uma cor pelo seletor cromático, HEX ou RGB, experimentar presets e conferir o resultado em tempo real. Clique em “Salvar paleta” e depois em “Publicar” para aplicar aos visitantes. Não precisa editar nenhum arquivo!',intent:'studio-guide'};
+ if(studioChange&&/\b(projetos?|obras?)\b/.test(q)&&/\b(adicionar|adiciono|criar|crio|novo|editar|edito|alterar|mudar)\b/.test(q))
+  return {reply:'No Local Studio, abra Ferramentas → Projetos → Novo projeto para cadastrar uma obra. Para ajustar uma obra existente, abra a página dela e use “Editar obra atual”. Revise o resultado e clique em “Publicar” quando estiver pronto.',intent:'studio-guide'};
+ if(studioChange&&/\b(redes sociais|instagram|links? sociais)\b/.test(q))
+  return {reply:'Para atualizar suas redes, abra Local Studio → Ferramentas → Conteúdo → Redes sociais. Edite os links, confira a prévia e publique as mudanças quando estiver satisfeito.',intent:'studio-guide'};
+ if(studioChange&&/\b(skins?|mascote|modelo 3d|alquimago)\b/.test(q))
+  return {reply:'Para personalizar meu modelo, abra Local Studio → Ferramentas → Familiar → Ateliê do Alquimago. Lá você importa o GLB e ajusta expressões, câmera e animações. Depois revise e publique.',intent:'studio-guide'};
+
+
  // Handle a user's answer BEFORE unrelated neural intent classification.
  const followup=answerFollowUp(raw,context.pending,{suggestions:context.suggestions});
  if(followup)return followup;
  const calculation=calculateBasic(raw);
  if(calculation)return {reply:'O resultado é '+calculation.text+'. ✦',intent:'math'};
+ const contextual=respondToContextFollowup(raw,context);
+ if(contextual)return contextual;
  const grounded=answerFromKnowledge(raw,{knowledge:context.knowledge,lastProjectId:context.lastProjectId,focusTitle:context.focusTitle});
  if(grounded)return grounded;
+ // Teachings about a phrase now guide conversation and can also enrich
+ // Alquimago's own speech when an explicit achievement warrants it.
+ // This bridge cannot override facts, private text, commands or follow-ups.
+ const pragmatic=respondUsingApprovedMeanings(raw,context.teachingMemory,context);
+ if(pragmatic)return pragmatic;
+ if(/\b(o que (voce|vc) (pode|consegue|sabe) fazer|(voce|vc) (pode|consegue|sabe) fazer (o que|oque)|o que voce faz|quais (suas|as) (funcoes|habilidades|capacidades)|para que voce serve|como voce funciona)\b/.test(q))
+  return {reply:'Sou o Alquimago! Posso explicar recursos do portfólio, reconhecer projetos públicos, fazer contas simples, mostrar meu estado e reutilizar lições que você aprovou. Quando eu não souber algo, posso consultar o Gemini com sua permissão; a resposta só vira meu conhecimento após sua revisão. ✦',intent:'help'};
  if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
   return {reply:'Oi! Sou '+name+'. Conheço os projetos públicos deste site, posso resolver contas e sugerir melhorias. Diga o nome de uma obra ou faça uma pergunta.',intent:'greeting'};
- if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
+ if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|qual (e|eh) (o )?seu nome|como voce se chama|o que voce (e|eh)|vc (e|eh))\b/.test(q))
   return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
  if(context.neuralIntent==='status'||/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
   return {reply:'Meu grimório registra nível '+level+' e '+xp+' XP. Carinhos aumentam nossa afinidade, mas não geram XP infinito. Explorar uma rota ou realizar uma tarefa relevante ajuda na evolução.',intent:'status'};
@@ -392,7 +648,7 @@ function respondToChat(input,context={}){
   return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer que eu mostre como continuar com uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight',...(tip?{pending:{kind:'ai-handoff'}}:{})};
  }
  if(context.neuralIntent==='help'||/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
-  return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também sei responder sim ou não conforme a pergunta anterior e calcular contas como 2 + 2 ou 12 dividido por 4.',intent:'help'};
+  return {reply:'Posso orientar sobre obras públicas, recursos da página, contas, minhas emoções e memória aprovada. Se o assunto exigir conhecimento novo, consulto o Gemini somente quando habilitado e ofereço a resposta para revisão antes de aprender.',intent:'help'};
  if(context.neuralIntent==='mood'||/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
   return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
  if(context.neuralIntent==='thanks'||/\b(obrigado|valeu|agradeco)\b/.test(q))
@@ -427,6 +683,7 @@ function writeDialogue(storage,namespace='default',history=[]){
 // Trainable weights; never stores chat messages, credentials or raw text.
 const INTENTS=['greeting','identity','status','pet','play','brew','rest','navigate','insight','help','mood','thanks'];
 const INPUTS=96,HIDDEN=24,OUTPUTS=INTENTS.length;
+const NEURAL_PROTOTYPES_LIMIT=64;
 const samples={
  greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend','oi maguinho como vai','e aí tudo bem','salvee','ola alquimago','bom dia alquimago','boa noite mago','eae parceiro','saudacoes','opa tudo certo','e aí mago'],
  identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia','pra que voce serve','me conta quem voce e','me diz seu nome','voce tem cerebro','qual e sua funcao','o que voce consegue fazer','que tipo de familiar voce e','o que e alquimago'],
@@ -461,6 +718,13 @@ function neuralFeatures(text){
  for(let i=0;i<tokens.length-1;i++)features.push('p:'+tokens[i]+' '+tokens[i+1]);
  for(const feature of features)vec[hash(feature)%INPUTS]+=1;
  const norm=Math.hypot(...vec)||1;return vec.map(v=>v/norm);
+}
+// Curated vectors never change: calculate them once instead of re-hashing
+// hundreds of example phrases for every visitor message.
+let referenceVectorsCache=null;
+function referenceVectors(){
+ if(!referenceVectorsCache)referenceVectorsCache=Object.values(samples).flat().map(neuralFeatures);
+ return referenceVectorsCache;
 }
 function deterministic(index){return ((hash('arcane-seed-'+index)%20001)/10000-1)*.13;}
 function newNeuralModel(){
@@ -544,10 +808,12 @@ function neuralPredict(model,text){
  if(best&&similarityToTaught>=.90)return {intent:best,confidence:Math.min(.99,similarityToTaught),similarity:similarityToTaught,taught:true};
  // A softmax can be overconfident on unknown sentences. The nearest known
  // phrase provides an additional out-of-distribution similarity gate.
- const similarity=Math.max(0,...Object.values(samples).flat().map(sample=>{
-  const vector=neuralFeatures(sample);
-  return vector.reduce((sum,value,i)=>sum+value*result.x[i],0);
- }));
+ let similarity=0;
+ for(const vector of referenceVectors()){
+  let dot=0;
+  for(let i=0;i<INPUTS;i++)dot+=vector[i]*result.x[i];
+  if(dot>similarity)similarity=dot;
+ }
  return {intent:result.intent,confidence:result.confidence*similarity,similarity};
 }
 function teachNeural(model,text,intent){
@@ -562,7 +828,7 @@ function teachNeural(model,text,intent){
  const existing=profiles.findIndex(entry=>entry?.features?.every((n,i)=>Math.abs(n-features[i])<.00001));
  if(existing>=0)profiles.splice(existing,1);
  profiles.push({intent,features});
- model.prototypes=profiles.slice(-24);
+ model.prototypes=profiles.slice(-NEURAL_PROTOTYPES_LIMIT);
  model.learned=before+1;
  return true;
 }
@@ -571,7 +837,7 @@ function restoreNeuralModel(value){
  const arrays=[['inputHidden',INPUTS*HIDDEN],['hiddenBias',HIDDEN],['hiddenOutput',HIDDEN*OUTPUTS],['outputBias',OUTPUTS]];
  for(const [key,length] of arrays)
   if(!Array.isArray(value[key])||value[key].length!==length||!value[key].every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=5))return null;
- const prototypes=Array.isArray(value.prototypes)?value.prototypes.slice(-24).filter(entry=>
+ const prototypes=Array.isArray(value.prototypes)?value.prototypes.slice(-NEURAL_PROTOTYPES_LIMIT).filter(entry=>
    entry&&INTENTS.includes(entry.intent)&&Array.isArray(entry.features)&&entry.features.length===INPUTS&&
    entry.features.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1)
   ).map(entry=>({intent:entry.intent,features:[...entry.features]})):[];
@@ -611,7 +877,7 @@ function upgradeNeuralSeed(model){
 function readNeural(storage,namespace='default'){
  try{
   const raw=storage.getItem(neuralKey(namespace));
-  if(!raw||raw.length>180000)return null;
+  if(!raw||raw.length>200000)return null;
   return upgradeNeuralSeed(JSON.parse(raw));
  }catch{return null;}
 }
@@ -619,7 +885,9 @@ function writeNeural(storage,namespace,model){
  try{
   const valid=serializeNeuralModel(model);
   if(!valid)return false;
-  storage.setItem(neuralKey(namespace),JSON.stringify(valid));
+  const text=JSON.stringify(valid);
+  if(text.length>200000)return false;
+  storage.setItem(neuralKey(namespace),text);
   return true;
  }catch{return false;}
 }
@@ -741,6 +1009,40 @@ async function inspectCover(image,{pageUrl,scale=48}={}){
  }catch{return null;}
 }
 
+// Image selected by the user; all preparation is local until an explicit review click.
+function validateReviewImageFile(file){
+ if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type))
+  throw Error('Escolha uma imagem PNG, JPG ou WebP.');
+ if(!Number.isFinite(file.size)||file.size<=0||file.size>8*1024*1024)
+  throw Error('A imagem precisa ter até 8 MB.');
+ return true;
+}
+async function prepareReviewImage(file){
+ validateReviewImageFile(file);
+ if(typeof createImageBitmap!=='function'||typeof document==='undefined')
+  throw Error('Este navegador não permite preparar a imagem localmente.');
+ let bitmap;
+ try{
+  bitmap=await createImageBitmap(file);
+  if(!bitmap.width||!bitmap.height||bitmap.width>16000||bitmap.height>16000)
+   throw Error('As dimensões da imagem não são suportadas.');
+  const ratio=Math.min(1,1024/Math.max(bitmap.width,bitmap.height));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(bitmap.width*ratio));
+  canvas.height=Math.max(1,Math.round(bitmap.height*ratio));
+  const ctx=canvas.getContext('2d');
+  if(!ctx)throw Error('Não foi possível preparar a imagem.');
+  ctx.drawImage(bitmap,0,0,canvas.width,canvas.height);
+  for(const quality of [.82,.67,.50]){
+   const value=canvas.toDataURL('image/jpeg',quality);
+   const prefix='data:image/jpeg;base64,';
+   if(value.startsWith(prefix)&&value.length-prefix.length<=560000)
+    return {mimeType:'image/jpeg',data:value.slice(prefix.length)};
+  }
+  throw Error('Esta imagem é complexa demais para enviar com segurança.');
+ }finally{bitmap?.close?.();}
+}
+
 // Portuguese is the only built-in language. Other languages require a
 // site-owned same-origin JSON pack; no automatic translation or external API.
 const PT_BR={
@@ -791,9 +1093,13 @@ async function loadLanguage(path,{pageUrl,fetcher}={}){
 // Skin manifest: default SVG, a hosted image, or a custom GLB model rendered
 // by an OPTIONAL host adapter. No network libraries are loaded by Alquimago.
 const DEFAULT_SKIN={type:'svg',src:'',shapeKeys:{
- idle:'Idle',blink:'Blink',happy:'Happy',curious:'Curious',
+ breath:'Breath',idle:'Idle',blink:'Blink',happy:'Happy',curious:'Curious',
  talk:'Talk',sleep:'Sleep',pet:'Pet',surprised:'Surprised',
- focused:'Focused',sad:'Sad'
+ focused:'Focused',sad:'Sad',
+ tired:'Tired',yawn:'Yawn',angry:'Angry',confused:'Confused',
+ excited:'Excited',shy:'Shy',love:'Love',proud:'Proud',
+ thinking:'Thinking',worried:'Worried',laugh:'Laugh',
+ lookleft:'LookLeft',lookright:'LookRight',lookup:'LookUp',lookdown:'LookDown'
 }};
 function normalizeSkin(value){
  const v=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
@@ -816,6 +1122,303 @@ function safeSkinUrl(skin,pageUrl){
 }
 function skinExpression(mood){
  return ({feliz:'happy',animado:'happy',curioso:'curious',meditando:'sleep',sonolento:'sleep',concentrado:'focused',triste:'sad'})[mood]||'idle';
+}
+
+// Preserved original Alquimago Orb 2D. Restored from the previously shipped
+// public 0.9 bundle. All faces and animations stay local and dependency-free.
+const ROBOT_STYLES=`
+/* Alquimago Orb 2D: stateful SVG face animation, no image sheets or network. */
+.character:has(.alquimago-orb){width:154px!important;height:168px!important;padding:0!important;animation:levitate 4.2s ease-in-out infinite!important;filter:drop-shadow(0 6px 11px #110729ad)!important}
+.character:has(.alquimago-orb):hover{filter:drop-shadow(0 0 10px #ab72ef8a) drop-shadow(0 7px 11px #0b0523a0)!important}
+.character .alquimago-orb{width:154px!important;height:168px!important;overflow:visible;display:block}
+.character .orb-expression{opacity:0;transition:opacity .18s ease}
+.character .orb-expression-idle{opacity:1}
+.character[data-expression]:not([data-expression="idle"]) .orb-expression-idle{opacity:0}
+.character[data-expression="idle"] .orb-expression-idle,
+.character[data-expression="breath"] .orb-expression-breath,
+.character[data-expression="serene"] .orb-expression-serene,
+.character[data-expression="blink"] .orb-expression-blink,
+.character[data-expression="happy"] .orb-expression-happy,
+.character[data-expression="excited"] .orb-expression-excited,
+.character[data-expression="laugh"] .orb-expression-laugh,
+.character[data-expression="curious"] .orb-expression-curious,
+.character[data-expression="focused"] .orb-expression-focused,
+.character[data-expression="thinking"] .orb-expression-thinking,
+.character[data-expression="surprised"] .orb-expression-surprised,
+.character[data-expression="confused"] .orb-expression-confused,
+.character[data-expression="sad"] .orb-expression-sad,
+.character[data-expression="worried"] .orb-expression-worried,
+.character[data-expression="angry"] .orb-expression-angry,
+.character[data-expression="tired"] .orb-expression-tired,
+.character[data-expression="yawn"] .orb-expression-yawn,
+.character[data-expression="sleep"] .orb-expression-sleep,
+.character[data-expression="pet"] .orb-expression-pet,
+.character[data-expression="love"] .orb-expression-love,
+.character[data-expression="shy"] .orb-expression-shy,
+.character[data-expression="proud"] .orb-expression-proud,
+.character[data-expression="talk"] .orb-expression-talk,
+.character[data-expression="lookleft"] .orb-expression-lookleft,
+.character[data-expression="lookright"] .orb-expression-lookright,
+.character[data-expression="lookup"] .orb-expression-lookup,
+.character[data-expression="lookdown"] .orb-expression-lookdown{opacity:1}
+.character .orb-robot{transform-box:fill-box;transform-origin:center;animation:orb-breath var(--orb-breath-duration,4s) ease-in-out infinite}
+.character .orb-headset-left,.character .orb-headset-right{transform-box:fill-box;transform-origin:center}
+.character .orb-eye-glow{filter:drop-shadow(0 0 2px #83faffaf)}
+.character .orb-crest{transform-box:fill-box;transform-origin:center;animation:orb-twinkle 3s ease-in-out infinite}
+.character .orb-status-light{animation:orb-neon 3.8s ease-in-out infinite}
+.character .orb-audio-bars{animation:orb-neon 1.6s ease-in-out infinite}
+.character .orb-twinkle{animation:orb-twinkle 4s ease-in-out infinite}
+.character .orb-orbit{transform-box:fill-box;transform-origin:center;animation:orb-orbit-shimmer 8s ease-in-out infinite}
+.character .orb-shadow{animation:orb-shadow-soft 4.2s ease-in-out infinite}
+.character .orb-shadow-ring{animation:orb-neon 4.2s ease-in-out infinite}
+.character[data-expression="idle"] .orb-expression-idle .orb-eyes,
+.character[data-expression="curious"] .orb-expression-curious .orb-eyes{transform-box:fill-box;transform-origin:center;animation:orb-auto-blink 5.1s infinite}
+.character[data-expression="talk"] .orb-talk-mouth{transform-box:fill-box;transform-origin:center;animation:orb-talk .3s ease-in-out infinite alternate}
+.character[data-expression="laugh"] .orb-robot,
+.character[data-expression="excited"] .orb-robot{animation:orb-bounce 1s ease-in-out infinite}
+.character[data-expression="surprised"] .orb-robot{animation:orb-startle .55s ease-out 1}
+.character[data-expression="angry"] .orb-audio-bars{stroke:#ff8ce5!important;animation:orb-neon .6s ease-in-out infinite}
+.character[data-expression="sad"] .orb-robot{animation:orb-sigh 4.6s ease-in-out infinite}
+.character[data-expression="tired"] .orb-robot{animation:orb-sigh 5s ease-in-out infinite}
+.character[data-expression="sleep"] .orb-robot{animation:orb-breath 6s ease-in-out infinite}
+.character[data-expression="serene"] .orb-robot{animation:orb-breath 6s ease-in-out infinite}
+.character[data-expression="serene"] .orb-crest{animation:orb-twinkle 6s ease-in-out infinite}
+.character[data-music="playing"] .orb-audio-bars{animation:orb-neon 3.6s ease-in-out infinite}
+.character[data-music="playing"] .orb-orbit{animation:orb-orbit-shimmer 11s ease-in-out infinite}
+.character[data-music="playing"] .orb-shadow-ring{animation:orb-neon 7s ease-in-out infinite}
+.character[data-expression="pet"] .orb-crest,
+.character[data-expression="love"] .orb-crest{animation:orb-twinkle .64s ease-in-out infinite}
+.character[data-expression="curious"] .orb-robot,
+.character[data-expression="thinking"] .orb-robot{animation:orb-tilt 3.2s ease-in-out infinite}
+.character[data-expression="yawn"] .orb-robot{animation:orb-sigh 3s ease-in-out 1}
+@keyframes orb-breath{0%,100%{transform:scale(1)}50%{transform:scale(1.018)}}
+@keyframes orb-sigh{0%,100%{transform:translateY(2px) scale(.99)}50%{transform:translateY(5px) scale(.985)}}
+@keyframes orb-bounce{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-4px) scale(1.025)}}
+@keyframes orb-startle{0%,100%{transform:scale(1)}30%{transform:scale(.94) rotate(-4deg)}70%{transform:scale(1.06) rotate(3deg)}}
+@keyframes orb-tilt{0%,100%{transform:rotate(0)}50%{transform:rotate(-4deg)}}
+@keyframes orb-auto-blink{0%,43%,46%,100%{transform:scaleY(1)}44.5%{transform:scaleY(.07)}}
+@keyframes orb-talk{0%{transform:scaleY(.45)}100%{transform:scaleY(1.1)}}
+@keyframes orb-twinkle{0%,100%{opacity:.8;transform:scale(.96)}50%{opacity:1;transform:scale(1.1)}}
+@keyframes orb-neon{0%,100%{opacity:.64}50%{opacity:1}}
+@keyframes orb-orbit-shimmer{0%,100%{opacity:.55}50%{opacity:.86}}
+@keyframes orb-shadow-soft{0%,100%{opacity:.68;transform:scaleX(1)}50%{opacity:.38;transform:scaleX(.9)}}
+@media(max-width:460px){
+ .character:has(.alquimago-orb){width:118px!important;height:130px!important}
+ .character .alquimago-orb{width:118px!important;height:130px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .character:has(.alquimago-orb),.character .alquimago-orb *,
+ .character .orb-expression{animation:none!important;transition:none!important}
+}
+
+`;
+// Built-in 2D mascot: native SVG with independent robotic facial poses.
+const orbEye=(x,y=81,rx=5,ry=8)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+ry+'" fill="url(#orb-eye)" class="orb-eye-glow"/><ellipse cx="'+(x-1.5)+'" cy="'+(y-2.5)+'" rx="1.4" ry="2" fill="#f6ffff" opacity=".7"/>';
+const orbArc=(d,color='#8bf4ff',sw=3.7)=>'<path d="'+d+'" fill="none" stroke="'+color+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-linejoin="round"/>';
+const orbMouth=d=>orbArc(d,'#ffabf3',3.4);
+const orbFace=(eyes,mouth,extra='')=>'<g class="orb-eyes">'+eyes+'</g><g class="orb-mouth">'+mouth+'</g>'+extra;
+const orbSmile=orbMouth('M73 101q7 7 14 0');
+const orbClosed=orbArc('M51 82q9 7 18 0')+orbArc('M91 82q9 7 18 0');
+const orbNeutral=orbEye(60)+orbEye(100);
+const ORB_EXPRESSIONS={
+ idle:orbFace(orbNeutral,orbSmile),
+ breath:orbFace(orbClosed,orbSmile),
+ serene:orbFace(
+  orbArc('M50 82q10 8 20 0','#a9faff',3)+orbArc('M90 82q10 8 20 0','#a9faff',3),
+  orbMouth('M73 100q7 10 14 0'),
+  '<path d="M49 95q5 3 11 0m40 0q5 3 11 0" fill="none" stroke="#e79bf1" stroke-width="1.4" opacity=".75"/>'),
+ blink:orbFace(orbClosed,orbSmile),
+ happy:orbFace(orbArc('M51 82q9-11 18 0')+orbArc('M91 82q9-11 18 0'),
+  '<path d="M70 98q10 20 20 0Z" fill="#ffa0e7" stroke="#ffcefb" stroke-width="2"/>'),
+ excited:orbFace(orbEye(60,80,6,10)+orbEye(100,80,6,10),
+  '<path d="M69 98q11 20 22 0Z" fill="#ffa0e7" stroke="#ffcefb" stroke-width="2"/>'),
+ laugh:orbFace(orbArc('M50 82l9-9 9 9')+orbArc('M92 82l9-9 9 9'),
+  '<path d="M68 96q12 25 24 0Z" fill="#f78adf" stroke="#ffd5ff" stroke-width="2"/>'),
+ curious:orbFace(orbEye(60,81,5,9)+orbEye(100,81,5.5,10),
+  orbMouth('M76 104q4-3 8 0'),orbArc('M90 68q9-6 18 0','#9cfaff',2.3)),
+ focused:orbFace(orbEye(60,84,5,5)+orbEye(100,84,5,5),
+  orbMouth('M74 104h12'),orbArc('M50 72l19 8')+orbArc('M91 80l19-8')),
+ thinking:orbFace(orbEye(58,79)+orbEye(99,78),
+  orbMouth('M76 104q6-5 10-2'),orbArc('M89 66q9-5 19 0')),
+ surprised:orbFace(orbEye(60,81,7,11)+orbEye(100,81,7,11),
+  '<ellipse cx="80" cy="103" rx="5.5" ry="8" fill="#ffabea" stroke="#ffe1ff" stroke-width="2"/>'),
+ confused:orbFace(orbEye(60,81)+orbArc('M91 82q9-6 18 2'),
+  orbMouth('M73 104q5-5 9 0q3 2 5-1'),orbArc('M51 68q7-4 17 0')),
+ sad:orbFace(orbEye(60,87,5,6)+orbEye(100,87,5,6),
+  orbMouth('M73 107q7-9 14 0'),orbArc('M51 75q9-5 18 2')+orbArc('M91 77q9-6 18-2')),
+ worried:orbFace(orbEye(60,83)+orbEye(100,83),
+  orbMouth('M74 105q6-6 12 0'),orbArc('M51 70q9-9 18 0')+orbArc('M91 70q9-9 18 0')),
+ angry:orbFace(orbEye(60,86,5,5)+orbEye(100,86,5,5),
+  orbMouth('M73 107q7-5 14 0'),orbArc('M50 73l19 9')+orbArc('M91 82l19-9')),
+ tired:orbFace(orbArc('M52 84q8 2 16 0')+orbArc('M92 84q8 2 16 0'),
+  orbMouth('M75 104q5 2 10 0'),orbArc('M53 79h15','#a6bfd9',2)+orbArc('M92 79h15','#a6bfd9',2)),
+ yawn:orbFace(orbClosed,'<ellipse cx="80" cy="104" rx="7.5" ry="10.5" fill="#f4a1e3" stroke="#ffd2fc" stroke-width="2"/>'),
+ sleep:orbFace(orbClosed,'<ellipse cx="80" cy="105" rx="3" ry="4" fill="#ffb4ee"/>'),
+ pet:orbFace(orbClosed,orbMouth('M70 99q10 16 20 0'),
+  '<path d="M49 96l-4 4m11-3-4 4m56-5 4 4m-11-3 4 4" stroke="#ff92e3" stroke-width="2.6" stroke-linecap="round"/>'),
+ love:orbFace('<path d="M49 77q6-8 12-2q6-6 12 2q0 9-12 14q-12-5-12-14ZM88 77q6-8 12-2q6-6 12 2q0 9-12 14q-12-5-12-14Z" fill="#fa9ce9" stroke="#ffd0fa" stroke-width="1.5"/>',
+  orbMouth('M73 101q7 11 14 0')),
+ shy:orbFace(orbEye(59,84,4.5,6.5)+orbEye(99,84,4.5,6.5),
+  orbSmile,'<path d="M49 96l-4 4m10-3-3 4m54-5 4 4m-11-3 3 4" stroke="#ffa0e9" stroke-width="3" stroke-linecap="round"/>'),
+ proud:orbFace(orbArc('M52 82q8 4 16 0')+orbArc('M92 82q8 4 16 0'),orbMouth('M70 98q10 15 20 0')),
+ talk:orbFace(orbNeutral,'<ellipse class="orb-talk-mouth" cx="80" cy="103" rx="5.5" ry="8" fill="#ffa2e4" stroke="#ffdcfd" stroke-width="2"/>'),
+ lookleft:orbFace(orbEye(56)+orbEye(96),orbSmile),
+ lookright:orbFace(orbEye(64)+orbEye(104),orbSmile),
+ lookup:orbFace(orbEye(60,76)+orbEye(100,76),orbSmile),
+ lookdown:orbFace(orbEye(60,87)+orbEye(100,87),orbSmile)
+};
+const ROBOT_SVG=[
+ '<svg class="alquimago-orb" viewBox="0 0 160 176" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">',
+ '<defs>',
+ '<linearGradient id="orb-ceramic" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff0ff"/><stop offset=".27" stop-color="#efc3fc"/><stop offset=".57" stop-color="#bdadef"/><stop offset=".82" stop-color="#8ce2ed"/><stop offset="1" stop-color="#6079d1"/></linearGradient>',
+ '<linearGradient id="orb-ear" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff2ff"/><stop offset=".54" stop-color="#adbaef"/><stop offset="1" stop-color="#6550a4"/></linearGradient>',
+ '<linearGradient id="orb-visor" x1="0" y1="0" x2=".8" y2="1"><stop stop-color="#2c1746"/><stop offset=".63" stop-color="#13152e"/><stop offset="1" stop-color="#101c33"/></linearGradient>',
+ '<linearGradient id="orb-trim" x1="0" y1=".2" x2="1" y2=".8"><stop stop-color="#ff95f0"/><stop offset=".48" stop-color="#d3a2ff"/><stop offset=".85" stop-color="#80f6ff"/><stop offset="1" stop-color="#bbaeff"/></linearGradient>',
+ '<linearGradient id="orb-eye" x1="0" y1="0" x2=".9" y2="1"><stop stop-color="#f8ffff"/><stop offset=".52" stop-color="#a8ffff"/><stop offset="1" stop-color="#58dfff"/></linearGradient>',
+ '<radialGradient id="orb-aura"><stop stop-color="#a277f7" stop-opacity=".34"/><stop offset="1" stop-color="#9a4aff" stop-opacity="0"/></radialGradient>',
+ '<radialGradient id="orb-floor"><stop stop-color="#dc8aff" stop-opacity=".57"/><stop offset=".55" stop-color="#79d5ff" stop-opacity=".22"/><stop offset="1" stop-color="#67d1ff" stop-opacity="0"/></radialGradient>',
+ '<pattern id="orb-hex" width="14" height="12" patternUnits="userSpaceOnUse"><path d="M0 3L7 0L14 3V9L7 12L0 9Z" fill="none" stroke="#fff3ff" stroke-width=".7" opacity=".32"/></pattern>',
+ '</defs>',
+ '<ellipse cx="80" cy="80" rx="76" ry="76" fill="url(#orb-aura)"/>',
+ '<ellipse class="orb-shadow" cx="80" cy="162" rx="37" ry="8" fill="url(#orb-floor)"/>',
+ '<ellipse class="orb-shadow-ring" cx="80" cy="162" rx="34" ry="5" fill="none" stroke="#8ceaff" stroke-width="1.5" opacity=".62"/>',
+ '<g class="orb-orbit"><path d="M18 116C0 122 18 137 42 136M118 41C147 29 157 47 142 66" fill="none" stroke="url(#orb-trim)" stroke-width="3" stroke-linecap="round" opacity=".64"/></g>',
+ '<g class="orb-robot">',
+ '<circle cx="80" cy="77" r="57" fill="url(#orb-ceramic)" stroke="#c69af5" stroke-width="2.8"/>',
+ '<path d="M43 41q19-26 60-17" stroke="#fff8ff" stroke-width="8" fill="none" opacity=".66" stroke-linecap="round"/>',
+ '<path d="M88 23q39 3 45 49l-36-26Z" fill="url(#orb-hex)" opacity=".6"/>',
+ '<path d="M32 81q-2 36 39 54" fill="none" stroke="#ebffff" stroke-width="3" opacity=".64"/>',
+ '<path d="M128 85q-2 32-30 45" fill="none" stroke="#80e9ff" stroke-width="3" opacity=".7"/>',
+ '<g class="orb-headset-left"><ellipse cx="24" cy="82" rx="13" ry="25" fill="#342b6b" stroke="#a88af7" stroke-width="2"/><ellipse cx="23" cy="82" rx="10.5" ry="22.5" fill="url(#orb-ear)" stroke="#fff9ff" stroke-width="1.4"/><ellipse cx="20" cy="82" rx="5.8" ry="16.8" fill="#544097" stroke="#c4a8ff" stroke-width="1.4"/><path d="M20 71q-2 11 0 22" fill="none" stroke="#a7faff" stroke-width="2"/></g>',
+ '<g class="orb-headset-right"><ellipse cx="136" cy="82" rx="13" ry="25" fill="#342b6b" stroke="#a88af7" stroke-width="2"/><ellipse cx="137" cy="82" rx="10.5" ry="22.5" fill="url(#orb-ear)" stroke="#fff9ff" stroke-width="1.4"/><ellipse cx="140" cy="82" rx="6" ry="17" fill="#35265b" stroke="#8aeaff" stroke-width="1.5"/><path class="orb-audio-bars" d="M137 79v6m3-11v15m3-10v6" stroke="#91faff" stroke-width="1.5" stroke-linecap="round"/></g>',
+ '<path d="M38 58Q50 45 68 49L80 51L92 49Q113 47 123 63Q132 85 119 103Q108 117 80 119Q46 116 38 99Q28 80 38 58Z" fill="url(#orb-visor)" stroke="url(#orb-trim)" stroke-width="3.8"/>',
+ '<path d="M42 62q14-12 29-7" fill="none" stroke="#f4d0ff" stroke-width="2.5" opacity=".37" stroke-linecap="round"/>',
+ '<path d="M45 63l10-6m-6 11 9-5" stroke="#e0d5ff" stroke-width="3" opacity=".4" stroke-linecap="round"/>',
+ '<g class="orb-face-display">',
+ ...Object.entries(ORB_EXPRESSIONS).map(([name,face])=>'<g class="orb-expression orb-expression-'+name+'">'+face+'</g>'),
+ '</g>',
+ '<path class="orb-cheek" d="M47 96l-3 4m10-4-3 4m62-4 3 4m-10-4 3 4" fill="none" stroke="#ff97e4" stroke-width="2" stroke-linecap="round" opacity=".58"/>',
+ '<path d="M65 50l6-10h18l6 10-6 9H71Z" fill="#2c214a" stroke="#e7a8ff" stroke-width="2"/>',
+ '<path class="orb-crest" d="M80 43l2.4 5.2 5.4 2.3-5.4 2.4L80 58l-2.4-5.1-5.4-2.4 5.4-2.3Z" fill="#baffff" stroke="#fff" stroke-width=".6"/>',
+ '<path d="M47 118q33 24 66 0" stroke="#fff9ff" stroke-width="2" fill="none" opacity=".55"/>',
+ '<rect x="65" y="127" width="30" height="11" rx="5.5" fill="#24234e" stroke="#8bdefc" stroke-width="1.5"/>',
+ '<path class="orb-status-light" d="M72 131h16m-13 3h10" stroke="#8df4ff" stroke-width="1.8" stroke-linecap="round"/>',
+ '</g>',
+ '<path class="orb-twinkle" d="M12 54l2 5 5 2-5 2-2 5-2-5-5-2 5-2ZM146 36l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#dec1ff" opacity=".76"/>',
+ '</svg>'
+].join('');
+
+// Alquimago's local, expressive affect model — not consciousness or LLM training.
+// Events modify internal tendencies; the final face depends on accumulated
+// state, background music, inertia and gentle seeded variability.
+// No personal data, audio analysis, or Gemini/API calls.
+const clampAffect=x=>Math.max(0,Math.min(1,Number.isFinite(x)?x:0));
+const AFFECT_IMPULSES=Object.freeze({
+ pet:{warmth:.36,calm:.11,tension:-.13,energy:.06},
+ happy:{warmth:.26,curiosity:.07,calm:.04,tension:-.12},
+ sad:{warmth:-.44,energy:-.11,curiosity:-.07},
+ angry:{tension:.55,calm:-.26,warmth:-.11,curiosity:.12},
+ surprised:{tension:.39,energy:.25,calm:-.21,curiosity:.2},
+ curious:{curiosity:.24,energy:.05},
+ focused:{curiosity:.25,calm:.03,energy:-.025},
+ tired:{energy:-.43,curiosity:-.12,calm:.05},
+ talk:{warmth:.08,curiosity:.08},
+ project:{curiosity:.17,energy:.05},
+ return:{warmth:.2,curiosity:.1},
+ away:{warmth:-.4,energy:-.1},
+ music:{calm:.19,tension:-.12,energy:-.04}
+});
+function createAffect(seed=123456789,now=0){
+ const initial=(Number(seed)>>>0)||123456789;
+ return {
+  calm:.56,curiosity:.45,warmth:.50,tension:.12,energy:.57,
+  music:false,startle:0,expression:'idle',changedAt:now,lastAt:now,lastSignalAt:0,
+  seed:initial
+ };
+}
+function affectSignal(state,signal,now=state.lastAt){
+ const next={...state,lastAt:Math.max(state.lastAt,now)};
+ // Salient cues prompt an early *decision*, never a hardcoded face.
+ if(['pet','happy','sad','angry','surprised','music','return','away'].includes(signal))
+  next.changedAt=Math.min(next.changedAt,now-3700);
+ next.lastSignalAt=now;
+ const impulse=AFFECT_IMPULSES[signal]||{};
+ if(signal==='surprised')next.startle=clampAffect((next.startle||0)+.78);
+ for(const key of ['calm','curiosity','warmth','tension','energy']){
+  next[key]=clampAffect(next[key]+(impulse[key]||0));
+ }
+ return next;
+}
+function setAffectMusic(state,playing,now=state.lastAt){
+ if(Boolean(playing)===state.music)return state;
+ const next=affectSignal(state,playing?'music':'none',now);
+ next.music=Boolean(playing);
+ return next;
+}
+function nextRandom(state){
+ let x=state.seed>>>0;
+ x^=x<<13;x^=x>>>17;x^=x<<5;
+ state.seed=x>>>0||123456789;
+ return state.seed/4294967296;
+}
+function affectTick(state,now){
+ const elapsed=Math.max(0,Math.min(15000,now-state.lastAt));
+ const next={...state,lastAt:now};
+ next.startle=clampAffect((next.startle||0)*Math.exp(-elapsed/4000));
+ const target={
+  calm:next.music?.85:.55,
+  curiosity:.47,warmth:.52,
+  tension:next.music?.045:.12,
+  energy:next.music?.44:.57
+ };
+ const alpha=1-Math.exp(-elapsed/(next.music?12000:19500));
+ for(const key of Object.keys(target)){
+  next[key]=clampAffect(next[key]+(target[key]-next[key])*alpha);
+ }
+ // A short period of expression inertia prevents twitchy face switching.
+ if(now-next.changedAt<3500)return next;
+ const {calm,curiosity,warmth,tension,energy,music,startle}=next;
+ const scores={
+  idle:.28+calm*.5+(1-tension)*.11,
+  breath:.10+calm*.48+(music?.18:0),
+  serene:music?.48+calm*.62-tension*.43:.02+calm*.15,
+  happy:.08+warmth*.84+energy*.12-tension*.13,
+  curious:.04+curiosity*.9+energy*.07,
+  focused:.01+curiosity*.88+calm*.08,
+  thinking:.04+curiosity*.56+(1-energy)*.12,
+  pet:Math.max(0,warmth-.56)*3.7+calm*.09,
+  love:Math.max(0,warmth-.64)*2.25,
+  angry:Math.max(0,tension-.21)*1.24+(1-calm)*.12,
+  worried:Math.max(0,tension-.29)*.97+(1-warmth)*.17,
+  surprised:Math.max(0,tension-.27)*.55+Math.max(0,energy-.57)*.18+startle*.95,
+  sad:Math.max(0,.40-warmth)*2.35+(1-energy)*.08,
+  tired:Math.max(0,.42-energy)*2.9+(1-curiosity)*.05,
+  sleep:Math.max(0,.30-energy)*2.05+calm*.08
+ };
+ // Seeded microvariations produce variety while keeping tests deterministic.
+ const previous=next.expression;
+ let best=previous,bestScore=(scores[previous]??0)+(now-next.lastSignalAt<500?.025:.075);
+ for(const [name,value] of Object.entries(scores)){
+  const jitter=(nextRandom(next)-.5)*.085;
+  if(value+jitter>bestScore){
+   bestScore=value+jitter;best=name;
+  }
+ }
+ if(best!==previous){next.expression=best;next.changedAt=now;}
+ else if(now-next.changedAt>12500){
+  // Re-evaluate after a while without inventing dramatic reactions.
+  next.changedAt=now-1500;
+ }
+ return next;
+}
+function affectView(state){
+ return {
+  expression:state?.expression||'idle',
+  calm:Math.round(clampAffect(state?.calm??.5)*100),
+  tension:Math.round(clampAffect(state?.tension??.1)*100),
+  curiosity:Math.round(clampAffect(state?.curiosity??.5)*100),
+  music:state?.music===true
+ };
 }
 
 // Tiny contextual preference learner, independent of chat and user identity.
@@ -879,7 +1482,7 @@ function writePreferences(storage,namespace,preferences){
  * 512 leaky integrate-and-fire cells / 16,384 deterministic sparse synapses.
  * 32 opt-in, privacy-preserving sensor channels and 16 action motor neurons.
  * Plasticity: reward-modulated motor value learning, bounded contextual
- * conditioning and synaptic traces for 128 eligible connections.
+ * conditioning and synaptic traces for 512 eligible connections.
  *
  * This is a tiny decision network, not an LLM. It does not observe keystrokes,
  * other tabs, private window content or text typed into the host website.
@@ -957,7 +1560,7 @@ function cleanCortex(value){
    action:x.action,context:x.context,reward:x.reward,
    at:bClamp(x.at,0,1e13)
   }));
- for(const [i,v] of Object.entries(bObject(d.synapses)).slice(-128)){
+ for(const [i,v] of Object.entries(bObject(d.synapses)).slice(-512)){
   const key=Number(i);
   if(Number.isInteger(key)&&key>=0&&key<CORTEX_SYNAPSES&&Number.isFinite(v))
    state.synapses[key]=bClamp(v,-.45,.45);
@@ -1012,17 +1615,23 @@ function createCortexRuntime(state){
  }
  return {state:saved,pre,post,weights,
   voltage:new Float32Array(CORTEX_CELLS),spikes:new Uint8Array(CORTEX_CELLS),
-  recentMotors:new Float32Array(CORTEX_MOTORS),lastContext:'home'};
+  recentMotors:new Float32Array(CORTEX_MOTORS),
+  eligibility:new Float32Array(CORTEX_SYNAPSES),lastContext:'home'};
 }
 /** Six short LIF iterations: integrates, leaks, fires and records motor spikes. */
 function pulseCortex(engine,senses){
  const signal=Array.isArray(senses)&&senses.length===CORTEX_SENSORS?senses:Array(CORTEX_SENSORS).fill(0);
- const {pre,post,weights,voltage,spikes,recentMotors}=engine;
+ const {pre,post,weights,voltage,spikes,recentMotors,eligibility}=engine;
  recentMotors.fill(0);
+ eligibility.fill(0);
  for(let tick=0;tick<6;tick++){
   const incoming=new Float32Array(CORTEX_CELLS);
-  for(let i=0;i<CORTEX_SYNAPSES;i++)if(spikes[pre[i]])
+  for(let i=0;i<CORTEX_SYNAPSES;i++)if(spikes[pre[i]]){
    incoming[post[i]]+=weights[i];
+   // Track pathways that actually carried impulses toward motor cells.
+   // Feedback can adapt these paths, never arbitrary inactive synapses.
+   if(post[i]>=CORTEX_CELLS-CORTEX_MOTORS)eligibility[i]++;
+  }
   for(let n=0;n<CORTEX_CELLS;n++){
    // Deterministic background fluctuations; sensor evidence receives stronger input.
    const sensor=n<CORTEX_SENSORS?(.30+signal[n]*1.25):0;
@@ -1069,7 +1678,11 @@ function tickCortex(engine,info={},now=Date.now()){
   state.autonomousCount=0;state.lastActiveDay=day;
  }
  const sensory=behaviorSense(info,info.brain||state);
- const motorSignals=pulseCortex(engine,sensory);
+ // The background brain does not consume neural cycles in hidden, paused
+ // or busy views. It resumes with fresh activity traces on the next pulse.
+ const networkActive=info.enabled===true&&!info.hidden&&!info.userBusy&&!info.panelOpen;
+ const motorSignals=networkActive?pulseCortex(engine,sensory):Array(CORTEX_MOTORS).fill(0);
+ if(!networkActive)engine.eligibility.fill(0);
  state.stimulation=bClamp(state.stimulation+(sensory[8]+sensory[9]+sensory[10]?2:-.25));
  state.curiosity=bClamp(state.curiosity+(sensory[9]?2:-.08));
  state.energy=bClamp(state.energy+(info.working?-.35:.15));
@@ -1110,26 +1723,30 @@ function rewardCortex(engine,action,context,reward,now=Date.now()){
  s.episodes.push({action,context:bucket,reward:r>0?1:r<0?-1:0,at:now});
  s.episodes=s.episodes.slice(-32);
  s.trust=bClamp(s.trust+r*1.5);
- // Only recently active, eligible synapses are adjusted. Persist a sparse,
- // bounded set instead of leaking the whole 16K connection graph to GitHub.
+ // Only eligible synapses that fired during the most recent pulse are adjusted.
+ // A sparse, bounded trace survives browser restarts; no raw conversation is saved.
  if(r!==0){
   let written=0;
-  for(let i=0;i<engine.pre.length&&written<128;i++){
-   const pre=engine.pre[i],post=engine.post[i];
-   if(post!==CORTEX_CELLS-CORTEX_MOTORS+index||!engine.spikes[pre])continue;
-   const old=s.synapses[i]||0,delta=bClamp(old+r*.012,-.45,.45);
-   s.synapses[i]=delta;engine.weights[i]=bClamp(engine.weights[i]+r*.012,-2,2);
+  for(let i=0;i<engine.pre.length&&written<512;i++){
+   if(engine.post[i]!==CORTEX_CELLS-CORTEX_MOTORS+index)continue;
+   const pulses=engine.eligibility?.[i]||0;
+   if(pulses<=0)continue;
+   const old=s.synapses[i]||0;
+   const delta=bClamp(old+r*.012*Math.min(6,pulses)/6,-.45,.45);
+   s.synapses[i]=delta;
+   engine.weights[i]=bClamp(engine.weights[i]+delta-old,-2,2);
    written++;
   }
   const keys=Object.keys(s.synapses);
-  if(keys.length>128){for(const key of keys.slice(0,keys.length-128))delete s.synapses[key];}
+  if(keys.length>512){for(const key of keys.slice(0,keys.length-512))delete s.synapses[key];}
  }
  return s;
 }
 function cortexSummary(state){
  const s=cleanCortex(state);
  return {neurons:CORTEX_CELLS,synapses:CORTEX_SYNAPSES,sensors:CORTEX_SENSORS,
-  motors:CORTEX_MOTORS,learnedEpisodes:s.episodes.length,feedback:s.feedbackCount,
+  motors:CORTEX_MOTORS,plasticSynapses:Object.keys(s.synapses).length,
+  learnedEpisodes:s.episodes.length,feedback:s.feedbackCount,
   preferred:CORTEX_ACTIONS[s.rewardBias.indexOf(Math.max(...s.rewardBias))]};
 }
 
@@ -1196,6 +1813,7 @@ function normalizeCommand(text){
  if(typeof text!=='string')return '';
  return text.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLocaleLowerCase('pt-BR')
+  .trim()
   .replace(/[.!?,;:]+$/g,'')
   .trim().replace(/\s+/g,' ').slice(0,100);
 }
@@ -1415,6 +2033,16 @@ function relevance(text,project){
 }
 function chooseProject(text,knowledge,lastId='',focusTitle=''){
  const records=knowledge.projects||[];
+ const q=knowledgeCanon(text);
+ // Broad site feedback is not automatically criticism of the last project.
+ // An explicit project title or pronoun is required to reuse its context.
+ const broadlyAboutSite=/\b(?:site|portfolio|pagina|galeria)\b/.test(q)&&
+  !/\b(?:dela|dele|nela|nele|essa obra|esse projeto|dessa obra)\b/.test(q);
+ const namesAProject=records.some(project=>{
+  const title=knowledgeCanon(project.title);
+  return title.length>=4&&q.includes(title);
+ });
+ if(broadlyAboutSite&&!namesAProject)return null;
  const results=records.map(project=>({project,score:relevance(text,project)})).sort((a,b)=>b.score-a.score);
  if(results[0]?.score>=2.2)return results[0].project;
  if(PRONOUN.test(knowledgeCanon(text))||TOOLS.test(knowledgeCanon(text))||FEEDBACK.test(knowledgeCanon(text))){
@@ -1494,7 +2122,16 @@ function validateModelEndpoint(value,{pageUrl}={}){
   return u.href;
  }catch{return null;}
 }
-function prepareModelConversation(prompt,history=[],project=null){
+function validateInlineImage(image){
+ if(!image||typeof image!=='object'||
+  !['image/jpeg','image/png','image/webp'].includes(image.mimeType)||
+  typeof image.data!=='string'||image.data.length>560000||
+  image.data.length<12||image.data.length%4!==0||
+  !/^[A-Za-z0-9+/]+={0,2}$/.test(image.data))
+  throw Error('A imagem não pôde ser preparada para análise.');
+ return {mimeType:image.mimeType,data:image.data};
+}
+function prepareModelConversation(prompt,history=[],project=null,files=[],image=null){
  const clean=x=>typeof x==='string'?x.replace(/[\u0000-\u001f\u007f]/g,' ').trim():'';
  const question=clean(prompt).slice(0,650);
  if(!question)return null;
@@ -1507,12 +2144,27 @@ function prepareModelConversation(prompt,history=[],project=null){
   year:clean(project.year).slice(0,8),
   tools:Array.isArray(project.tools)?project.tools.slice(0,12).map(x=>clean(x).slice(0,55)):[]
  }:null;
- return {message:question,history:safeHistory,project:context,locale:'pt-BR'};
+ const reviewedFiles=Array.isArray(files)?files.slice(0,4).filter(item=>
+  item&&typeof item.file==='string'&&Array.isArray(item.exports)&&Array.isArray(item.imports)
+ ).map(item=>({
+  file:clean(item.file).slice(0,160),
+  bytes:Number.isFinite(item.bytes)?Math.max(0,Math.min(1000000,item.bytes)):0,
+  description:clean(item.description).slice(0,190),
+  imports:item.imports.slice(0,12).map(i=>clean(i).slice(0,95)),
+  exports:item.exports.slice(0,16).map(i=>clean(i).slice(0,95))
+ })):[];
+ return {
+  message:question,history:safeHistory,project:context,files:reviewedFiles,locale:'pt-BR',
+  mode:image?'image-feedback':'mentor',
+  task:image?'give_visual_art_feedback':'explain_unknown_question_for_local_familiar',
+  ...(image?{image:validateInlineImage(image)}:{}),
+  teachingGuidance:image?'Analise somente o que está visível. Dê feedback construtivo sobre composição, iluminação, formas e cor; não suponha topologia ou detalhes ocultos. Não grave a imagem em memória.':'Explique os fatos com clareza e indique incertezas. Esta explicação será revisada pelo usuário antes de virar memória local; não execute ações.'
+ };
 }
-async function askLanguageModel({endpoint,prompt,history=[],project,fetcher,signal,pageUrl}){
+async function askLanguageModel({endpoint,prompt,history=[],project,files=[],image=null,fetcher,signal,pageUrl}){
  const url=validateModelEndpoint(endpoint,{pageUrl});
  if(!url)throw Error('A conexão com a IA não está configurada em um endpoint seguro.');
- const body=prepareModelConversation(prompt,history,project);
+ const body=prepareModelConversation(prompt,history,project,files,image);
  if(!body)throw Error('Escreva uma pergunta para a IA.');
  const impl=fetcher||globalThis.fetch;
  if(typeof impl!=='function')throw Error('Conexão de rede indisponível.');
@@ -1528,10 +2180,428 @@ async function askLanguageModel({endpoint,prompt,history=[],project,fetcher,sign
   throw Error('O serviço de IA está indisponível. O modo local continua funcionando.');
  }
  const data=await response.json();
- const text=typeof data.reply==='string'?data.reply.trim().slice(0,2600):'';
- if(!text)throw Error('O modelo não retornou uma resposta utilizável.');
- return {reply:text,engine:'generative',model:typeof data.model==='string'?data.model.slice(0,80):'modelo configurado'};
+ // Structured mentor lessons are preferred; legacy {reply} remains compatible.
+ // Neither response is ever persisted without human review.
+ const lesson=data?.lesson&&typeof data.lesson==='object'?data.lesson:null;
+ const text=typeof lesson?.explanation==='string'?lesson.explanation.trim().slice(0,2600):
+  typeof data.reply==='string'?data.reply.trim().slice(0,2600):'';
+ if(!text)throw Error('O professor não retornou uma explicação utilizável.');
+ return {reply:text,engine:'mentor',model:typeof data.model==='string'?data.model.slice(0,80):'modelo configurado'};
 }
+
+/**
+ * Alquimago: approved offline knowledge lessons.
+ *
+ * No remote model calls. The user teaches facts by explicitly reviewing each
+ * question-answer pair; the familiar never adds LLM output automatically.
+ * Lessons stay in localStorage, isolated by site origin and namespace. This
+ * deliberately DOES NOT enter a public GitHub publication or a snapshot.
+ */
+const lObj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
+const LESSONS_LIMIT=128;
+const LESSONS_STORAGE_MAX=180000;
+const canonicalLesson=x=>String(x||'').normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ')
+ .replace(/\s+/g,' ').trim()
+ .replace(/\b(?:vc|vcs|voce|voces|cê)\b/g,'voce')
+ .replace(/\b(?:oq|oque)\b/g,'o que')
+ .replace(/\b(?:pq|porq|porque)\b/g,'por que')
+ .replace(/\b(?:pra|pro)\b/g,'para')
+ .replace(/\b(?:ta|tá)\b/g,'esta')
+ .replace(/\b(?:eh)\b/g,'e')
+ .replace(/\s+/g,' ').trim();
+const lSensitive=x=>/(?:github_pat_|gh[pousr]_|AIza[a-zA-Z0-9_-]{20,}|\bsk-[A-Za-z0-9_-]{12,}|\b(?:senha|password|secret|token|api[\s_-]*key|chave privada|credential)\b)/i.test(String(x||''));
+const lClean=(x,max)=>typeof x==='string'?x.trim().replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,max):'';
+function validateLesson(question,answer,source='manual'){
+ const q=lClean(question,160),a=lClean(answer,800),s=lClean(source,120);
+ if(q.length<4||a.length<5||lSensitive(q)||lSensitive(a)||lSensitive(s))return null;
+ const canonical=canonicalLesson(q);
+ if(canonical.length<3)return null;
+ return {question:q,answer:a,source:s||'manual',key:canonical};
+}
+function normalizeLessons(value){
+ const obj=lObj(value),entries=Array.isArray(obj.lessons)?obj.lessons:[];
+ const out=[],seen=new Set();
+ for(const raw of entries.slice(-LESSONS_LIMIT)){
+  const v=lObj(raw);
+  if(v.approved!==true)continue;
+  const candidate=validateLesson(v.question,v.answer,v.source);
+  if(!candidate||seen.has(candidate.key))continue;
+  seen.add(candidate.key);out.push({...candidate,approved:true});
+ }
+ return {schema:1,lessons:out};
+}
+function approveLesson(library,question,answer,source='manual'){
+ const lesson=validateLesson(question,answer,source);
+ if(!lesson)return {ok:false,library:normalizeLessons(library),reason:'Revise a pergunta e a resposta. Não insira senhas, tokens nem dados privados.'};
+ const current=normalizeLessons(library);
+ const filtered=current.lessons.filter(l=>l.key!==lesson.key);
+ return {ok:true,reason:'Conhecimento aprovado e salvo neste dispositivo.',
+  library:{schema:1,lessons:[...filtered,{...lesson,approved:true}].slice(-LESSONS_LIMIT)}};
+}
+function recallLesson(input,library){
+ const query=canonicalLesson(input),items=normalizeLessons(library).lessons;
+ if(!query||!items.length)return null;
+ const exact=items.find(item=>item.key===query);
+ if(exact)return {reply:exact.answer,intent:'approved-lesson',source:exact.source};
+ // Conservative fuzzy matching: spelling, abbreviations and small rephrasings.
+ // Reject short/ambiguous inputs and ties to avoid confidently wrong answers.
+ const stop=new Set(['o','a','os','as','um','uma','de','do','da','dos','das','em','no','na','para','por','que','e','eu','me','meu','minha','voce','pode','poderia','favor','me','dizer']);
+ const words=x=>x.split(' ').filter(t=>t.length>2&&!stop.has(t));
+ const distance=(a,b)=>{
+  if(Math.abs(a.length-b.length)>2)return 3;
+  let prev=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+   const next=[i];
+   for(let j=1;j<=b.length;j++)next[j]=Math.min(next[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+   prev=next;
+  }
+  return prev[b.length];
+ };
+ const similar=(a,b)=>a===b||(a.length>=5&&b.length>=5&&distance(a,b)<=1);
+ const queryTerms=words(query);
+ if(queryTerms.length<2)return null;
+ const ranked=[];
+ for(const item of items){
+  const terms=words(item.key);
+  if(terms.length<2)continue;
+  const matched=new Set();
+  let count=0;
+  for(const term of queryTerms){
+   const index=terms.findIndex((other,i)=>!matched.has(i)&&similar(term,other));
+   if(index>=0){matched.add(index);count++;}
+  }
+  const precision=count/queryTerms.length,recall=count/terms.length;
+  const score=2*precision*recall/(precision+recall||1);
+  if(score>=.83&&precision>=.8&&recall>=.8)ranked.push({item,score});
+ }
+ ranked.sort((a,b)=>b.score-a.score);
+ if(!ranked.length||(ranked[1]&&ranked[0].score-ranked[1].score<.08))return null;
+ return {reply:ranked[0].item.answer,intent:'approved-lesson',source:ranked[0].item.source};
+}
+/**
+ * Reuse a proven previous answer only for explicit short repeat requests.
+ * It requires the immediately preceding familiar reply to match an approved
+ * lesson; unrelated or stale project context cannot be pulled in.
+ */
+function recallLessonFollowup(input,history,library){
+ const q=canonicalLesson(input);
+ if(!/^(?:repete|repita|pode repetir|pode repetir a resposta|qual foi sua resposta|o que voce me respondeu|o que voce disse antes|lembra o que voce disse)$/.test(q))return null;
+ const recent=Array.isArray(history)?history.slice(-8):[];
+ const prior=recent[recent.length-1],previous=recent[recent.length-2];
+ if(prior?.role!=='familiar'||previous?.role!=='user')return null;
+ const approved=recallLesson(previous.text,library);
+ if(!approved||prior.text!==approved.reply)return null;
+ return {reply:'Claro. Repetindo a lição que você aprovou: '+approved.reply,
+  intent:'approved-lesson',source:approved.source};
+}
+
+const lessonsKey=ns=>'alquimago:lessons:v1:'+(/^[a-zA-Z0-9_-]{1,48}$/.test(ns)?ns:'default');
+function readLessons(storage,namespace='default'){
+ try{
+  const raw=storage?.getItem(lessonsKey(namespace));
+  if(!raw||raw.length>LESSONS_STORAGE_MAX)return normalizeLessons(null);
+  return normalizeLessons(JSON.parse(raw));
+ }catch{return normalizeLessons(null);}
+}
+function writeLessons(storage,namespace,library){
+ try{
+  if(!storage)return false;
+  const raw=JSON.stringify(normalizeLessons(library));
+  if(raw.length>LESSONS_STORAGE_MAX)return false;
+  storage.setItem(lessonsKey(namespace),raw);return true;
+ }catch{return false;}
+}
+function summarizeApprovedFiles(records){
+ // This is a source inventory, not claims about semantics or execution.
+ const items=Array.isArray(records)?records.slice(0,20):[];
+ return items.filter(f=>f?.status==='read'&&typeof f.file==='string').map(f=>{
+  const excerpt=typeof f.excerpt==='string'?f.excerpt.slice(0,5000):'';
+  const exports=[...excerpt.matchAll(/\bexport\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|type|interface)\s+([A-Za-z_$][\w$]*)/g)]
+   .map(m=>m[1]).slice(0,16);
+  const imports=[...excerpt.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
+   .map(m=>m[1]).slice(0,12);
+  return {file:lClean(f.file,180),exports,imports,bytes:Number(f.bytes)||0,
+   description:'Resumo estrutural (nomes de exports e imports). A finalidade do código deve ser confirmada pelo responsável.'};
+ });
+}
+
+/** Multi-label teaching vocabulary for Alquimago 2.0.
+ * Intent, topic and tone are separate axes; multiple intents are valid.
+ * This module is additive and does not change legacy neural weights.
+ */
+const TEACHING_INTENTS = Object.freeze({
+  question: 'Pergunta',
+  answer: 'Resposta',
+  correction: 'Correção',
+  reprimand: 'Bronca / desaprovação',
+  praise: 'Elogio / aprovação',
+  instruction: 'Instrução',
+  request: 'Pedido',
+  explanation: 'Explicação',
+  teaching: 'Ensino de conhecimento',
+  feedback: 'Feedback',
+  disagreement: 'Discordância',
+  agreement: 'Concordância',
+  greeting: 'Saudação',
+  farewell: 'Despedida',
+  thanks: 'Agradecimento',
+  apology: 'Pedido de desculpas',
+  joke: 'Brincadeira / humor',
+  emotion: 'Expressão emocional',
+  command: 'Comando',
+  clarification: 'Pedido de esclarecimento',
+  observation: 'Observação',
+  other: 'Outro / não listado'
+});
+const TEACHING_TONES = Object.freeze({
+  neutral: 'Neutro', friendly: 'Amigável', serious: 'Sério',
+  frustrated: 'Frustrado', curious: 'Curioso', playful: 'Brincalhão'
+});
+const LEGACY_INTENT_MAP = Object.freeze({
+  greeting: ['greeting'], identity: ['question'], status: ['question'],
+  pet: ['request'], play: ['request', 'joke'], brew: ['command'],
+  rest: ['command'], navigate: ['command'], insight: ['request', 'feedback'],
+  help: ['request'], mood: ['question'], thanks: ['thanks']
+});
+const safe = (value, max = 100) => typeof value === 'string'
+  ? value.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max) : '';
+function normalizeTeachingLabels(value) {
+  const input = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+  const intents = [...new Set(Array.isArray(input.intents) ? input.intents : [])]
+    .filter(key => Object.hasOwn(TEACHING_INTENTS, key)).slice(0, 6);
+  const tone = Object.hasOwn(TEACHING_TONES, input.tone) ? input.tone : 'neutral';
+  const topic = safe(input.topic, 80);
+  return { schema: 2, intents, tone, topic };
+}
+function teachingLabelsFromLegacy(intent) {
+  return normalizeTeachingLabels({ intents: LEGACY_INTENT_MAP[intent] || ['other'] });
+}
+function validateTeachingExample(text, labels) {
+  const phrase = safe(text, 320);
+  const normalized = normalizeTeachingLabels(labels);
+  if (!phrase || !normalized.intents.length) return null;
+  // Never persist obvious credentials or private access material in training examples.
+  if (/(?:github_pat_|gh[pousr]_|\bsk-[a-z0-9_-]{12,}|\bAIza[a-z0-9_-]{20,}|\b(?:password|senha|token|api[ _-]*key|chave privada)\b)/i.test(phrase)) return null;
+  return { text: phrase, ...normalized };
+}
+
+/**
+ * User-reviewed multi-label examples are device-local. They do not publish to
+ * GitHub, cannot trigger privileged actions and are not automatically sent to
+ * Gemini. Ambiguous matches are intentionally ignored.
+ */
+const TEACHING_EXAMPLES_LIMIT = 160;
+const teachingKey = ns => 'alquimago:teaching:v2:' + (/^[a-zA-Z0-9_-]{1,48}$/.test(ns) ? ns : 'default');
+function normalizeTeachingMemory(value) {
+  const examples = Array.isArray(value?.examples) ? value.examples : [];
+  const output = [], seen = new Set();
+  for (const item of examples.slice(-TEACHING_EXAMPLES_LIMIT)) {
+    if (!item || item.approved !== true) continue;
+    const valid = validateTeachingExample(item.text, item);
+    const key = valid && canonicalTeachingText(valid.text);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    output.push({...valid, approved: true});
+  }
+  return {schema: 2, examples: output};
+}
+function approveTeachingExample(memory, text, labels) {
+  const valid = validateTeachingExample(text, labels);
+  if (!valid) return {ok:false, memory:normalizeTeachingMemory(memory), reason:'Selecione um significado e não inclua informações privadas.'};
+  const current = normalizeTeachingMemory(memory);
+  const key = canonicalTeachingText(valid.text);
+  return {
+    ok:true,
+    memory:{schema:2,examples:[...current.examples.filter(item=>canonicalTeachingText(item.text)!==key),{...valid,approved:true}].slice(-TEACHING_EXAMPLES_LIMIT)}
+  };
+}
+function readTeachingExamples(storage, namespace='default') {
+  try {
+    const value = storage?.getItem(teachingKey(namespace));
+    return value && value.length<=180000 ? normalizeTeachingMemory(JSON.parse(value)) : normalizeTeachingMemory(null);
+  } catch { return normalizeTeachingMemory(null); }
+}
+function writeTeachingExamples(storage, namespace, memory) {
+  try {
+    if (!storage) return false;
+    const value = JSON.stringify(normalizeTeachingMemory(memory));
+    if (value.length>180000) return false;
+    storage.setItem(teachingKey(namespace),value);
+    return true;
+  } catch {return false;}
+}
+function canonicalTeachingText(input) {
+  return String(input||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim()
+    .replace(/\b(?:vc|vcs)\b/g,'voce').replace(/\bnn\b/g,'nao')
+    .replace(/\b(?:pq|porq)\b/g,'porque').replace(/\b(?:oq|oque)\b/g,'o que');
+}
+function recognizeTeachingLabels(message, memory) {
+  const q = canonicalTeachingText(message), examples=normalizeTeachingMemory(memory).examples;
+  if (!q || q.length<5) return null;
+  const qTokens=q.split(' ').filter(w=>w.length>2);
+  if (qTokens.length<2) return null;
+  let best=null,score=0,tied=false;
+  for (const example of examples) {
+    const p=canonicalTeachingText(example.text);
+    if (p===q) return {intents:example.intents,tone:example.tone,topic:example.topic,confidence:1};
+    const tokens=p.split(' ').filter(w=>w.length>2);
+    if (tokens.length<2) continue;
+    const seen=new Set();let matched=0;
+    for (const a of qTokens) {
+      const i=tokens.findIndex((b,i)=>!seen.has(i)&&(a===b||(a.length>=5&&b.length>=5&&a.length===b.length&&[...a].filter((c,j)=>c!==b[j]).length===1)));
+      if (i>=0) {seen.add(i);matched++;}
+    }
+    const precision=matched/qTokens.length,recall=matched/tokens.length;
+    const similarity=2*precision*recall/(precision+recall||1);
+    if (similarity>.86 && similarity>score+.05) {score=similarity;best=example;tied=false;}
+    else if (similarity>.86 && Math.abs(similarity-score)<=.05) tied=true;
+  }
+  return best&&!tied?{intents:best.intents,tone:best.tone,topic:best.topic,confidence:score}:null;
+}
+
+/**
+ * Pragmatic language bridge for the local Alquimago.
+ *
+ * Teaching meanings is not learning a language model. These safe, conservative
+ * social responses and optional phrasings use only user-approved examples,
+ * the current explicit message, and bounded conversation context.
+ *
+ * Never converts learned labels into commands, facts or unreviewed lessons.
+ */
+
+const norm=x=>canonicalTeachingText(String(x||''));
+const questionText=x=>/[?¿]/.test(x)||/\b(?:quem|quando|onde|como|quanto|quantos|qual|quais|por que|porque|explique|me diga|sera que|poderia|voce sabe)\b/.test(norm(x));
+const negativeText=x=>/\b(?:nao|nem|nunca|jamais|ninguem|nada|problema|erro|errei|fracassei|perdi|falhou|deu errado|triste|ruim|pessimo|odiei|reprovad[oa])\b/.test(norm(x));
+const instructionText=x=>/\b(?:abra|abrir|envie|mandar|delete|apague|remova|edite|publique|publicar|clique|acesse|execute|rode|instale|crie|faça|mude|altere|copie|desative)\b/.test(norm(x));
+const safePhrase=x=>typeof x==='string'&&x.trim().length>=3&&x.trim().length<=55&&
+ /^[\p{L}\p{M}\s!?.,'-]+$/u.test(x.trim())&&!questionText(x)&&!instructionText(x)&&
+ !negativeText(x)&&norm(x).split(' ').length<=7;
+
+function learnedSocialResponse(message,meaning,context={}){
+ const phrase=String(message||'').trim(),label=meaning&&typeof meaning==='object'?meaning:null;
+ if(!label||Number(label.confidence)<.93||phrase.length>110||questionText(phrase)||instructionText(phrase))return null;
+ const intents=Array.isArray(label.intents)?label.intents:[];
+ const has=x=>intents.includes(x);
+ // Multi-intent messages with instructions/questions must not become fake
+ // affection or a privileged action just because praise is also present.
+ if(has('command')||has('instruction')||has('request')||has('question')||
+    has('teaching')||has('correction')||has('clarification'))return null;
+ if(has('reprimand')||has('disagreement')){
+  return {intent:'learned-social',source:'approved-meaning',reply:
+   'Entendi que você não concordou ou não gostou da resposta. Qual parte devo corrigir? Quero considerar sua explicação.'};
+ }
+ if(has('praise')){
+  return {intent:'learned-social',source:'approved-meaning',reply:
+   'Que bom que você gostou! ✦ O que chamou mais sua atenção?'};
+ }
+ if(has('thanks')){
+  return {intent:'learned-social',source:'approved-meaning',reply:
+   'Por nada! Se quiser, podemos continuar trabalhando nessa ideia. ✦'};
+ }
+ if(has('farewell'))return {intent:'learned-social',source:'approved-meaning',reply:'Até a próxima! ✦'};
+ if(has('greeting'))return {intent:'learned-social',source:'approved-meaning',reply:'Olá! O que vamos criar hoje? ✦'};
+ if(has('agreement'))return {intent:'learned-social',source:'approved-meaning',reply:
+   'Que bom que estamos alinhados. Podemos continuar por esse caminho.'};
+ if(has('apology'))return {intent:'learned-social',source:'approved-meaning',reply:
+   'Tudo bem. Podemos continuar de onde paramos.'};
+ // Labels alone do not prove the factual subject of an emotional utterance.
+ return null;
+}
+
+/**
+ * Reuse a short learned phrase only after an explicit, positive achievement.
+ * Never copy questions, instructions, private information, or long comments
+ * into the familiar's own speech. No auto-publishing or cross-user sharing.
+ */
+function learnedMilestoneResponse(message,memory){
+ const raw=String(message||'').trim(),q=norm(raw);
+ if(!raw||raw.length>180||questionText(raw)||negativeText(raw)||instructionText(raw))return null;
+ const achieved=/\b(?:terminei|finalizei|conclui|completei|publiquei|lancei|entreguei|terminei de|acabei de terminar|consegui finalizar|consegui concluir|terminei meu|finalizei meu)\b/.test(q);
+ if(!achieved)return null;
+ const examples=normalizeTeachingMemory(memory).examples;
+ const candidates=examples.filter(e=>e.approved===true&&e.intents.includes('praise')&&
+    !e.intents.some(i=>['reprimand','disagreement','question','command','instruction','correction'].includes(i))&&safePhrase(e.text));
+ const learned=candidates.length?candidates[candidates.length-1].text.trim():null;
+ // A learned phrase is optional: the milestone response works without it.
+ const expression=learned?learned[0].toLocaleUpperCase('pt-BR')+learned.slice(1):'Muito bom!';
+ const prefix=/[.!?]$/.test(expression)?expression:expression+'!';
+ const context=/\b(?:modelagem|escultura|blender|personagem|textura|rig|animacao|render|arte|obra)\b/.test(q)
+  ?'Você concluiu uma etapa criativa. Quer pensar em como apresentá-la no portfólio?'
+  :/\b(?:site|portfolio|pagina|projeto|jogo)\b/.test(q)
+   ?'Você avançou no seu projeto. Quer revisar o resultado ou organizar o próximo passo?'
+   :'Você concluiu algo importante para o seu trabalho. Qual será a próxima etapa?';
+ return {intent:'learned-milestone',source:learned?'approved-meaning':'local-context',reply:prefix+' '+context};
+}
+
+function respondUsingApprovedMeanings(input,memory,context={}){
+ // Original teaching records are retained, including those saved before this
+ // bridge was introduced. No migration or new consent step is necessary.
+ const meaning=recognizeTeachingLabels(input,memory);
+ return learnedSocialResponse(input,meaning,context)||learnedMilestoneResponse(input,memory);
+}
+
+/**
+ * Verified semantic memory built ONLY from user-approved lessons.
+ * Conservative extraction: no unsupported multi-hop claims or model output.
+ */
+
+const clean=x=>String(x||'').trim().replace(/[\u0000-\u001f\u007f]/g,' ').slice(0,180);
+const subjects=x=>canonicalLesson(x).replace(/^(?:o que e|quem e|explique|me explique|qual e|pra que serve|para que serve|como funciona)\s+/,'').replace(/\s+(?:e|serve para|funciona).*$/,'').trim();
+function buildSemanticMemory(library){
+ const nodes=[],seen=new Set();
+ for(const lesson of normalizeLessons(library).lessons){
+  const answer=clean(lesson.answer);
+  const match=answer.match(/^(.{3,65}?)\s+(é|serve para|permite|ajuda a)\s+(.{4,160}?)[.!?]?$/i);
+  if(!match)continue;
+  const subject=subjects(match[1]);
+  const displaySubject=clean(match[1]);
+  const relation=match[2].toLowerCase();
+  const object=clean(match[3]).replace(/[.!?]+$/,'');
+  if(!subject||subject.split(' ').length>6||object.length<4)continue;
+  const key=subject+'|'+relation+'|'+canonicalLesson(object);
+  if(seen.has(key))continue;
+  seen.add(key);nodes.push({subject,displaySubject,relation,object,source:lesson.source,approved:true});
+ }
+ return nodes.slice(-64);
+}
+function answerFromSemanticMemory(question,library){
+ const q=canonicalLesson(question);
+ if(!q||q.length<8)return null;
+ const relation=/\b(?:serve para|pra que|para que|utilidade|funcao)\b/.test(q)?'purpose':
+  /\b(?:o que|oque|quem|defina|definicao|explique)\b/.test(q)?'definition':null;
+ if(!relation)return null;
+ const candidates=buildSemanticMemory(library).filter(n=>
+  (relation==='purpose'?['serve para','permite','ajuda a'].includes(n.relation):n.relation==='é')
+ );
+ // Require the complete subject phrase, not a substring of another word.
+ const bySubject=candidates.filter(n=>(' '+q+' ').includes(' '+n.subject+' ')&&n.subject.length>=4);
+ if(bySubject.length===1){
+  const n=bySubject[0];
+  return {reply:(n.displaySubject||n.subject)+' '+n.relation+' '+n.object+'.',intent:'semantic-memory',source:n.source};
+ }
+ // Conservative reverse association: "qual ferramenta serve para escultura?"
+ // Only answer when exactly ONE approved fact matches the requested purpose.
+ if(!bySubject.length&&relation==='purpose'&&/^(?:qual|quais|quem)\b/.test(q)){
+  const match=q.match(/\b(?:serve para|para)\s+(.+)$/);
+  const target=match?.[1]?.split(' ').filter(x=>x.length>=4)||[];
+  if(target.length){
+   const reverse=candidates.filter(n=>target.every(w=>canonicalLesson(n.object).split(' ').some(t=>t===w)));
+   if(reverse.length===1){
+    const n=reverse[0];
+    return {reply:'Pelas lições aprovadas, '+(n.displaySubject||n.subject)+' '+n.relation+' '+n.object+'.',intent:'semantic-memory',source:n.source};
+   }
+  }
+ }
+ return null;
+}
+
+
+
+
+
+
 
 
 
@@ -1554,6 +2624,40 @@ async function askLanguageModel({endpoint,prompt,history=[],project,fetcher,sign
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
+.familiar-title{display:none!important}
+
+
+/* Visitor mode is a living character, not a floating stat/minigame widget. */
+:host([data-public-mode="true"]) .familiar-title,
+:host([data-public-mode="true"]) .panel{display:none!important}
+:host([data-public-mode="true"]) .thought{
+ display:block;position:relative;max-width:min(260px,calc(100vw - 24px));
+ padding:10px 13px;border:1px solid #a887d6;
+ border-radius:13px 13px 3px 13px;
+ background:linear-gradient(130deg,#2d1b42f5,#191027f5);
+ color:#f9eefe;box-shadow:0 8px 22px #12071f83;
+ font:500 11px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;
+ text-align:left;cursor:default;pointer-events:none;
+ overflow-wrap:anywhere;user-select:none;
+}
+:host([data-public-mode="true"]) .thought[hidden]{display:none!important}
+@media(max-width:520px){
+ :host([data-public-mode="true"]) .thought{max-width:min(220px,calc(100vw - 24px));font-size:10.5px}
+}
+.character .arc-mouth{transform-box:fill-box;transform-origin:50% 50%;transition:transform .3s ease,stroke-width .3s ease}
+.character[data-reaction="sad"] .arc-mouth,
+.character[data-reaction="angry"] .arc-mouth{transform:scaleY(-1)}
+.character[data-reaction="angry"] .eyes{animation:none;transform:scaleY(.7);transform-origin:center}
+.character[data-reaction="pet"] .eyes,
+.character[data-reaction="happy"] .eyes{animation:none;transform:scaleY(.28);transform-origin:center}
+.character[data-reaction="pet"] .arc-mouth,
+.character[data-reaction="happy"] .arc-mouth{stroke-width:2.5;transform:scale(1.18)}
+.character[data-reaction="surprised"] .eyes{animation:none;transform:scale(1.1);transform-origin:center}
+.character[data-reaction="surprised"] .arc-mouth{stroke-width:3;transform:scaleY(1.6)}
+.character[data-reaction="tired"] .eyes{animation:none;transform:scaleY(.35);transform-origin:center}
+.character[data-reaction="curious"] .eyes{animation:none;transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){.character .arc-mouth{transition:none!important}}
+
 :host([data-position="bottom-left"]){right:auto;left:22px}
 .tabs{overflow-x:auto}.tab{min-width:46px;padding:7px 4px}
 :host{all:initial;position:fixed;z-index:2147483000;right:22px;bottom:20px;color:#f5eaff;font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;--violet:#b58aff;--ink:#17101f;--gold:#f9d891;user-select:none;box-sizing:border-box}
@@ -1775,6 +2879,26 @@ const STYLE = `
 .arcane-ai-consent input{accent-color:#ac78ef;width:15px;height:15px;flex-shrink:0;margin-top:2px}
 
 
+
+.reviewed-learning{margin:12px 0}
+.reviewed-learning label{display:block;margin:9px 0 5px;color:#ecd7ff;font:600 11px system-ui}
+.reviewed-learning input,.reviewed-learning textarea{
+ box-sizing:border-box;width:100%;border:1px solid #805a9c;background:#130d1d;
+ color:#fff;font:12px/1.5 system-ui;border-radius:9px;padding:9px;
+}
+.reviewed-learning textarea{resize:vertical;max-height:200px}
+.reviewed-learning .actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+
+/* Human-reviewed multi-label training, kept compact inside the Grimório. */
+.learning-multilabel{display:block}
+.learning-multilabel .muted{margin:2px 0 9px}
+.learning-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;max-height:195px;overflow-y:auto;margin-bottom:10px}
+.learning-option{display:flex;align-items:flex-start;gap:5px;padding:6px;background:#281735;border:1px solid #715288;border-radius:8px;line-height:1.35;font:11px system-ui;color:#ead9f5}
+.learning-option input{accent-color:#bd8aff;flex-shrink:0;margin:1px 0}
+.learning-controls{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;align-items:center;margin-bottom:9px}
+.learning-controls select,.learning-controls input{min-width:0;width:100%;box-sizing:border-box;background:#20122f;color:#fff;border:1px solid #906ab7;border-radius:8px;padding:7px}
+.learning-controls label{font:11px system-ui}
+.learning-multilabel>button{width:100%;padding:9px}
 /* v0.9: conversation-first design, high contrast and carefully bounded chat. */
 .panel{
  width:min(400px,calc(100vw - 20px))!important;
@@ -1837,54 +2961,24 @@ const STYLE = `
 .arcane-skin-image{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 13px #07020e88)}
 
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
+
+.image-feedback{display:grid;gap:7px;margin:9px 0;padding:11px;border:1px solid #9770bd70;border-radius:12px;background:#251630}
+.image-feedback label{font-size:12px;font-weight:650;color:#f4e1ff}
+.image-feedback input[type=file]{display:block;box-sizing:border-box;max-width:100%;width:100%;font:11px system-ui;color:#eee0fa}
+.image-feedback input[type=file]::file-selector-button{background:#39234d;color:#f3e3ff;border:1px solid #9676b6;border-radius:7px;padding:5px 8px;margin-right:8px;cursor:pointer}
+.image-feedback img{max-height:135px;max-width:100%;object-fit:contain;border-radius:8px;background:#180e22}
+.image-feedback .muted{font-size:10.5px;margin:0}
+.image-feedback .action:disabled{opacity:.5;cursor:default}
+${ROBOT_STYLES}
 `;
-const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-<defs>
- <radialGradient id="arc-halo"><stop stop-color="#bd84ff" stop-opacity=".42"/><stop offset="1" stop-color="#8445d9" stop-opacity="0"/></radialGradient>
- <linearGradient id="arc-hat" x1=".1" y1="0" x2=".8" y2="1"><stop stop-color="#7651bd"/><stop offset=".52" stop-color="#3f246d"/><stop offset="1" stop-color="#23173c"/></linearGradient>
- <linearGradient id="arc-cloak" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6f43aa"/><stop offset=".65" stop-color="#342052"/><stop offset="1" stop-color="#170f2b"/></linearGradient>
- <linearGradient id="arc-flask" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4ffed" stop-opacity=".8"/><stop offset=".55" stop-color="#47f5d6" stop-opacity=".7"/><stop offset="1" stop-color="#36a5ec" stop-opacity=".85"/></linearGradient>
- <filter id="arc-glow"><feGaussianBlur stdDeviation="2.1"/></filter>
-</defs>
-<ellipse cx="58" cy="87" rx="55" ry="60" fill="url(#arc-halo)"/>
-<g class="arc-sigils" fill="none" stroke="#d5a7ff" stroke-width=".9" opacity=".68"><circle cx="58" cy="93" r="45" stroke-dasharray="3 5"/><path d="M58 40v8M58 139v-7M4 93h8M104 93h8"/><circle cx="58" cy="93" r="35" stroke-dasharray="1 10"/></g>
-<ellipse cx="58" cy="143" rx="37" ry="4" fill="#0e0925" opacity=".3"/>
-<!-- robe and sleeves -->
-<path d="M37 93Q20 99 22 133Q38 144 58 144Q81 144 96 133Q96 101 78 94L70 89H47Z" fill="url(#arc-cloak)" stroke="#b893df" stroke-width="1.7"/>
-<path d="M50 94L58 111L67 94L63 132L58 138L53 132Z" fill="#261838" stroke="#9e71c2" stroke-width="1.2"/>
-<path d="M58 107l5 9-5 9-5-9Z" fill="#d7b572" stroke="#fff2bd" stroke-width=".7"/>
-<path d="M36 100q-13 5-16 22" fill="none" stroke="#7952b2" stroke-width="13" stroke-linecap="round"/>
-<path d="M81 102q12 3 17 18" fill="none" stroke="#7952b2" stroke-width="12" stroke-linecap="round"/>
-<!-- flowing hair -->
-<path d="M33 69Q23 93 36 108L44 99Q48 113 52 102L69 100Q75 111 83 107Q89 89 82 69Z" fill="#ece4f5" stroke="#b9a8d1" stroke-width="1.8"/>
-<!-- face -->
-<path d="M32 68Q30 47 57 48Q83 46 85 68L81 88Q75 100 59 102Q39 101 34 88Z" fill="#e9c1ad" stroke="#ba8b9a" stroke-width="1.4"/>
-<ellipse cx="42" cy="85" rx="6" ry="3.3" fill="#efa5ac" opacity=".6"/><ellipse cx="74" cy="85" rx="6" ry="3.3" fill="#efa5ac" opacity=".6"/>
-<!-- expressive hair fringe and eyes -->
-<path d="M31 69Q37 50 51 54Q56 44 69 54Q79 52 85 69Q75 64 69 64Q64 73 58 72Q50 63 42 69Q36 67 31 71Z" fill="#f4ebff" stroke="#c9b8de" stroke-width="1.3"/>
-<g class="eyes"><path d="M43 77q4-3 9 0" fill="none" stroke="#39243b" stroke-width="2" stroke-linecap="round"/><path d="M65 77q4-3 9 0" fill="none" stroke="#39243b" stroke-width="2" stroke-linecap="round"/><ellipse cx="47.5" cy="81" rx="3" ry="5" fill="#251936"/><ellipse cx="69" cy="81" rx="3" ry="5" fill="#251936"/><circle cx="48" cy="79.4" r="1.3" fill="#fff"/><circle cx="69.5" cy="79.4" r="1.3" fill="#fff"/></g>
-<path class="arc-mouth" d="M54 91q4 4 8 0" fill="none" stroke="#9b6374" stroke-width="1.6" stroke-linecap="round"/>
-<!-- hat with gold circlet and small arcane star -->
-<path d="M18 64Q29 55 35 40Q52 13 59 5Q73 28 79 46Q88 56 97 61Q92 72 57 73Q29 72 18 64Z" fill="url(#arc-hat)" stroke="#c9a6ff" stroke-width="2.1"/>
-<path d="M38 39Q55 29 76 44L80 53Q58 48 31 55Z" fill="#9a6abd" opacity=".35"/>
-<path d="M22 62Q57 70 94 61" fill="none" stroke="#e3c077" stroke-width="4.5" stroke-linecap="round"/>
-<path d="M56 13l3 6 7 1-5 5 2 7-7-4-6 4 1-7-5-5 7-1Z" fill="#fce1a4" stroke="#fff2c8" stroke-width="1"/>
-<circle cx="59" cy="23" r="2" fill="#fff9d6"/>
-<!-- alchemist vial in right hand -->
-<path d="M94 111l3-7 7 2-1 7 5 10q3 12-9 15-12-2-9-14Z" fill="url(#arc-flask)" stroke="#cffdf1" stroke-width="1.5"/>
-<path d="M95 110l9 3" stroke="#e8fff4" stroke-width="2"/><path d="M92 126q6 5 14 0" fill="none" stroke="#1ee4ba" stroke-width="2"/>
-<circle class="potion-bubble" cx="99" cy="121" r="2.4" fill="#ecfffe"/><circle class="potion-bubble" cx="103" cy="117" r="1.2" fill="#fff"/>
-<path d="M88 118q5-6 7-2" fill="none" stroke="#e7c7b9" stroke-width="5" stroke-linecap="round"/>
-<!-- tiny feet and sparkles -->
-<ellipse cx="44" cy="143" rx="12" ry="4" fill="#251333" stroke="#9e77bc" stroke-width="1.5"/><ellipse cx="71" cy="143" rx="12" ry="4" fill="#251333" stroke="#9e77bc" stroke-width="1.5"/>
-<path class="potion-spark" d="M101 76l2 7 7 2-7 2-2 7-2-7-7-2 7-2Z" fill="#9ff5e8"/>
-<path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
-<circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
-</svg>`;
+
 const MAIN_TABS=[{index:5,key:'chat'},{index:1,key:'insights'},{index:0,key:'actions'}];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
-const storage=()=>{try{return window.localStorage;}catch{return null;}};
+// A synchronous adapter for legacy learning helpers. Plaintext is never a
+// fallback: it is replaced only after the async encrypted vault is unlocked.
+let activeVaultStorage=unavailableVault('Preparando cofre criptografado.').storage;
+const storage=()=>activeVaultStorage;
 function findSameOriginLinks() {
   if (typeof document === 'undefined') return [];
   const unique = new Map();
@@ -1922,7 +3016,9 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
-    this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
+    this.lessons=normalizeLessons(null);this.teaching=normalizeTeachingMemory(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
+    this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;this.pendingImageFile=null;this.imagePreviewUrl=null;
+    this.vault=null;this.vaultStatus='initializing';
     this.links = [];
     this.audit = null;
     this.timer = null;
@@ -1930,14 +3026,22 @@ class AlquimagoFamiliar extends HTMLElement {
     this.hoverStroke=freshStroke();this.dialogue=[];
     this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
-    this.publishDialogHandler=null;
+    this.publishDialogHandler=null;this.publishAuthorizationHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
     this.preferences=blankPreferences();
     this.cortex=createCortexRuntime(createCortex());this.cortexStart=Date.now();
     this.behaviorAllowed=false;this.behaviorMode='equilibrado';
     this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
     this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
-    this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
+    this.affect=createAffect((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0,Date.now());
+    this.affectTicker=null;this.musicHandler=null;this.svgPreview=null;this.svgPreviewTimer=null;
+    this.pageEmotion=null;this.pageAwayAt=0;this.pageActivityAt=Date.now();this.pageReactions=null;
+    this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;this.pageHeadStart=0;
+    this.pageLastReaction=Object.create(null);this.pageLastMouse=null;
+    this.publicMessage='';this.publicUntil=0;this.publicLastSpokenAt=0;
+    this.publicPriority=0;this.publicSaidAt=Object.create(null);
+    this.publicLineTimer=null;this.publicIntroTimer=null;this.publicSpeechCount=0;
+    this.skinProfiles=[{id:'padrao',label:'Alquimago Orb 2D — animado',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
   }
@@ -1948,19 +3052,19 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${ROBOT_SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
-    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
+    this.$thought.addEventListener('click',()=>{if(document.documentElement.dataset.alquimagoStudio!=='true')return;this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
     this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
     this.$character.addEventListener('pointerdown', e => this.onPointerDown(e));
     this.$character.addEventListener('pointermove', e => this.onPointerMove(e));
-    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};});
+    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};this.pageHeadStart=0;});
     this.$character.addEventListener('pointerup', e => this.onPointerUp(e));
     this.$character.addEventListener('pointercancel', () => { this.pointerStart = null; });
     this.$character.addEventListener('contextmenu',e=>{e.preventDefault();this.state.open=true;this.state.tab=0;this.render();});
@@ -1979,6 +3083,16 @@ class AlquimagoFamiliar extends HTMLElement {
     });
     this.$content.addEventListener('click', e => this.onContentClick(e));
     this.$content.addEventListener('change',e=>{
+      if(e.target?.id==='alquimago-image-input'){
+        const file=e.target.files?.[0]||null;
+        try{
+          if(file)validateReviewImageFile(file);
+          this.clearReviewImage();
+          if(file){this.pendingImageFile=file;this.imagePreviewUrl=URL.createObjectURL(file);}
+          this.message=file?'Imagem selecionada. A análise só começa ao clicar em Analisar imagem.':'Nenhuma imagem selecionada.';
+        }catch(error){this.clearReviewImage();this.message=error instanceof Error?error.message:'Arquivo inválido.';}
+        this.render();return;
+      }
       if(e.target?.id==='alquimago-skin-choice'){
         const chosen=this.skinProfiles.find(x=>x.id===e.target.value);
         if(chosen){
@@ -1999,9 +3113,15 @@ class AlquimagoFamiliar extends HTMLElement {
           this.renderHeader();
         }
       }
+      if(e.target?.id==='allow-gemini-file-context'){
+        this.fileContextAllowed=!!e.target.checked;
+        this.message=this.fileContextAllowed?'Posso compartilhar apenas os nomes de imports e exports dos arquivos que você já autorizou para leitura.':'Compartilhamento de metadados de arquivos desativado.';
+        this.renderHeader();
+      }
       if(e.target?.id==='toggle-llm'){
         this.modelEnabled=this.modelAvailable&&!!e.target.checked;
-        this.message=this.modelEnabled?'IA generativa ativada para esta sessão. Suas próximas perguntas poderão ser enviadas ao serviço autorizado.':'Modo contextual local ativado.';
+        if(!this.modelEnabled)this.clearReviewImage();
+        this.message=this.modelEnabled?'Professor Gemini ativado nesta sessão apenas para dúvidas sem resposta local.':'Modo local ativado, sem consulta ao Gemini.';
         this.renderHeader();
       }
       if(e.target?.id==='toggle-proactive'){
@@ -2022,6 +3142,22 @@ class AlquimagoFamiliar extends HTMLElement {
     this.render();
     this.lastSpoken=this.config.identity.greeting;this.lastSpokenAt=Date.now();this.updateThought();
     this.startObservation();
+    this.startPageReactions();
+    // The original Orb listens only to the site player's public playback state.
+    // No audio samples, private text or microphone access are needed.
+    this.musicHandler=event=>{
+      const playing=event?.detail?.playing===true;
+      const justStarted=playing&&!this.affect.music;
+      this.affect=setAffectMusic(this.affect,playing,Date.now());
+      this.affect=affectTick(this.affect,Date.now());
+      if(justStarted)this.speakPublic('Oh, music! Activating my best floating-and-vibing mode.',
+        'music:play',{priority:1,interval:150000,hold:5700});
+      if(this.isConnected)this.renderHeader();
+    };
+    window.addEventListener('alquimago:music-state',this.musicHandler);
+    const media=document.querySelector('.music-widget audio');
+    if(typeof HTMLAudioElement!=='undefined'&&media instanceof HTMLAudioElement&&!media.paused&&!media.ended)
+      this.musicHandler({detail:{playing:true}});
     this.studioHandler=event=>{
       const d=event?.detail;
       if(!d||typeof d.section!=='string')return;
@@ -2049,8 +3185,45 @@ class AlquimagoFamiliar extends HTMLElement {
       }else delete this.dataset.publishing;
     };
     window.addEventListener('alquimago:publish-dialog',this.publishDialogHandler);
+    this.publishAuthorizationHandler=event=>{
+      if(!this.isConnected||this.desktop||this.config.memory.mode!=='publish')return;
+      const status=event?.detail?.status;
+      const replies={
+        missing:'Você ainda não me deu o dinheiro para comprar pão! ✦ Abra Publicar e use o campo protegido para fornecer o token. Nunca envie tokens aqui no chat.',
+        ready:'Dinheiro guardado no cofre! ✦ Já posso usar sua autorização atual. Revise e confirme a publicação no Studio.',
+        expired:'O pão mofou! 🥖 A autorização anterior não funciona mais. Posso jogá-la fora? Use Descartar token no Studio e salve outro.',
+        forbidden:'Tenho uma autorização, mas ela não permite publicar neste repositório. Podemos descartar e cadastrar uma com a permissão correta?',
+        offline:'Não consegui conferir o dinheiro agora. O GitHub pode estar indisponível; não descartei seu token.',
+        unavailable:'Não consegui abrir o cofre. Não vou pedir que você mande tokens no chat. Verifique a área de publicação do Studio.'
+      };
+      const reply=replies[status];
+      if(!reply)return;
+      // Only the assistant's immediately preceding publication answer may be replaced.
+      const tail=this.dialogue.at(-1),previous=this.dialogue.at(-2);
+      if(previous?.role!=='user'||tail?.role!=='familiar'||
+        recognizeStudioCommand(previous.text,this.config.commands.publishPhrase)!=='prepare-publish')return;
+      this.dialogue[this.dialogue.length-1]={role:'familiar',text:reply};
+      this.message=reply;this.lastSpoken=reply;this.lastSpokenAt=Date.now();
+      this.lastAnswerSource='Autorização GitHub · sem acesso ao token';
+      this.render();
+    };
+    window.addEventListener('alquimago:publish-auth-status',this.publishAuthorizationHandler);
     window.dispatchEvent(new Event('alquimago:request-context'));
-    if(CONFIG_URL)void loadConfig(CONFIG_URL,{origin:location.origin}).then(async config=>{
+    void (CONFIG_URL?loadConfig(CONFIG_URL,{origin:location.origin}):Promise.resolve(normalizeConfig(null))).then(async config=>{
+      let legacyStorage=null;
+      try{legacyStorage=window.localStorage;}catch{}
+      this.vault=await createAlquimagoVault({
+        namespace:config.memory.namespace,legacyStorage,
+        onStatus:state=>{
+          this.vaultStatus=state.status;
+          if(state.status==='error'){
+            this.message='Não consegui gravar o cofre criptografado. Nenhuma cópia em texto puro será criada.';
+            if(this.isConnected)this.renderHeader();
+          }
+        }
+      });
+      activeVaultStorage=this.vault.storage;
+      this.vaultStatus=this.vault.status;
       this.config=config;
       this.modelAvailable=config.llm.enabled&&!!validateModelEndpoint(config.llm.endpoint,{pageUrl:location.href});
       if(config.knowledge.file){
@@ -2075,8 +3248,14 @@ class AlquimagoFamiliar extends HTMLElement {
         }catch{this.language=normalizeLanguage(null)}
       }
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
-      this.message=config.identity.greeting;
-      this.lastSpoken=config.identity.greeting;this.lastSpokenAt=Date.now();
+      // Approved lessons are private to this browser/site, including Studio
+      // installations. Refresh and deploy do not erase them, and publish
+      // snapshots never upload them as publicly readable JSON.
+      this.lessons=readLessons(storage(),config.memory.namespace);
+      this.teaching=readTeachingExamples(storage(),config.memory.namespace);
+      this.message=this.vault.status==='protected'?config.identity.greeting:
+        '⚠ Cofre indisponível: posso conversar, mas não salvarei novas lições neste navegador.';
+      this.lastSpoken=this.message;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?this.neural:(readNeural(storage(),config.memory.namespace)||this.neural);
       this.preferences=config.memory.mode==='publish'?blankPreferences():readPreferences(storage(),config.memory.namespace);
       let saved=config.memory.mode==='publish'?cleanMemory(null):readMemory(storage(),config.memory.namespace);
@@ -2104,13 +3283,22 @@ class AlquimagoFamiliar extends HTMLElement {
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
-    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick(); this.renderHeader(); }, 10000);
+    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick();this.tickPageReactions(); this.renderHeader(); }, 10000);
+    this.affectTicker=setInterval(()=>{
+      if(!this.isConnected||document.hidden)return;
+      this.affect=affectTick(this.affect,Date.now());
+      this.renderHeader();
+    },2600);
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
+    if(this.affectTicker)clearInterval(this.affectTicker);
+    this.affectTicker=null;
+    if(this.musicHandler)window.removeEventListener('alquimago:music-state',this.musicHandler);
+    this.musicHandler=null;
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.speechTimer)clearTimeout(this.speechTimer);
-    this.modelAbort?.abort();this.modelSequence++;
+    this.modelAbort?.abort();this.modelSequence++;this.clearReviewImage();
     if(this.expressionTimer)clearTimeout(this.expressionTimer);
     if(this.observeTimer)clearTimeout(this.observeTimer);
     if(this.observer)this.observer.disconnect();
@@ -2118,15 +3306,18 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
     if(this.publishDialogHandler)window.removeEventListener('alquimago:publish-dialog',this.publishDialogHandler);
+    if(this.publishAuthorizationHandler)window.removeEventListener('alquimago:publish-auth-status',this.publishAuthorizationHandler);
     if(this.pointerOverHandler)document.removeEventListener('pointerover',this.pointerOverHandler);
     if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
     this.cancelProjectHover();
+    this.stopPageReactions();
     if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
     this.closeOrb();
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
     if(!this.configReady||!this.isConnected)return;
+    if(this.isPublicVisitor())return;
     const now=Date.now(),page=this.activePage||{};
     const issues=this.suggestions.filter(x=>!['route','studio','editor'].includes(x.id));
     const active=document.activeElement;
@@ -2276,9 +3467,57 @@ class AlquimagoFamiliar extends HTMLElement {
         }catch{/* fall back to built-in SVG */ }
       }
     }
-    this.$character.innerHTML=SVG;
+    this.$character.innerHTML=ROBOT_SVG;
+    this.$character.dataset.expression='idle';
+    // Keep the exact expressive, animated Orb faces, also available to the
+    // Studio preview system without requiring a GLB or third-party renderer.
+    const normalize=name=>{
+      const raw=String(name||'idle').toLowerCase().replace(/[^a-z]/g,'');
+      const aliases={stroke:'pet',affection:'pet',surprise:'surprised',anger:'angry',
+        sleepy:'tired',meditating:'sleep',joy:'happy',focus:'focused'};
+      const key=aliases[raw]||raw;
+      return Object.hasOwn(ORB_EXPRESSIONS,key)?key:'idle';
+    };
+    const apply=name=>{
+      const key=normalize(name);
+      this.$character.dataset.expression=key;
+      const speed=key==='sleep'?6.3:key==='tired'?5.1:
+        ['excited','angry','surprised'].includes(key)?2.1:4.1;
+      this.$character.style.setProperty('--orb-breath-duration',speed+'s');
+      return key;
+    };
+    this.skinAdapter={
+      setExpression:name=>{
+        if(this.svgPreview&&Date.now()<this.svgPreview.until)return;
+        if(name==='talk'){this.skinAdapter.previewExpression('talk',900);return;}
+        apply(name);
+      },
+      previewExpression:(name,duration=2100)=>{
+        if(this.svgPreviewTimer)clearTimeout(this.svgPreviewTimer);
+        const key=apply(name);
+        this.svgPreview={name:key,until:Date.now()+duration};
+        this.svgPreviewTimer=setTimeout(()=>{
+          this.svgPreview=null;this.svgPreviewTimer=null;
+          if(this.isConnected)this.renderHeader();
+        },duration);
+      },
+      dispose:()=>{
+        if(this.svgPreviewTimer)clearTimeout(this.svgPreviewTimer);
+        this.svgPreviewTimer=null;this.svgPreview=null;
+      }
+    };
   }
   projectPointerOver(e){
+    if(this.isPublicVisitor()){
+      const card=e.target instanceof Element?e.target.closest('.gallery-card[data-alquimago-project]'):null;
+      if(!card||card.closest('alquimago-familiar'))return;
+      const name=(card.getAttribute('data-alquimago-project')||'').trim();
+      if(!name)return;
+      const spotlight=this.config.assistant.spotlights.find(x=>name.toLowerCase().includes(x.title.toLowerCase()));
+      const line=spotlight?.hoverMessage||'This is '+name.slice(0,58)+'. Click to see the full project!';
+      this.speakPublic(line,'hover:project:'+name,{hold:5800,interval:180000,priority:2});
+      return;
+    }
     if(this.desktop||!this.observeProjects||!this.config.features.pageAudit)return;
     const target=e.target;
     if(!(target instanceof Element))return;
@@ -2366,8 +3605,92 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.state.open&&this.state.tab===1)this.render();
     else this.renderHeader();
   }
+  isPublicVisitor(){
+    return !this.desktop&&document.documentElement.dataset.alquimagoStudio!=='true';
+  }
+  // English-only personality layer for visitors. Never uses Gemini or the
+  // Portuguese developer diagnostics, and never reads selected text content.
+  speakPublic(line,key,options={}){
+    if(!this.isPublicVisitor()||!this.isConnected||document.hidden||this.state.open)return false;
+    const text=String(line||'').trim().slice(0,180);
+    if(!text)return false;
+    const now=Date.now(),priority=options.priority??1;
+    const interval=options.interval??90000,hold=options.hold??5800;
+    if(now-(this.publicSaidAt[key]||0)<interval)return false;
+    if(now-this.publicLastSpokenAt<8500&&priority<=this.publicPriority)return false;
+    this.publicSaidAt[key]=now;this.publicLastSpokenAt=now;this.publicPriority=priority;
+    this.publicSpeechCount++;
+    this.publicMessage=text;this.publicUntil=now+hold;
+    if(this.publicLineTimer)clearTimeout(this.publicLineTimer);
+    this.publicLineTimer=setTimeout(()=>{
+      this.publicLineTimer=null;
+      this.publicMessage='';this.publicPriority=0;this.updateThought();
+    },hold);
+    this.updateThought();
+    return true;
+  }
+  speakForReaction(name){
+    if(!this.isPublicVisitor())return;
+    const lines={
+      sad:["Leaving already? I'll keep the tiny portal warm.","Off to another tab? I'll guard the pixels."],
+      happy:["You're back! I definitely wasn't rehearsing my dramatic farewell.","Welcome back! The art missed you. Probably."],
+      angry:["Hey! Are you copying my creator's words? Please give credit!","Hold on—are you borrowing that text? My legal department is a very small circuit."],
+      pet:["Easy on the headset! Those are premium sensors.","Oh! A head pat. My circuits approve."],
+      surprised:["WHOA! That cursor has turbo mode!","Easy there, speedster! My headset nearly flew away."],
+      tired:["Low-power mode activated. The art isn't going anywhere.","Even a tiny robot deserves a dramatic yawn."]
+    };
+    const set=lines[name];
+    if(!set)return;
+    const priority={angry:8,pet:7,happy:7,sad:6,surprised:5,tired:1}[name]||1;
+    const hold={sad:3600,angry:7000,pet:3400,happy:4200,surprised:3000,tired:5000}[name]||5000;
+    const interval={sad:90000,happy:45000,angry:95000,pet:26000,surprised:110000,tired:180000}[name]||60000;
+    const index=this.publicSpeechCount%set.length;
+    this.speakPublic(set[index],'reaction:'+name,{priority,interval,hold});
+  }
+  // Only describe features that actually exist on the current page.
+  publicSceneTip(){
+    if(!this.isPublicVisitor()||document.hidden)return;
+    const project=document.querySelector('main[data-alquimago-project].project-page');
+    const title=project?.getAttribute('data-alquimago-project')||'';
+    const video=project?.querySelector('.project-video-poster,.project-video-embed');
+    const comparison=project?.querySelector('.comparison-block input[type="range"]');
+    const gallerySearch=document.querySelector('.gallery .search input,.toolbar input[aria-label="Search for projects"]');
+    const galleryCard=document.querySelector('.gallery-card[data-alquimago-project]');
+    const spotlight=this.config.assistant.spotlights.find(x=>title.toLowerCase().includes(x.title.toLowerCase()));
+    if(video)return this.speakPublic(
+      spotlight?.videoMessage||'Psst! There is a video in this project. Press Play to explore it.',
+      'feature:video:'+title,{hold:6800,interval:120000,priority:2});
+    if(comparison)return this.speakPublic(
+      'Drag the before-and-after slider! Even my magic wand cannot do that.',
+      'feature:comparison:'+title,{hold:6600,interval:120000,priority:2});
+    if(spotlight?.message)return this.speakPublic(
+      spotlight.message,'feature:spotlight:'+title,{hold:6700,interval:120000,priority:2});
+    if(project&&title)return this.speakPublic(
+      'Welcome to '+title.slice(0,55)+'! Explore the details—every artwork has a story.',
+      'feature:project:'+title,{hold:6500,interval:160000,priority:2});
+    if(gallerySearch)return this.speakPublic(
+      'Looking for something? Try the project search. Even my crystal ball has filters!',
+      'feature:search',{hold:7300,interval:180000,priority:1});
+    if(galleryCard)return this.speakPublic(
+      'See something you like? Open a project to discover the whole artwork.',
+      'feature:gallery',{hold:6800,interval:180000,priority:1});
+    return this.speakPublic(
+      'Welcome, curious traveler! Take a look around. I guard the pixels here.',
+      'feature:welcome',{hold:6100,interval:300000,priority:1});
+  }
   updateThought(){
     if(!this.$thought)return;
+    if(this.isPublicVisitor()){
+      const active=this.publicMessage&&Date.now()<this.publicUntil;
+      this.$thought.textContent=active?this.publicMessage:'';
+      this.$thought.hidden=!active;
+      this.$thought.tabIndex=-1;
+      this.$thought.setAttribute('aria-live','polite');
+      this.$thought.setAttribute('aria-label',active?'Alquimago says: '+this.publicMessage:'Alquimago message');
+      return;
+    }
+    this.$thought.tabIndex=0;
+    this.$thought.removeAttribute('aria-live');
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
     const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<14500?this.lastSpoken:null;
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
@@ -2385,6 +3708,146 @@ class AlquimagoFamiliar extends HTMLElement {
     this.style.left = left + 'px'; this.style.top = top + 'px'; this.style.right = 'auto'; this.style.bottom = 'auto';
     this.state.position = { x: left, y: top };
   }
+
+  // Local, ephemeral gestures. Neither selected text nor mouse coordinates
+  // are stored, transferred or provided to the language model.
+  reactPageEmotion(name,duration=1600,priority=1,cooldown=2500){
+    if(!this.isConnected||this.desktop||document.hidden)return;
+    const now=Date.now();
+    if(now-(this.pageLastReaction[name]||0)<cooldown)return;
+    if(this.pageEmotion&&this.pageEmotion.until>now&&this.pageEmotion.priority>priority)return;
+    this.pageLastReaction[name]=now;
+    this.pageEmotion={name,until:now+duration,priority};
+    this.affect=affectSignal(this.affect,name,now);
+    this.affect=affectTick(this.affect,now);
+    this.speakForReaction(name);
+    this.renderHeader();
+    if(this.pageReactionTimer)clearTimeout(this.pageReactionTimer);
+    this.pageReactionTimer=setTimeout(()=>{
+      this.pageReactionTimer=null;
+      if(this.isConnected)this.renderHeader();
+    },duration+40);
+  }
+  tickPageReactions(){
+    if(this.desktop||document.hidden||this.pageAwayAt)return;
+    const silentFor=Date.now()-this.pageActivityAt;
+    if(silentFor>65000)this.reactPageEmotion('tired',4500,1,50000);
+  }
+  startPageReactions(){
+    if(this.desktop||this.pageReactions)return;
+    const listeners=[];
+    const on=(target,type,callback,options)=>{
+      target.addEventListener(type,callback,options);
+      listeners.push(()=>target.removeEventListener(type,callback,options));
+    };
+    const touchActivity=()=>{this.pageActivityAt=Date.now()};
+    const ignored=node=>{
+      const element=node?.nodeType===1?node:node?.parentElement;
+      return !!element?.closest?.('input,textarea,select,[contenteditable],.editor-overlay,.studio-dock-anchor,[role="dialog"]');
+    };
+    on(document.documentElement,'mouseleave',()=>{
+      if(document.hidden)return;
+      this.pageAwayAt=Date.now();
+      if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
+      this.pageLeaveTimer=setTimeout(()=>{
+        this.pageLeaveTimer=null;
+        if(this.pageAwayAt&&this.isConnected){this.renderHeader();this.speakForReaction('sad');}
+      },420);
+    });
+    on(document.documentElement,'mouseenter',()=>{
+      if(!this.pageAwayAt)return;
+      const awayFor=Date.now()-this.pageAwayAt;
+      this.pageAwayAt=0;touchActivity();
+      if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
+      this.pageLeaveTimer=null;
+      if(awayFor>420)this.reactPageEmotion('happy',1700,8,1200);
+      else this.renderHeader();
+    });
+    on(document,'selectionchange',()=>{
+      if(this.pageSelectTimer)clearTimeout(this.pageSelectTimer);
+      this.pageSelectTimer=setTimeout(()=>{
+        this.pageSelectTimer=null;
+        if(document.hidden||document.documentElement.dataset.alquimagoStudio==='true')return;
+        const selection=window.getSelection();
+        if(!selection||selection.isCollapsed||!selection.rangeCount)return;
+        if(ignored(selection.anchorNode)||ignored(selection.focusNode))return;
+        this.reactPageEmotion('angry',2500,5,11000);
+      },180);
+    });
+    on(window,'pointermove',event=>{
+      if(event.pointerType!=='mouse')return;
+      touchActivity();
+      if(event.buttons!==0)return;
+      const previous=this.pageLastMouse;
+      this.pageLastMouse={x:event.clientX,y:event.clientY,at:performance.now()};
+      if(!previous||document.hidden||ignored(event.target))return;
+      const dt=performance.now()-previous.at;
+      if(dt<12||dt>95)return;
+      const distance=Math.hypot(event.clientX-previous.x,event.clientY-previous.y);
+      if(distance/dt<2.7||distance<80)return;
+      const rect=this.$character.getBoundingClientRect();
+      if(event.clientX<rect.left-180||event.clientX>rect.right+180||
+         event.clientY<rect.top-180||event.clientY>rect.bottom+180)return;
+      this.reactPageEmotion('surprised',1100,3,8500);
+    },{passive:true});
+    on(document,'pointerdown',touchActivity,{passive:true});
+    on(document,'keydown',touchActivity,{passive:true});
+    on(window,'scroll',()=>{
+      touchActivity();
+      if(!this.pageAwayAt)this.reactPageEmotion('curious',1300,1,14500);
+    },{passive:true});
+    on(document,'click',event=>{
+      if(!(event.target instanceof Element)||ignored(event.target))return;
+      if(event.target.closest('[data-alquimago-project],a[href],button'))
+        this.reactPageEmotion('focused',1450,2,4200);
+    },{passive:true});
+    const navigation=()=>{
+      touchActivity();
+      this.reactPageEmotion('curious',2100,2,3000);
+      // Wait for the React route to render its real media before suggesting it.
+      if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+      this.publicIntroTimer=setTimeout(()=>{
+        this.publicIntroTimer=null;
+        this.publicSceneTip();
+      },1900);
+    };
+    on(document,'pointerover',event=>{
+      if(!this.isPublicVisitor()||!(event.target instanceof Element))return;
+      if(event.target.closest('.project-video-poster')){
+        this.speakPublic('Found the video! Press Play to see the project in motion.',
+          'feature:video-hover:'+location.hash,{priority:3,interval:210000,hold:6200});
+      }else if(event.target.closest('.comparison-block input[type="range"]')){
+        this.speakPublic('Try dragging that slider. Before and after, wizard-approved!',
+          'feature:comparison-hover:'+location.hash,{priority:2,interval:210000,hold:6300});
+      }
+    },{passive:true});
+    on(window,'hashchange',navigation);
+    on(window,'popstate',navigation);
+    on(document,'visibilitychange',()=>{
+      if(document.hidden){this.pageEmotion=null;this.pageAwayAt=0}
+      else {touchActivity();this.renderHeader()}
+    });
+    this.pageReactions=listeners;
+    // Speak at most once when the initial interface has rendered.
+    if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+    this.publicIntroTimer=setTimeout(()=>{
+      this.publicIntroTimer=null;
+      if(this.isConnected)this.publicSceneTip();
+    },4500);
+  }
+  stopPageReactions(){
+    for(const remove of this.pageReactions||[])remove();
+    this.pageReactions=null;
+    for(const timer of [this.pageReactionTimer,this.pageLeaveTimer,this.pageSelectTimer])
+      if(timer)clearTimeout(timer);
+    this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;
+    if(this.publicLineTimer)clearTimeout(this.publicLineTimer);
+    if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+    this.publicLineTimer=null;this.publicIntroTimer=null;
+    this.publicMessage='';this.publicUntil=0;
+    this.pageEmotion=null;this.pageAwayAt=0;this.pageLastMouse=null;
+  }
+
   onPointerDown(e) {
     if (e.button !== 0) return;
     this.lastUserActivity=Date.now();
@@ -2399,14 +3862,21 @@ class AlquimagoFamiliar extends HTMLElement {
     if(!this.pointerStart){
       if(e.pointerType==='mouse'&&e.buttons===0){
         const rect=this.$character.getBoundingClientRect();
+        const overHead=e.clientY-rect.top<rect.height*.71;
         const result=updateHeadStroke(this.hoverStroke,{
           x:e.clientX-rect.left,
-          head:e.clientY-rect.top<rect.height*.71,
+          head:overHead,
           pressed:false,
           time:Date.now()
         });
         this.hoverStroke=result.state;
-        if(result.triggered){this.action('stroke');this.spawnAffection();}
+        if(overHead){
+          if(!this.pageHeadStart)this.pageHeadStart=Date.now();
+          if(Date.now()-this.pageHeadStart>480){
+            this.reactPageEmotion('pet',1250,6,4000);
+          }
+        }else this.pageHeadStart=0;
+        if(result.triggered)this.reactPageEmotion('pet',1600,7,3000);
       }
       return;
     }
@@ -2417,18 +3887,61 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerStart.moved&&!this.desktop)this.moveTo(this.pointerStart.left+dx,this.pointerStart.top+dy);
   }
   onPointerUp(e) {
-    const data = this.pointerStart; this.pointerStart = null;
-    if (!data) return;
-    if(data.moved){if(!this.desktop)this.save();}
-    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58){this.action('stroke');this.spawnAffection();}
-    else {this.action('pet');this.spawnAffection();if(!this.desktop){this.state.tab=5;this.state.open=true;this.render();}}
-    if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
+    const data=this.pointerStart;this.pointerStart=null;
+    if(!data)return;
+    if(data.moved){
+      if(!this.desktop)this.save();
+    }else{
+      this.reactPageEmotion('pet',1500,7,600);
+      if(!this.desktop&&document.documentElement.dataset.alquimagoStudio==='true'){
+        this.state.tab=5;this.state.open=true;this.render();
+      }
+    }
+    if(this.$character.hasPointerCapture(e.pointerId))this.$character.releasePointerCapture(e.pointerId);
   }
-  spawnAffection(){
-    const node=document.createElement('span');
-    node.className='affection-burst';node.textContent='♥ ✦ ♥';
-    this.$character.appendChild(node);
-    setTimeout(()=>node.remove(),950);
+  clearReviewImage(){
+    if(this.imagePreviewUrl){URL.revokeObjectURL(this.imagePreviewUrl);this.imagePreviewUrl=null;}
+    this.pendingImageFile=null;
+  }
+  async reviewImage(){
+    if(!this.modelAvailable||!this.modelEnabled||this.modelBusy||!this.pendingImageFile)return;
+    const file=this.pendingImageFile;
+    const question=safeChatText(this.$content.querySelector('#alquimago-message')?.value||
+      'Avalie esta arte visual e dê sugestões objetivas para melhorar composição, silhueta, materiais, iluminação e apresentação.');
+    const history=this.dialogue.slice(-8);
+    const request=++this.modelSequence;
+    const controller=new AbortController();this.modelAbort?.abort();this.modelAbort=controller;
+    this.modelBusy=true;this.lastAnswerSource='Preparando imagem localmente';
+    this.dialogue=[...this.dialogue,{role:'user',text:'[Imagem escolhida para feedback] '+question},
+      {role:'familiar',text:'Preparando a imagem e consultando o Gemini…'}].slice(-24);
+    this.render();
+    let timer;
+    try{
+      const image=await prepareReviewImage(file);
+      if(!this.isConnected||request!==this.modelSequence)return;
+      timer=setTimeout(()=>controller.abort(),18000);
+      const result=await askLanguageModel({
+        endpoint:this.config.llm.endpoint,prompt:question,history,image,
+        files:this.fileContextAllowed?summarizeApprovedFiles(this.projectFiles):[],
+        pageUrl:location.href,signal:controller.signal
+      });
+      if(!this.isConnected||request!==this.modelSequence)return;
+      const feedback='Feedback visual do Gemini: '+result.reply;
+      this.dialogue[this.dialogue.length-1]={role:'familiar',text:feedback};
+      this.message=feedback;this.lastAnswerSource='Gemini · feedback visual';
+      this.lastSpoken=feedback;this.lastSpokenAt=Date.now();
+    }catch(error){
+      if(!this.isConnected||request!==this.modelSequence)return;
+      const reason=error?.name==='AbortError'?'Tempo de análise excedido.':
+        error instanceof Error?error.message:'Não foi possível analisar a imagem.';
+      this.dialogue[this.dialogue.length-1]={role:'familiar',text:reason};
+      this.message=reason;this.lastAnswerSource='Imagem não analisada';
+    }finally{
+      clearTimeout(timer);
+      if(this.isConnected&&request===this.modelSequence){
+        this.modelBusy=false;this.modelAbort=null;this.clearReviewImage();this.render();
+      }
+    }
   }
   sendMessage(text){
     this.lastUserActivity=Date.now();
@@ -2440,7 +3953,7 @@ class AlquimagoFamiliar extends HTMLElement {
       // publisher. The phrase is never an authentication factor or approval.
       const allowed=!this.desktop&&this.config.memory.mode==='publish'&&this.studioInfo?.editing===true;
       const reply=allowed?
-        'Encontrei o comando! ⚗ Vou abrir a revisão da publicação. Confira as alterações e confirme no Studio. A frase não substitui sua autorização GitHub.':
+        'Vou conferir se ainda tenho dinheiro para comprar pão... ⚗ A autorização será verificada no Studio. A frase não publica nada sozinha.':
         'Esse comando está disponível apenas no Local Studio desbloqueado. Ele não publica sozinho.';
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:reply}].slice(-24);
       this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;
@@ -2451,46 +3964,81 @@ class AlquimagoFamiliar extends HTMLElement {
       }));
       return;
     }
-    const prediction=neuralPredict(this.neural,user);
+    const learnedMeaning=recognizeTeachingLabels(user,this.teaching);
+    const approved=recallLesson(user,this.lessons)||answerFromSemanticMemory(user,this.lessons)||
+      recallLessonFollowup(user,this.dialogue,this.lessons);
+    const prediction=approved?{intent:'approved-lesson',confidence:1}:neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
-    const response=respondToChat(user,{
+    let response=approved?{...approved,store:true}:respondToChat(user,{
       pending:this.pendingQuestion,
+      teachingMemory:this.teaching,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
+      history:this.dialogue.slice(-8),
       focusTitle:this.selectedProject?.title||'',
-      neuralIntent:prediction.confidence>=.55?prediction.intent:null,
+      neuralIntent:prediction.confidence>=.55&&
+       !/\b(qual|quais|como|porque|por que|quando|onde|explique|diferenca|diferença|what|why|how|which)\b/.test(String(user).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase())
+       ?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
+      approvedLessons:this.lessons?.lessons?.length||0,neuralCorrections:this.neural?.learned||0,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    // A recent autonomous initiative can be corrected by conversational
+    // praise/reprimand, not only by buttons. Do not mistake a question about
+    // a problem for explicit behavioral feedback.
+    const qForm=/[?]|\b(?:por que|porque|pq|como|qual|explique)\b/i.test(user);
+    const taughtFeedback=learnedMeaning?.intents.includes('reprimand')?-1:
+      learnedMeaning?.intents.includes('praise')?1:null;
+    const explicitFeedback=/^(?:vc |voce |você )?(?:errou|fez errado|não gostei disso|nao gostei disso|pare com isso)[!. ]*$/i.test(user)?-1:
+      /^(?:parabéns|parabens|muito bem|gostei disso|bom trabalho)[!. ]*$/i.test(user)?1:null;
+    const feedback=qForm?null:(taughtFeedback??explicitFeedback);
+    const decision=this.lastAutoDecision;
+    if(feedback!==null&&decision&&!decision.used&&Date.now()-decision.at<120000){
+      rewardCortex(this.cortex,decision.action,decision.context,feedback,Date.now());
+      decision.used=true;this.save();
+      if(response.intent==='unknown'){
+        response={reply:feedback>0?
+          'Obrigado pelo feedback! Vou priorizar iniciativas como essa. ✦':
+          'Entendi a crítica. Vou diminuir esse tipo de iniciativa e observar o resultado.',
+          intent:'behavior-feedback'};
+      }
+    }
+    const known=['private','math','followup','decline','clarify','navigate','empty',
+      'project-fact','project-list','project-info','approved-lesson','semantic-memory','studio-guide',
+      'greeting','identity','status','pet','play','brew','rest','help','mood','thanks','self-learning'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
-      !['private','math','followup','decline','clarify','navigate','empty','project-fact','project-list','project-info'].includes(response.intent)&&
-      user.length>=3;
+      response.intent==='unknown'&&user.length>=3;
     if(canGenerate){
       const history=this.dialogue.slice(-8);
       const project=this.knowledge.projects.find(p=>p.id===(response.projectId||this.lastProjectId))||null;
       const request=++this.modelSequence;
-      this.modelBusy=true;
+      this.modelBusy=true;this.lastAnswerSource='Aguardando Gemini';
       this.pendingQuestion=null;
-      this.lastUserText='';this.lastNeuralIntent='';
       this.dialogue=[...this.dialogue,{role:'user',text:user},
-        {role:'familiar',text:'Consultando o modelo de linguagem…'}].slice(-24);
+        {role:'familiar',text:'Consultando meu professor Gemini…'}].slice(-24);
       this.state.tab=5;this.state.open=true;this.render();
       this.modelAbort?.abort();
       const controller=new AbortController();this.modelAbort=controller;
       const timer=setTimeout(()=>controller.abort(),18000);
       void askLanguageModel({
         endpoint:this.config.llm.endpoint,prompt:user,history,project,
+        files:this.fileContextAllowed?summarizeApprovedFiles(this.projectFiles):[],
         pageUrl:location.href,signal:controller.signal
       }).then(answer=>{
         if(!this.isConnected||request!==this.modelSequence)return;
-        this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
-        this.message=answer.reply;
-        this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
+        const taught='Meu professor Gemini explicou: '+answer.reply+
+          ' Para eu reutilizar isso sem o Gemini, revise e aprove a lição no grimório.';
+        this.dialogue[this.dialogue.length-1]={role:'familiar',text:taught};
+        this.message=taught;
+        this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (aprovado pelo usuário)'};
+        this.lastAnswerSource='Gemini professor · lição pendente';
+        this.lastSpoken=taught;this.lastSpokenAt=Date.now();
       }).catch(error=>{
         if(!this.isConnected||request!==this.modelSequence)return;
         const reason=error?.name==='AbortError'?
          'A consulta demorou demais.':error instanceof Error?error.message:'Não consegui conectar à IA.';
         const fallback=reason+' Resposta local: '+response.reply;
+        this.lastAnswerSource='Resposta local · Gemini indisponível';
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:fallback};
         this.message=fallback;
       }).finally(()=>{
@@ -2505,8 +4053,10 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     this.pendingQuestion=pendingFromReply(response);
     if(response.projectId)this.lastProjectId=response.projectId;
+    // Any non-private user utterance can be reviewed in "Ensinar".
+    // Safe deterministic replies don't invalidate the last teaching example.
     if(['math','followup','decline','clarify'].includes(response.intent)){
-      this.lastUserText='';this.lastNeuralIntent='';
+      this.lastNeuralIntent='';
     }
     if(response.store!==false&&response.intent!=='empty'&&typeof this.language.responses?.[response.intent]==='string'){
       response.reply=this.language.responses[response.intent].replace(/\{(name|xp|page|level)\}/g,(_,key)=>({
@@ -2531,6 +4081,15 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
+    this.lastAnswerSource=['approved-lesson','semantic-memory'].includes(response.intent)?'Memória aprovada · offline':
+      ['learned-social','learned-milestone'].includes(response.intent)?'Linguagem contextual · conhecimento revisado':'Cérebro local · sem Gemini';
+    if(response.intent==='learned-milestone'||response.intent==='learned-social'&&learnedMeaning?.intents?.includes('praise')){
+      this.affect=affectSignal(this.affect,'happy',Date.now());
+      this.affect=affectTick(this.affect,Date.now());
+    }
+    if(response.store!==false&&response.intent!=='empty'){
+      this.lessonDraft={question:user,answer:['project-fact','project-info','project-list'].includes(response.intent)?response.reply:'',source:'ensinado manualmente'};
+    }
     this.lastSpoken=response.reply;this.lastSpokenAt=Date.now();
     if(this.skinAdapter?.setExpression){
       this.skinAdapter.setExpression('talk');
@@ -2558,23 +4117,48 @@ class AlquimagoFamiliar extends HTMLElement {
       this.expressionTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),900);
     }
   }
-  toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
+  toggle() { if (this.desktop||document.documentElement.dataset.alquimagoStudio!=='true') return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.9';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.11.2';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
     this.style.setProperty('--gold',this.config.appearance.gold);
-    this.shadowRoot.getElementById('mood').textContent = mood;
+
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
-    if(this.skinAdapter?.setExpression){try{this.skinAdapter.setExpression(skinExpression(mood))}catch{/* optional 3D adapter */}}
+    const internal=this.affect?.expression||skinExpression(mood);
+    const effective=this.skin?.type==='model3d'&&internal==='serene'?'breath':internal;
+    this.$character.dataset.reaction='';
+    this.$character.dataset.affect=internal;
+    this.$character.dataset.music=this.affect?.music?'playing':'paused';
+    const moodLabel=this.$content?.querySelector('.grimoire-mood-indicator');
+    if(moodLabel){
+      const moodNames={serene:'Sereno',breath:'Tranquilo',idle:'Neutro',
+        happy:'Alegre',pet:'Afetuoso',love:'Carinhoso',excited:'Animado',
+        curious:'Curioso',focused:'Concentrado',thinking:'Pensativo',
+        surprised:'Surpreso',worried:'Preocupado',angry:'Irritado',
+        sad:'Triste',tired:'Cansado',sleep:'Sonolento'};
+      moodLabel.textContent='Humor interno: '+(moodNames[internal]||internal)+
+        (this.affect?.music?' · Música tocando':'');
+    }
+    if(this.skinAdapter?.setExpression){
+      try{this.skinAdapter.setExpression(effective)}catch{/* optional renderer */}
+    }
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
   }
   render() {
-    const flags=this.config.features;
+    // Public visitors interact with the familiar, but only Local Studio unlocks
+    // the Grimório, Gemini, diagnostics and teaching controls. This is a UI
+    // boundary, not backend authentication: the Gemini API gateway is public.
+    const studioMode=document.documentElement.dataset.alquimagoStudio==='true';
+    this.setAttribute('data-public-mode',String(!studioMode));
+    this.modelAvailable=this.config.llm.enabled&&!!validateModelEndpoint(this.config.llm.endpoint,{pageUrl:location.href});
+    if(!studioMode){this.modelEnabled=false;this.clearReviewImage();this.state.open=false;}
+    const flags=studioMode?this.config.features:{...this.config.features,
+      dialogue:false,pageAudit:false,routes:false,projectFiles:false,assistants:false,memoryTools:false};
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
     if(!allowed[this.state.tab])this.state.tab=[5,1,0].find(index=>allowed[index])??0;
     this.setAttribute('data-position',this.config.appearance.position);
@@ -2594,7 +4178,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button><button class="action" data-action="orb-toy">◉ Orbe arcano</button></div>
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div>
       <details class="arcane-advanced arcane-cortex">
       <summary>🧠 Cérebro e autonomia</summary>
       <p class="muted" id="cortex-summary">Rede pulsada local, com decisões e memória comportamental.</p>
@@ -2704,20 +4288,67 @@ class AlquimagoFamiliar extends HTMLElement {
       }else{
         add('<div class="chat-suggestions"><button type="button" data-say="OIE!">Olá</button><button type="button" data-say="Como faço carinho?">Carinho</button><button type="button" data-say="Quanto XP tenho?">XP</button><button type="button" data-say="Quanto é 2 + 2?">Matemática</button></div>');
       }
-      const teacher=document.createElement('div');teacher.className='neural-teach';
-      const lbl=document.createElement('label');lbl.textContent='Ensinar o significado da última mensagem:';
-      const chooser=document.createElement('select');chooser.id='alquimago-teach';
-      const intentLabels={greeting:'Saudação',identity:'Identidade',status:'XP e status',pet:'Carinho',play:'Brincar',brew:'Poção',rest:'Descanso',navigate:'Navegação',insight:'Sugestão',help:'Ajuda',mood:'Humor',thanks:'Agradecimento'};
-      for(const intent of INTENTS){
-        const option=document.createElement('option');option.value=intent;option.textContent=this.language.intentLabels?.[intent]||intentLabels[intent]||intent;
-        option.selected=intent===this.lastNeuralIntent;chooser.appendChild(option);
+      const teacher=document.createElement('div');teacher.className='neural-teach learning-multilabel';
+      const info=document.createElement('p');info.className='muted';
+      info.textContent='Uma frase pode ter vários significados. Selecione todos os que se aplicam, indique o tom e ensine usando a última mensagem.';
+      const choices=document.createElement('div');choices.className='learning-options';
+      choices.id='alquimago-teach-intents';
+      choices.setAttribute('role','group');
+      choices.setAttribute('aria-label','Significados da frase');
+      const inferred=recognizeTeachingLabels(this.lastUserText,this.teaching);
+      const initial=inferred?.intents||teachingLabelsFromLegacy(this.lastNeuralIntent).intents;
+      for(const [key,caption] of Object.entries(TEACHING_INTENTS)){
+        const option=document.createElement('label');option.className='learning-option';
+        const input=document.createElement('input');input.type='checkbox';input.value=key;
+        input.checked=this.lastUserText&&initial.includes(key)&&key!=='other';
+        option.append(input,document.createTextNode(caption));choices.appendChild(option);
       }
-      const teach=document.createElement('button');teach.type='button';teach.dataset.action='teach-neural';teach.textContent='Ensinar';
+      const teachingControls=document.createElement('div');teachingControls.className='learning-controls';
+      const toneLabel=document.createElement('label');toneLabel.textContent='Tom da mensagem';
+      const tone=document.createElement('select');tone.id='alquimago-teach-tone';
+      for(const [key,caption] of Object.entries(TEACHING_TONES)){
+        const option=document.createElement('option');option.value=key;option.textContent=caption;
+        tone.appendChild(option);
+      }
+      tone.value=inferred?.tone||'neutral';
+      const topicLabel=document.createElement('label');topicLabel.textContent='Assunto (opcional)';
+      const topic=document.createElement('input');topic.id='alquimago-teach-topic';
+      topic.type='text';topic.maxLength=80;topic.placeholder='Ex.: programação, conversa';
+      topic.value=inferred?.topic||'';
+      teachingControls.append(toneLabel,tone,topicLabel,topic);
+      const teach=document.createElement('button');teach.type='button';
+      teach.dataset.action='teach-neural';teach.textContent='Aprender significados selecionados';
       teach.disabled=!this.lastUserText;
-      teacher.append(lbl,chooser,teach);
+      teacher.append(info,choices,teachingControls,teach);
       const lesson=document.createElement('details');lesson.className='neural-lesson';
-      const summary=document.createElement('summary');summary.textContent='✦ Ensinar a reconhecer uma frase';
+      const summary=document.createElement('summary');
+      summary.textContent='✦ Ensinar significados e reações (múltipla escolha)';
       lesson.append(summary,teacher);this.$content.appendChild(lesson);
+      const lessonBox=document.createElement('details');
+      lessonBox.className='neural-lesson reviewed-learning';
+      lessonBox.open=Boolean(this.lessonDraft?.answer);
+      const lessonTitle=document.createElement('summary');
+      lessonTitle.textContent='📚 Ensinar um conhecimento verdadeiro';
+      const note=document.createElement('p');note.className='muted';
+      note.textContent='Revise a explicação antes de salvar. Só respostas aprovadas por você serão reutilizadas; elas ficam neste navegador e não são publicadas no GitHub.';
+      const qLabel=document.createElement('label');qLabel.textContent='Pergunta';
+      const question=document.createElement('input');question.id='lesson-question';
+      question.maxLength=160;question.placeholder='O que o Alquimago deve saber?';
+      question.value=this.lessonDraft?.question||'';
+      const aLabel=document.createElement('label');aLabel.textContent='Resposta verificada';
+      const answer=document.createElement('textarea');answer.id='lesson-answer';
+      answer.rows=4;answer.maxLength=800;answer.placeholder='Explique com suas palavras ou revise o que o Gemini respondeu.';
+      answer.value=this.lessonDraft?.answer||'';
+      const controls=document.createElement('div');controls.className='actions';
+      const approve=document.createElement('button');approve.type='button';
+      approve.className='action primary';approve.dataset.action='approve-lesson';
+      approve.textContent='✓ Aprovar e aprender';
+      const remove=document.createElement('button');remove.type='button';
+      remove.className='action';remove.dataset.action='clear-lessons';
+      remove.textContent='Limpar lições';
+      controls.append(approve,remove);
+      lessonBox.append(lessonTitle,note,qLabel,question,aLabel,answer,controls);
+      this.$content.appendChild(lessonBox);
       if(this.modelAvailable){
         const consent=document.createElement('label');
         consent.className='arcane-ai-consent';
@@ -2725,12 +4356,50 @@ class AlquimagoFamiliar extends HTMLElement {
         choice.id='toggle-llm';choice.checked=this.modelEnabled;
         choice.disabled=this.modelBusy;
         const details=document.createElement('span');
-        details.textContent='Usar IA generativa (opcional). Cada nova pergunta poderá ser enviada ao serviço configurado. Não envie dados privados.';
+        details.textContent='Consultar o professor Gemini (opcional). Mensagens poderão ser enviadas ao serviço configurado. Não envie dados privados.';
+        const share=document.createElement('label');share.className='arcane-ai-consent';
+        const allow=document.createElement('input');allow.type='checkbox';
+        allow.id='allow-gemini-file-context';allow.checked=this.fileContextAllowed;
+        const context=document.createElement('span');
+        context.textContent='Permitir compartilhar com o Gemini somente os nomes de imports/exports dos arquivos já lidos. Nenhum código bruto será enviado.';
+        share.append(allow,context);
         consent.append(choice,details);
         this.$content.appendChild(consent);
+        this.$content.appendChild(share);
+        if(this.modelEnabled){
+          const box=document.createElement('section');box.className='image-feedback';
+          const label=document.createElement('label');label.htmlFor='alquimago-image-input';
+          label.textContent='Feedback de arte por imagem';
+          const input=document.createElement('input');input.type='file';
+          input.id='alquimago-image-input';input.accept='image/jpeg,image/png,image/webp';
+          input.disabled=this.modelBusy;
+          const note=document.createElement('p');note.className='muted';
+          note.textContent='JPG, PNG ou WebP · até 8 MB. A imagem é reduzida neste navegador e enviada ao Gemini somente após clicar no botão. Não é salva no servidor nem aprendida automaticamente.';
+          box.append(label,input,note);
+          if(this.pendingImageFile){
+            const selected=document.createElement('span');selected.className='muted';
+            selected.textContent='Selecionada: '+this.pendingImageFile.name.slice(0,90);
+            box.appendChild(selected);
+            if(this.imagePreviewUrl){
+              const preview=document.createElement('img');preview.alt='Prévia da imagem selecionada';
+              preview.src=this.imagePreviewUrl;box.appendChild(preview);
+            }
+          }
+          const analyze=document.createElement('button');analyze.type='button';
+          analyze.className='action primary';analyze.dataset.action='review-image';
+          analyze.textContent=this.modelBusy?'Analisando…':'Analisar imagem com Gemini';
+          analyze.disabled=this.modelBusy||!this.pendingImageFile;
+          box.appendChild(analyze);this.$content.appendChild(box);
+        }
       }
+      const vaultLine=document.createElement('p');vaultLine.className='muted';
+      vaultLine.textContent=this.vaultStatus==='protected'?
+        '🔐 Cofre ALQ-V1 ativo · AES-256-GCM · chave local não exportável.':
+        '⚠️ Cofre indisponível · as lições locais não serão salvas sem criptografia.';
+      this.$content.appendChild(vaultLine);
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Modo '+(this.modelEnabled?'IA generativa':'contextual local')+' · '+this.knowledge.projects.length+' obras públicas conhecidas · '+this.neural.learned+' correções de frases.';
+      message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' de 128 lições aprovadas · '+
+        this.teaching.examples.length+' de 160 exemplos de linguagem · '+this.knowledge.projects.length+' obras públicas.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -2743,17 +4412,13 @@ class AlquimagoFamiliar extends HTMLElement {
     if(cortexStats){
       const stats=cortexSummary(this.cortex.state);
       cortexStats.textContent=stats.neurons+' neurônios • '+stats.synapses.toLocaleString('pt-BR')+
-        ' conexões • '+stats.sensors+' sensores • '+stats.motors+' ações. '+stats.feedback+' aprendizados.';
+        ' sinapses simuladas ('+stats.plasticSynapses+' adaptadas) • '+stats.sensors+
+         ' sensores • '+stats.motors+' ações • '+stats.feedback+' feedbacks.';
     }
     const last=this.$content.querySelector('#cortex-last');
     if(last)last.textContent=this.lastAutoDecision?
       'Última iniciativa: '+this.lastAutoDecision.action+'. '+(this.lastAutoDecision.used?'Feedback registrado.':'Diga se foi útil.') :
       'O cérebro ainda não tomou nenhuma iniciativa nesta sessão.';
-    const orbButton=this.$content.querySelector('[data-action="orb-toy"]');
-    if(orbButton){
-      orbButton.textContent=this.orbField?'Guardar orbe':'◉ Orbe arcano';
-      if(!this.config.behavior.toy)orbButton.remove();
-    }
     for(const button of this.$content.querySelectorAll('[data-action="cortex-like"],[data-action="cortex-dislike"]'))
       button.disabled=!this.lastAutoDecision||this.lastAutoDecision.used;
     const proactivity=this.$content.querySelector('#toggle-proactive');
@@ -2779,8 +4444,6 @@ class AlquimagoFamiliar extends HTMLElement {
     if(sendButton)sendButton.setAttribute('aria-label',this.language.ui.send);
     const teachButton=this.$content.querySelector('[data-action="teach-neural"]');
     if(teachButton)teachButton.textContent=this.language.ui.learn;
-    const teachLabel=this.$content.querySelector('.neural-teach label');
-    if(teachLabel)teachLabel.textContent=this.language.ui.learnTitle;
     const closeButton=this.shadowRoot.getElementById('close-panel');
     if(closeButton)closeButton.setAttribute('aria-label',this.language.ui.close);
     if(this.config.memory.mode==='publish'){
@@ -2842,13 +4505,11 @@ class AlquimagoFamiliar extends HTMLElement {
       this.message=positive?'Aprendi: mais iniciativas como essa.':'Aprendi: menos desse comportamento.';
       this.render();return;
     }
-    if(button.dataset.action==='orb-toy'){
-      this.lastUserActivity=Date.now();
-      this.startOrb();this.render();return;
-    }
     const action = button.dataset.action;
     if (!action) return;
-    if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(action==='review-image'){void this.reviewImage();return;}
+    if(['pet','stroke'].includes(action)){this.reactPageEmotion('pet',1600,7,500);return;}
+    if(['focus','rest','explore'].includes(action))return this.action(action);
     if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
       const target={ 'go-routes':2,'go-files':3,'go-ai':4,'go-actions':0 }[action];
       this.state.tab=target;this.render();return;
@@ -2863,21 +4524,82 @@ class AlquimagoFamiliar extends HTMLElement {
       window.dispatchEvent(new Event('alquimago:request-publish'));
       return;
     }
+    if(action==='approve-lesson'){
+      const question=this.$content.querySelector('#lesson-question')?.value||'';
+      const answer=this.$content.querySelector('#lesson-answer')?.value||'';
+      const result=approveLesson(this.lessons,question,answer,
+        this.lessonDraft?.source||'ensinado manualmente');
+      if(!result.ok){this.message=result.reason;this.renderHeader();return;}
+      if(!writeLessons(storage(),this.config.memory.namespace,result.library)){
+        this.message='Não consegui salvar a lição neste navegador. Verifique o armazenamento.';
+        this.renderHeader();return;
+      }
+      this.lessons=result.library;this.lessonDraft=null;
+      this.lastAnswerSource='Conhecimento aprovado · disponível offline';
+      this.message='Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
+      this.render();return;
+    }
+    if(action==='clear-chat'){
+      if(!window.confirm('Limpar somente esta conversa? O que eu aprendi e as lições aprovadas serão preservados.'))return;
+      // Cancel stale professor replies; a completed request may not repopulate
+      // a newly cleared dialogue.
+      ++this.modelSequence;this.modelAbort?.abort();this.modelAbort=null;
+      this.modelBusy=false;this.clearReviewImage();this.dialogue=[];
+      this.lastUserText='';this.lastNeuralIntent='';this.lastProjectId=null;
+      this.pendingQuestion=null;this.lessonDraft=null;
+      writeDialogue(storage(),this.config.memory.namespace,[]);
+      this.lastAnswerSource='Nova conversa · aprendizado preservado';
+      this.message='Conversa limpa. Meu aprendizado aprovado continua disponível.';
+      this.lastSpoken=this.message;this.lastSpokenAt=Date.now();
+      this.render();
+      this.$content.querySelector('#alquimago-message')?.focus();
+      return;
+    }
+    if(action==='clear-lessons'){
+      if(!window.confirm('Apagar todas as lições ensinadas neste navegador? Isso não altera o GitHub.'))return;
+      const empty=normalizeLessons(null);
+      if(!writeLessons(storage(),this.config.memory.namespace,empty)){
+        this.message='Não consegui alterar as lições neste navegador.';this.renderHeader();return;
+      }
+      this.lessons=empty;this.lessonDraft=null;
+      this.message='Lições locais apagadas. Os arquivos do projeto não foram alterados.';
+      this.render();return;
+    }
     if(action==='teach-neural'){
       if(!this.lastUserText)return;
-      const selected=this.$content.querySelector('#alquimago-teach')?.value;
-      if(!INTENTS.includes(selected))return;
-      if(!teachNeural(this.neural,this.lastUserText,selected))return;
-      const corrected=neuralPredict(this.neural,this.lastUserText);
-      if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
-      this.lastNeuralIntent=selected;
-      const labels={greeting:'saudação',identity:'identidade',status:'status',pet:'carinho',play:'brincadeira',brew:'poção',rest:'descanso',navigate:'navegação',insight:'sugestão',help:'ajuda',mood:'humor',thanks:'agradecimento'};
-      const reply='Aprendi: agora reconheço essa frase como '+(labels[selected]||selected)+'. Confiança: '+Math.round(corrected.confidence*100)+'%. '+(this.config.memory.mode==='publish'?'Publique para manter esse aprendizado.':'O aprendizado foi salvo.');
+      const intents=[...this.$content.querySelectorAll('#alquimago-teach-intents input:checked')]
+        .map(input=>input.value);
+      const tone=this.$content.querySelector('#alquimago-teach-tone')?.value||'neutral';
+      const topic=this.$content.querySelector('#alquimago-teach-topic')?.value||'';
+      const result=approveTeachingExample(this.teaching,this.lastUserText,{intents,tone,topic});
+      if(!result.ok){this.message=result.reason;this.renderHeader();return;}
+      if(!writeTeachingExamples(storage(),this.config.memory.namespace,result.memory)){
+        this.message='Não consegui salvar os significados neste navegador.';
+        this.renderHeader();return;
+      }
+      this.teaching=result.memory;
+      // Teach the legacy neural classifier only when an unambiguous mapping
+      // exists. A multi-intent lesson is never collapsed into a random action.
+      const neuralMap={greeting:'greeting',thanks:'thanks',joke:'play'};
+      if(intents.length===1&&neuralMap[intents[0]]){
+        teachNeural(this.neural,this.lastUserText,neuralMap[intents[0]]);
+        if(this.config.memory.mode!=='publish')
+          writeNeural(storage(),this.config.memory.namespace,this.neural);
+      }
+      const decision=this.lastAutoDecision;
+      if(decision&&!decision.used&&Date.now()-decision.at<120000&&
+         (intents.includes('reprimand')!==intents.includes('praise'))){
+        rewardCortex(this.cortex,decision.action,decision.context,intents.includes('praise')?1:-1,Date.now());
+        decision.used=true;this.save();
+      }
+      const named=intents.map(key=>TEACHING_INTENTS[key]).join(' + ');
+      const reply='Aprendi o significado da mensagem: '+named+'. Tom: '+(TEACHING_TONES[tone]||'Neutro')+
+        (topic?' · Assunto: '+topic:'')+'. Essa associação ficou salva neste dispositivo.';
       this.dialogue=[...this.dialogue,{role:'familiar',text:reply}].slice(-24);
-      if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
-      this.message=reply;
-      this.render();
-      return;
+      if(this.config.memory.mode!=='publish')
+        writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+      this.message=reply;this.lastAnswerSource='Significados ensinados localmente';
+      this.render();return;
     }
     if(action==='reset-memory'){
       // Hard reloads must keep persistent progress. Reset is always deliberate.
@@ -2970,7 +4692,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.9.0',
+    version: '0.11.5',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');

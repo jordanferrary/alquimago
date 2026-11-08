@@ -20,5 +20,9 @@ jobs:
         run: npm test
       - name: Build browser distribution
         run: npm run build
+      - name: Verify offline demo uses the exact current widget
+        run: npm run test:offline
+      - name: Confirm standalone demo and distribution are committed in sync
+        run: git diff --exit-code -- Alquimago_Demo_Offline.html dist/Alquimago_Demo_Offline.html dist/alquimago.js dist/index.html
       - name: Verify bundled JavaScript syntax
         run: node --check dist/alquimago.js
