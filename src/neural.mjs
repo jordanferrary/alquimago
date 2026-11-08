@@ -3,6 +3,7 @@
 // Trainable weights; never stores chat messages, credentials or raw text.
 export const INTENTS=['greeting','identity','status','pet','play','brew','rest','navigate','insight','help','mood','thanks'];
 const INPUTS=96,HIDDEN=24,OUTPUTS=INTENTS.length;
+export const NEURAL_PROTOTYPES_LIMIT=64;
 const samples={
  greeting:['oi','oie','oii','oiii','olá','ola','ola tudo bem','oi tudo bem','oiee','eae','eai','eai mago','opa','salve','bom dia','boa tarde','boa noite','oi maguinho','hey','hello','hello friend','oi maguinho como vai','e aí tudo bem','salvee','ola alquimago','bom dia alquimago','boa noite mago','eae parceiro','saudacoes','opa tudo certo','e aí mago'],
  identity:['quem é você','seu nome','como você se chama','quem e voce','o que voce e','voce e uma ia','pra que voce serve','me conta quem voce e','me diz seu nome','voce tem cerebro','qual e sua funcao','o que voce consegue fazer','que tipo de familiar voce e','o que e alquimago'],
@@ -37,6 +38,13 @@ export function neuralFeatures(text){
  for(let i=0;i<tokens.length-1;i++)features.push('p:'+tokens[i]+' '+tokens[i+1]);
  for(const feature of features)vec[hash(feature)%INPUTS]+=1;
  const norm=Math.hypot(...vec)||1;return vec.map(v=>v/norm);
+}
+// Curated vectors never change: calculate them once instead of re-hashing
+// hundreds of example phrases for every visitor message.
+let referenceVectorsCache=null;
+function referenceVectors(){
+ if(!referenceVectorsCache)referenceVectorsCache=Object.values(samples).flat().map(neuralFeatures);
+ return referenceVectorsCache;
 }
 function deterministic(index){return ((hash('arcane-seed-'+index)%20001)/10000-1)*.13;}
 export function newNeuralModel(){
@@ -120,10 +128,12 @@ export function neuralPredict(model,text){
  if(best&&similarityToTaught>=.90)return {intent:best,confidence:Math.min(.99,similarityToTaught),similarity:similarityToTaught,taught:true};
  // A softmax can be overconfident on unknown sentences. The nearest known
  // phrase provides an additional out-of-distribution similarity gate.
- const similarity=Math.max(0,...Object.values(samples).flat().map(sample=>{
-  const vector=neuralFeatures(sample);
-  return vector.reduce((sum,value,i)=>sum+value*result.x[i],0);
- }));
+ let similarity=0;
+ for(const vector of referenceVectors()){
+  let dot=0;
+  for(let i=0;i<INPUTS;i++)dot+=vector[i]*result.x[i];
+  if(dot>similarity)similarity=dot;
+ }
  return {intent:result.intent,confidence:result.confidence*similarity,similarity};
 }
 export function teachNeural(model,text,intent){
@@ -138,7 +148,7 @@ export function teachNeural(model,text,intent){
  const existing=profiles.findIndex(entry=>entry?.features?.every((n,i)=>Math.abs(n-features[i])<.00001));
  if(existing>=0)profiles.splice(existing,1);
  profiles.push({intent,features});
- model.prototypes=profiles.slice(-24);
+ model.prototypes=profiles.slice(-NEURAL_PROTOTYPES_LIMIT);
  model.learned=before+1;
  return true;
 }
@@ -147,7 +157,7 @@ export function restoreNeuralModel(value){
  const arrays=[['inputHidden',INPUTS*HIDDEN],['hiddenBias',HIDDEN],['hiddenOutput',HIDDEN*OUTPUTS],['outputBias',OUTPUTS]];
  for(const [key,length] of arrays)
   if(!Array.isArray(value[key])||value[key].length!==length||!value[key].every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<=5))return null;
- const prototypes=Array.isArray(value.prototypes)?value.prototypes.slice(-24).filter(entry=>
+ const prototypes=Array.isArray(value.prototypes)?value.prototypes.slice(-NEURAL_PROTOTYPES_LIMIT).filter(entry=>
    entry&&INTENTS.includes(entry.intent)&&Array.isArray(entry.features)&&entry.features.length===INPUTS&&
    entry.features.every(n=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=1)
   ).map(entry=>({intent:entry.intent,features:[...entry.features]})):[];
@@ -187,7 +197,7 @@ export function upgradeNeuralSeed(model){
 export function readNeural(storage,namespace='default'){
  try{
   const raw=storage.getItem(neuralKey(namespace));
-  if(!raw||raw.length>180000)return null;
+  if(!raw||raw.length>200000)return null;
   return upgradeNeuralSeed(JSON.parse(raw));
  }catch{return null;}
 }
@@ -195,7 +205,9 @@ export function writeNeural(storage,namespace,model){
  try{
   const valid=serializeNeuralModel(model);
   if(!valid)return false;
-  storage.setItem(neuralKey(namespace),JSON.stringify(valid));
+  const text=JSON.stringify(valid);
+  if(text.length>200000)return false;
+  storage.setItem(neuralKey(namespace),text);
   return true;
  }catch{return false;}
 }
