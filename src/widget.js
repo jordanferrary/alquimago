@@ -428,7 +428,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.hoverStroke=freshStroke();this.dialogue=[];
     this.neural=seedNeuralModel();this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;this.configReady=false;this.lastSpoken=null;this.lastSpokenAt=0;this.lastIdleSpeech=Date.now();this.idleCycle=0;
     this.activePage=null;this.suggestions=[];this.observeTimer=null;this.observer=null;this.routeHandler=null;this.studioHandler=null;this.activityHandler=null;this.studioInfo=null;
-    this.publishDialogHandler=null;
+    this.publishDialogHandler=null;this.publishAuthorizationHandler=null;
     this.language=normalizeLanguage(null);this.skin=normalizeSkin(null);this.skinAdapter=null;
     this.preferences=blankPreferences();
     this.cortex=createCortexRuntime(createCortex());this.cortexStart=Date.now();
@@ -587,6 +587,29 @@ class AlquimagoFamiliar extends HTMLElement {
       }else delete this.dataset.publishing;
     };
     window.addEventListener('alquimago:publish-dialog',this.publishDialogHandler);
+    this.publishAuthorizationHandler=event=>{
+      if(!this.isConnected||this.desktop||this.config.memory.mode!=='publish')return;
+      const status=event?.detail?.status;
+      const replies={
+        missing:'Você ainda não me deu o dinheiro para comprar pão! ✦ Abra Publicar e use o campo protegido para fornecer o token. Nunca envie tokens aqui no chat.',
+        ready:'Dinheiro guardado no cofre! ✦ Já posso usar sua autorização atual. Revise e confirme a publicação no Studio.',
+        expired:'O pão mofou! 🥖 A autorização anterior não funciona mais. Posso jogá-la fora? Use Descartar token no Studio e salve outro.',
+        forbidden:'Tenho uma autorização, mas ela não permite publicar neste repositório. Podemos descartar e cadastrar uma com a permissão correta?',
+        offline:'Não consegui conferir o dinheiro agora. O GitHub pode estar indisponível; não descartei seu token.',
+        unavailable:'Não consegui abrir o cofre. Não vou pedir que você mande tokens no chat. Verifique a área de publicação do Studio.'
+      };
+      const reply=replies[status];
+      if(!reply)return;
+      // Only the assistant's immediately preceding publication answer may be replaced.
+      const tail=this.dialogue.at(-1),previous=this.dialogue.at(-2);
+      if(previous?.role!=='user'||tail?.role!=='familiar'||
+        recognizeStudioCommand(previous.text,this.config.commands.publishPhrase)!=='prepare-publish')return;
+      this.dialogue[this.dialogue.length-1]={role:'familiar',text:reply};
+      this.message=reply;this.lastSpoken=reply;this.lastSpokenAt=Date.now();
+      this.lastAnswerSource='Autorização GitHub · sem acesso ao token';
+      this.render();
+    };
+    window.addEventListener('alquimago:publish-auth-status',this.publishAuthorizationHandler);
     window.dispatchEvent(new Event('alquimago:request-context'));
     void (CONFIG_URL?loadConfig(CONFIG_URL,{origin:location.origin}):Promise.resolve(normalizeConfig(null))).then(async config=>{
       let legacyStorage=null;
@@ -685,6 +708,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.studioHandler)window.removeEventListener('alquimago:studio-context',this.studioHandler);
     if(this.activityHandler)window.removeEventListener('alquimago:activity',this.activityHandler);
     if(this.publishDialogHandler)window.removeEventListener('alquimago:publish-dialog',this.publishDialogHandler);
+    if(this.publishAuthorizationHandler)window.removeEventListener('alquimago:publish-auth-status',this.publishAuthorizationHandler);
     if(this.pointerOverHandler)document.removeEventListener('pointerover',this.pointerOverHandler);
     if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
     this.cancelProjectHover();
@@ -1331,7 +1355,7 @@ class AlquimagoFamiliar extends HTMLElement {
       // publisher. The phrase is never an authentication factor or approval.
       const allowed=!this.desktop&&this.config.memory.mode==='publish'&&this.studioInfo?.editing===true;
       const reply=allowed?
-        'Encontrei o comando! ⚗ Vou abrir a revisão da publicação. Confira as alterações e confirme no Studio. A frase não substitui sua autorização GitHub.':
+        'Vou conferir se ainda tenho dinheiro para comprar pão... ⚗ A autorização será verificada no Studio. A frase não publica nada sozinha.':
         'Esse comando está disponível apenas no Local Studio desbloqueado. Ele não publica sozinho.';
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:reply}].slice(-24);
       this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;
