@@ -1636,8 +1636,6 @@ class AlquimagoFamiliar extends HTMLElement {
     if(sendButton)sendButton.setAttribute('aria-label',this.language.ui.send);
     const teachButton=this.$content.querySelector('[data-action="teach-neural"]');
     if(teachButton)teachButton.textContent=this.language.ui.learn;
-    const teachLabel=this.$content.querySelector('.neural-teach label');
-    if(teachLabel)teachLabel.textContent=this.language.ui.learnTitle;
     const closeButton=this.shadowRoot.getElementById('close-panel');
     if(closeButton)closeButton.setAttribute('aria-label',this.language.ui.close);
     if(this.config.memory.mode==='publish'){
@@ -1744,19 +1742,39 @@ class AlquimagoFamiliar extends HTMLElement {
     }
     if(action==='teach-neural'){
       if(!this.lastUserText)return;
-      const selected=this.$content.querySelector('#alquimago-teach')?.value;
-      if(!INTENTS.includes(selected))return;
-      if(!teachNeural(this.neural,this.lastUserText,selected))return;
-      const corrected=neuralPredict(this.neural,this.lastUserText);
-      if(this.config.memory.mode!=='publish')writeNeural(storage(),this.config.memory.namespace,this.neural);
-      this.lastNeuralIntent=selected;
-      const labels={greeting:'saudação',identity:'identidade',status:'status',pet:'carinho',play:'brincadeira',brew:'poção',rest:'descanso',navigate:'navegação',insight:'sugestão',help:'ajuda',mood:'humor',thanks:'agradecimento'};
-      const reply='Aprendi: agora reconheço essa frase como '+(labels[selected]||selected)+'. Confiança: '+Math.round(corrected.confidence*100)+'%. '+(this.config.memory.mode==='publish'?'Publique para manter esse aprendizado.':'O aprendizado foi salvo.');
+      const intents=[...this.$content.querySelectorAll('#alquimago-teach-intents input:checked')]
+        .map(input=>input.value);
+      const tone=this.$content.querySelector('#alquimago-teach-tone')?.value||'neutral';
+      const topic=this.$content.querySelector('#alquimago-teach-topic')?.value||'';
+      const result=approveTeachingExample(this.teaching,this.lastUserText,{intents,tone,topic});
+      if(!result.ok){this.message=result.reason;this.renderHeader();return;}
+      if(!writeTeachingExamples(storage(),this.config.memory.namespace,result.memory)){
+        this.message='Não consegui salvar os significados neste navegador.';
+        this.renderHeader();return;
+      }
+      this.teaching=result.memory;
+      // Teach the legacy neural classifier only when an unambiguous mapping
+      // exists. A multi-intent lesson is never collapsed into a random action.
+      const neuralMap={greeting:'greeting',thanks:'thanks',joke:'play'};
+      if(intents.length===1&&neuralMap[intents[0]]){
+        teachNeural(this.neural,this.lastUserText,neuralMap[intents[0]]);
+        if(this.config.memory.mode!=='publish')
+          writeNeural(storage(),this.config.memory.namespace,this.neural);
+      }
+      const decision=this.lastAutoDecision;
+      if(decision&&!decision.used&&Date.now()-decision.at<120000&&
+         (intents.includes('reprimand')!==intents.includes('praise'))){
+        rewardCortex(this.cortex,decision.action,decision.context,intents.includes('praise')?1:-1,Date.now());
+        decision.used=true;this.save();
+      }
+      const named=intents.map(key=>TEACHING_INTENTS[key]).join(' + ');
+      const reply='Aprendi o significado da mensagem: '+named+'. Tom: '+(TEACHING_TONES[tone]||'Neutro')+
+        (topic?' · Assunto: '+topic:'')+'. Essa associação ficou salva neste dispositivo.';
       this.dialogue=[...this.dialogue,{role:'familiar',text:reply}].slice(-24);
-      if(this.config.memory.mode!=='publish')writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
-      this.message=reply;
-      this.render();
-      return;
+      if(this.config.memory.mode!=='publish')
+        writeDialogue(storage(),this.config.memory.namespace,this.dialogue);
+      this.message=reply;this.lastAnswerSource='Significados ensinados localmente';
+      this.render();return;
     }
     if(action==='reset-memory'){
       // Hard reloads must keep persistent progress. Reset is always deliberate.
