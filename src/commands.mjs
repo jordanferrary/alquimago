@@ -6,6 +6,7 @@ export function normalizeCommand(text){
  if(typeof text!=='string')return '';
  return text.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
   .toLocaleLowerCase('pt-BR')
+  .trim()
   .replace(/[.!?,;:]+$/g,'')
   .trim().replace(/\s+/g,' ').slice(0,100);
 }
