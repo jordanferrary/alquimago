@@ -88,6 +88,23 @@ export function recallLesson(input,library){
  if(!ranked.length||(ranked[1]&&ranked[0].score-ranked[1].score<.08))return null;
  return {reply:ranked[0].item.answer,intent:'approved-lesson',source:ranked[0].item.source};
 }
+/**
+ * Reuse a proven previous answer only for explicit short repeat requests.
+ * It requires the immediately preceding familiar reply to match an approved
+ * lesson; unrelated or stale project context cannot be pulled in.
+ */
+export function recallLessonFollowup(input,history,library){
+ const q=canonicalLesson(input);
+ if(!/^(?:repete|repita|pode repetir|pode repetir a resposta|qual foi sua resposta|o que voce me respondeu|o que voce disse antes|lembra o que voce disse)$/.test(q))return null;
+ const recent=Array.isArray(history)?history.slice(-8):[];
+ const prior=recent[recent.length-1],previous=recent[recent.length-2];
+ if(prior?.role!=='familiar'||previous?.role!=='user')return null;
+ const approved=recallLesson(previous.text,library);
+ if(!approved||prior.text!==approved.reply)return null;
+ return {reply:'Claro. Repetindo a lição que você aprovou: '+approved.reply,
+  intent:'approved-lesson',source:approved.source};
+}
+
 export const lessonsKey=ns=>'alquimago:lessons:v1:'+(/^[a-zA-Z0-9_-]{1,48}$/.test(ns)?ns:'default');
 export function readLessons(storage,namespace='default'){
  try{
