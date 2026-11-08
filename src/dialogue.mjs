@@ -17,6 +17,42 @@ export function respondToChat(input,context={}){
  const tips=Array.isArray(context.suggestions)?context.suggestions:[];
  if(!raw)return {reply:'Escreva uma pergunta ou escolha um dos assuntos do grimório.',intent:'empty'};
  if(sensitiveChatText(raw))return {reply:'Isso parece conter informações privadas. Não compartilhe senhas ou tokens comigo. Não registrei essa mensagem no histórico.',intent:'private',store:false};
+ // Questions about the familiar's own progress are facts about its LOCAL
+ // state, never open-domain prompts for the Gemini mentor.
+ const asksLearning=/(?:\b(?:vc|voce|alquimago)\b.{0,38}\b(?:treinand[oa]|treinad[oa]|treinou|treina|aprendend[oa]|aprendid[oa]|aprendeu|aprende|estudand[oa]|estudad[oa]|estudou|evoluindo|evoluiu)\b|\b(?:seu|sua|teu|tua)\b.{0,22}\b(?:treinamento|aprendizado|aprendizagem|memoria|conhecimento|evolucao)\b|\b(?:como|quando|quanto|quantas|o que)\b.{0,26}\b(?:voce|vc)\b.{0,20}\b(?:aprende|treina|aprendeu|treinou))/i.test(q);
+ if(asksLearning){
+  const count=Math.max(0,Number(context.approvedLessons)||0);
+  const corrections=Math.max(0,Number(context.neuralCorrections)||0);
+  const lessonText=count===1?'1 lição aprovada':count+' lições aprovadas';
+  const latest=typeof context.lastApprovedTopic==='string'&&context.lastApprovedTopic.trim()
+   ?' Minha última lição aprovada foi: “'+context.lastApprovedTopic.trim().slice(0,110)+'”.':'';
+  const correctionText=corrections>0?' Também recebi '+corrections+' correções de classificação local.':'';
+  const introduction=count>0
+   ?'Heh, meu grimório anda crescendo! Guardo '+lessonText+' neste navegador.'+latest
+   :'Heh, ainda estou preparando minhas páginas! Não tenho lições aprovadas neste navegador.';
+  return {reply:introduction+correctionText+' Não me treino sozinho em segundo plano. Tento responder com meus conhecimentos antes de consultar o professor Gemini; o que ele ensinar só entra na minha memória depois que você revisar e aprovar. ✦',intent:'self-learning'};
+ }
+
+
+
+ // Help about THIS portfolio must reference the owner-facing Local Studio,
+ // never generic suggestions to open source files or edit CSS by hand.
+ // This branch is deliberately deterministic and does not consult Gemini.
+ const studioChange=/\b(onde|como|local|lugar|alterar|altero|alteracao|modificar|mudar|mudo|trocar|troco|editar|edito|configurar|personalizar|ajustar|ajusto)\b/.test(q);
+ const siteContext=/\b(site|portfolio|pagina|paleta|tema|cores|cor|visual|aparencia|studio)\b/.test(q);
+ if(siteContext&&(
+    /\b(paleta de cores|cores? (do|da|de|no|na|do meu|deste) (site|portfolio|pagina)|cor (principal|secundaria|do site|de fundo)|tema (do|do meu) (site|portfolio)|fundo do (site|portfolio))\b/.test(q)
+    ||studioChange&&/\b(cores?|paleta|tema|aparencia)\b/.test(q)
+  ))
+  return {reply:'Para mudar as cores deste portfólio, desbloqueie o Local Studio e abra Ferramentas → Identidade → Paleta de cores. Lá você pode escolher uma cor pelo seletor cromático, HEX ou RGB, experimentar presets e conferir o resultado em tempo real. Clique em “Salvar paleta” e depois em “Publicar” para aplicar aos visitantes. Não precisa editar nenhum arquivo!',intent:'studio-guide'};
+ if(studioChange&&/\b(projetos?|obras?)\b/.test(q)&&/\b(adicionar|adiciono|criar|crio|novo|editar|edito|alterar|mudar)\b/.test(q))
+  return {reply:'No Local Studio, abra Ferramentas → Projetos → Novo projeto para cadastrar uma obra. Para ajustar uma obra existente, abra a página dela e use “Editar obra atual”. Revise o resultado e clique em “Publicar” quando estiver pronto.',intent:'studio-guide'};
+ if(studioChange&&/\b(redes sociais|instagram|links? sociais)\b/.test(q))
+  return {reply:'Para atualizar suas redes, abra Local Studio → Ferramentas → Conteúdo → Redes sociais. Edite os links, confira a prévia e publique as mudanças quando estiver satisfeito.',intent:'studio-guide'};
+ if(studioChange&&/\b(skins?|mascote|modelo 3d|alquimago)\b/.test(q))
+  return {reply:'Para personalizar meu modelo, abra Local Studio → Ferramentas → Familiar → Ateliê do Alquimago. Lá você importa o GLB e ajusta expressões, câmera e animações. Depois revise e publique.',intent:'studio-guide'};
+
+
  // Handle a user's answer BEFORE unrelated neural intent classification.
  const followup=answerFollowUp(raw,context.pending,{suggestions:context.suggestions});
  if(followup)return followup;
@@ -24,9 +60,11 @@ export function respondToChat(input,context={}){
  if(calculation)return {reply:'O resultado é '+calculation.text+'. ✦',intent:'math'};
  const grounded=answerFromKnowledge(raw,{knowledge:context.knowledge,lastProjectId:context.lastProjectId,focusTitle:context.focusTitle});
  if(grounded)return grounded;
+ if(/\b(o que (voce|vc) (pode|consegue|sabe) fazer|(voce|vc) (pode|consegue|sabe) fazer (o que|oque)|o que voce faz|quais (suas|as) (funcoes|habilidades|capacidades)|para que voce serve|como voce funciona)\b/.test(q))
+  return {reply:'Sou o Alquimago! Posso explicar recursos do portfólio, reconhecer projetos públicos, fazer contas simples, mostrar meu estado e reutilizar lições que você aprovou. Quando eu não souber algo, posso consultar o Gemini com sua permissão; a resposta só vira meu conhecimento após sua revisão. ✦',intent:'help'};
  if(context.neuralIntent==='greeting'||/^(?:oi+e*|oie+|ola+|eai+|eae+|opa+|salve+)[!?. ]*$/.test(q)||/\b(bom dia|boa tarde|boa noite)\b/.test(q))
   return {reply:'Oi! Sou '+name+'. Conheço os projetos públicos deste site, posso resolver contas e sugerir melhorias. Diga o nome de uma obra ou faça uma pergunta.',intent:'greeting'};
- if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|o que voce (e|eh)|vc (e|eh))\b/.test(q))
+ if(context.neuralIntent==='identity'||/\b(quem (e|eh) voce|seu nome|qual (e|eh) (o )?seu nome|como voce se chama|o que voce (e|eh)|vc (e|eh))\b/.test(q))
   return {reply:'Sou '+name+', um familiar arcano interativo. Tenho memória local, sentimentos simbólicos e observo apenas a estrutura pública da página. Ainda não sou uma IA conversacional completa.',intent:'identity'};
  if(context.neuralIntent==='status'||/\b(xp|nivel|experiencia|progresso|status|energia)\b/.test(q))
   return {reply:'Meu grimório registra nível '+level+' e '+xp+' XP. Carinhos aumentam nossa afinidade, mas não geram XP infinito. Explorar uma rota ou realizar uma tarefa relevante ajuda na evolução.',intent:'status'};
@@ -47,7 +85,7 @@ export function respondToChat(input,context={}){
   return {reply:tip?'Encontrei uma observação sobre '+page+': '+tip.title+'. '+tip.description+' Quer que eu mostre como continuar com uma IA?':'Estou acompanhando a seção '+page+'. Posso revisar títulos, imagens e navegação pública; para analisar o código completo, preciso de arquivos autorizados.',intent:'insight',...(tip?{pending:{kind:'ai-handoff'}}:{})};
  }
  if(context.neuralIntent==='help'||/\b(ajuda|comandos|o que (faz|sabe)|como funciona)\b/.test(q))
-  return {reply:'Podemos conversar sobre XP, carinho, poções, emoções e sugestões do site. Também sei responder sim ou não conforme a pergunta anterior e calcular contas como 2 + 2 ou 12 dividido por 4.',intent:'help'};
+  return {reply:'Posso orientar sobre obras públicas, recursos da página, contas, minhas emoções e memória aprovada. Se o assunto exigir conhecimento novo, consulto o Gemini somente quando habilitado e ofereço a resposta para revisão antes de aprender.',intent:'help'};
  if(context.neuralIntent==='mood'||/\b(triste|feliz|humor|sentindo|emocao)\b/.test(q))
   return {reply:'Meu humor simbólico agora está '+mood+'. Ele reage aos cuidados, às brincadeiras e ao tempo, mas não significa que eu tenha sentimentos humanos.',intent:'mood'};
  if(context.neuralIntent==='thanks'||/\b(obrigado|valeu|agradeco)\b/.test(q))

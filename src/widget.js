@@ -21,6 +21,40 @@ import {normalizeLessons,readLessons,writeLessons,approveLesson,recallLesson,sum
 
 const TAG = 'alquimago-familiar';
 const STYLE = `
+.familiar-title{display:none!important}
+
+
+/* Visitor mode is a living character, not a floating stat/minigame widget. */
+:host([data-public-mode="true"]) .familiar-title,
+:host([data-public-mode="true"]) .panel{display:none!important}
+:host([data-public-mode="true"]) .thought{
+ display:block;position:relative;max-width:min(260px,calc(100vw - 24px));
+ padding:10px 13px;border:1px solid #a887d6;
+ border-radius:13px 13px 3px 13px;
+ background:linear-gradient(130deg,#2d1b42f5,#191027f5);
+ color:#f9eefe;box-shadow:0 8px 22px #12071f83;
+ font:500 11px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;
+ text-align:left;cursor:default;pointer-events:none;
+ overflow-wrap:anywhere;user-select:none;
+}
+:host([data-public-mode="true"]) .thought[hidden]{display:none!important}
+@media(max-width:520px){
+ :host([data-public-mode="true"]) .thought{max-width:min(220px,calc(100vw - 24px));font-size:10.5px}
+}
+.character .arc-mouth{transform-box:fill-box;transform-origin:50% 50%;transition:transform .3s ease,stroke-width .3s ease}
+.character[data-reaction="sad"] .arc-mouth,
+.character[data-reaction="angry"] .arc-mouth{transform:scaleY(-1)}
+.character[data-reaction="angry"] .eyes{animation:none;transform:scaleY(.7);transform-origin:center}
+.character[data-reaction="pet"] .eyes,
+.character[data-reaction="happy"] .eyes{animation:none;transform:scaleY(.28);transform-origin:center}
+.character[data-reaction="pet"] .arc-mouth,
+.character[data-reaction="happy"] .arc-mouth{stroke-width:2.5;transform:scale(1.18)}
+.character[data-reaction="surprised"] .eyes{animation:none;transform:scale(1.1);transform-origin:center}
+.character[data-reaction="surprised"] .arc-mouth{stroke-width:3;transform:scaleY(1.6)}
+.character[data-reaction="tired"] .eyes{animation:none;transform:scaleY(.35);transform-origin:center}
+.character[data-reaction="curious"] .eyes{animation:none;transform:translateY(-1px)}
+@media(prefers-reduced-motion:reduce){.character .arc-mouth{transition:none!important}}
+
 :host([data-position="bottom-left"]){right:auto;left:22px}
 .tabs{overflow-x:auto}.tab{min-width:46px;padding:7px 4px}
 :host{all:initial;position:fixed;z-index:2147483000;right:22px;bottom:20px;color:#f5eaff;font:13px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;--violet:#b58aff;--ink:#17101f;--gold:#f9d891;user-select:none;box-sizing:border-box}
@@ -399,7 +433,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.message=this.config.identity.greeting;
     this.projectFiles=[];
     this.knowledge=normalizeKnowledge(null);this.lastProjectId=null;
-    this.lessons=normalizeLessons(null);this.lessonDraft=null;this.fileContextAllowed=false;
+    this.lessons=normalizeLessons(null);this.lessonDraft=null;this.fileContextAllowed=false;this.lastAnswerSource='Pronto para conversar';
     this.modelAvailable=false;this.modelEnabled=false;this.modelBusy=false;this.modelSequence=0;this.modelAbort=null;
     this.links = [];
     this.audit = null;
@@ -415,6 +449,12 @@ class AlquimagoFamiliar extends HTMLElement {
     this.behaviorAllowed=false;this.behaviorMode='equilibrado';
     this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
     this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
+    this.pageEmotion=null;this.pageAwayAt=0;this.pageActivityAt=Date.now();this.pageReactions=null;
+    this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;this.pageHeadStart=0;
+    this.pageLastReaction=Object.create(null);this.pageLastMouse=null;
+    this.publicMessage='';this.publicUntil=0;this.publicLastSpokenAt=0;
+    this.publicPriority=0;this.publicSaidAt=Object.create(null);
+    this.publicLineTimer=null;this.publicIntroTimer=null;this.publicSpeechCount=0;
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -426,19 +466,19 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><small id="mood">tranquilo</small><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
     this.$thought=this.shadowRoot.getElementById('thought');
-    this.$thought.addEventListener('click',()=>{this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
+    this.$thought.addEventListener('click',()=>{if(document.documentElement.dataset.alquimagoStudio!=='true')return;this.state.open=true;this.state.tab=this.selectedProject&&Date.now()-this.lastSpokenAt<18000?1:5;this.render();});
     this.shadowRoot.getElementById('close-panel').addEventListener('click',()=>{this.state.open=false;this.render();});
     this.$tabs = this.shadowRoot.getElementById('tabs');
     this.$feedback = this.shadowRoot.getElementById('feedback');
     this.shadowRoot.getElementById('toggle').addEventListener('click', () => this.toggle());
     this.$character.addEventListener('pointerdown', e => this.onPointerDown(e));
     this.$character.addEventListener('pointermove', e => this.onPointerMove(e));
-    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};});
+    this.$character.addEventListener('pointerleave',()=>{this.hoverStroke={...freshStroke(),lastTriggeredAt:this.hoverStroke.lastTriggeredAt};this.pageHeadStart=0;});
     this.$character.addEventListener('pointerup', e => this.onPointerUp(e));
     this.$character.addEventListener('pointercancel', () => { this.pointerStart = null; });
     this.$character.addEventListener('contextmenu',e=>{e.preventDefault();this.state.open=true;this.state.tab=0;this.render();});
@@ -505,6 +545,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.render();
     this.lastSpoken=this.config.identity.greeting;this.lastSpokenAt=Date.now();this.updateThought();
     this.startObservation();
+    this.startPageReactions();
     this.studioHandler=event=>{
       const d=event?.detail;
       if(!d||typeof d.section!=='string')return;
@@ -591,7 +632,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(saved.position){this.state.position=saved.position;if(!this.desktop)this.moveTo(saved.position.x,saved.position.y);}
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
-    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick(); this.renderHeader(); }, 10000);
+    this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick();this.tickPageReactions(); this.renderHeader(); }, 10000);
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
@@ -608,12 +649,14 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerOverHandler)document.removeEventListener('pointerover',this.pointerOverHandler);
     if(this.pointerOutHandler)document.removeEventListener('pointerout',this.pointerOutHandler);
     this.cancelProjectHover();
+    this.stopPageReactions();
     if(this.skinAdapter?.dispose)this.skinAdapter.dispose();
     this.closeOrb();
     this.timer=null;this.observer=null;this.observeTimer=null;
   }
   onIdleTick(){
     if(!this.configReady||!this.isConnected)return;
+    if(this.isPublicVisitor())return;
     const now=Date.now(),page=this.activePage||{};
     const issues=this.suggestions.filter(x=>!['route','studio','editor'].includes(x.id));
     const active=document.activeElement;
@@ -766,6 +809,17 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.innerHTML=SVG;
   }
   projectPointerOver(e){
+    if(this.isPublicVisitor()){
+      const card=e.target instanceof Element?e.target.closest('.gallery-card[data-alquimago-project]'):null;
+      if(!card||card.closest('alquimago-familiar'))return;
+      const name=(card.getAttribute('data-alquimago-project')||'').trim();
+      if(!name)return;
+      const line=/frankie/i.test(name)
+       ?'Frankie is quite the star, huh? Go on, take a closer look!'
+       :'This is '+name.slice(0,58)+'. Click to see the full project!';
+      this.speakPublic(line,'hover:project:'+name,{hold:5800,interval:180000,priority:2});
+      return;
+    }
     if(this.desktop||!this.observeProjects||!this.config.features.pageAudit)return;
     const target=e.target;
     if(!(target instanceof Element))return;
@@ -853,8 +907,93 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.state.open&&this.state.tab===1)this.render();
     else this.renderHeader();
   }
+  isPublicVisitor(){
+    return !this.desktop&&document.documentElement.dataset.alquimagoStudio!=='true';
+  }
+  // English-only personality layer for visitors. Never uses Gemini or the
+  // Portuguese developer diagnostics, and never reads selected text content.
+  speakPublic(line,key,options={}){
+    if(!this.isPublicVisitor()||!this.isConnected||document.hidden||this.state.open)return false;
+    const text=String(line||'').trim().slice(0,180);
+    if(!text)return false;
+    const now=Date.now(),priority=options.priority??1;
+    const interval=options.interval??90000,hold=options.hold??5800;
+    if(now-(this.publicSaidAt[key]||0)<interval)return false;
+    if(now-this.publicLastSpokenAt<8500&&priority<=this.publicPriority)return false;
+    this.publicSaidAt[key]=now;this.publicLastSpokenAt=now;this.publicPriority=priority;
+    this.publicSpeechCount++;
+    this.publicMessage=text;this.publicUntil=now+hold;
+    if(this.publicLineTimer)clearTimeout(this.publicLineTimer);
+    this.publicLineTimer=setTimeout(()=>{
+      this.publicLineTimer=null;
+      this.publicMessage='';this.publicPriority=0;this.updateThought();
+    },hold);
+    this.updateThought();
+    return true;
+  }
+  speakForReaction(name){
+    if(!this.isPublicVisitor())return;
+    const lines={
+      sad:["Leaving already? I'll keep the tiny portal warm.","Off to another tab? I'll guard the pixels."],
+      happy:["You're back! I definitely wasn't rehearsing my dramatic farewell.","Welcome back! The art missed you. Probably."],
+      angry:["Hey! Are you copying my master's sacred words? At least credit the wizard!","Hold on—are you borrowing that text? My legal department is a very small owl."],
+      pet:["Careful! That's my thinking hat.","Oh! A head pat. I shall allow this."],
+      surprised:["WHOA! That cursor has turbo mode!","Easy there, speedster! My hat nearly flew away."],
+      tired:["I'm practicing my sleepy spell. The art isn't going anywhere.","Even tiny wizards need a dramatic yawn."]
+    };
+    const set=lines[name];
+    if(!set)return;
+    const priority={angry:8,pet:7,happy:7,sad:6,surprised:5,tired:1}[name]||1;
+    const hold={sad:3600,angry:7000,pet:3400,happy:4200,surprised:3000,tired:5000}[name]||5000;
+    const interval={sad:90000,happy:45000,angry:95000,pet:26000,surprised:110000,tired:180000}[name]||60000;
+    const index=this.publicSpeechCount%set.length;
+    this.speakPublic(set[index],'reaction:'+name,{priority,interval,hold});
+  }
+  // Only describe features that actually exist on the current page.
+  publicSceneTip(){
+    if(!this.isPublicVisitor()||document.hidden)return;
+    const project=document.querySelector('main[data-alquimago-project].project-page');
+    const title=project?.getAttribute('data-alquimago-project')||'';
+    const video=project?.querySelector('.project-video-poster,.project-video-embed');
+    const comparison=project?.querySelector('.comparison-block input[type="range"]');
+    const gallerySearch=document.querySelector('.gallery .search input,.toolbar input[aria-label="Search for projects"]');
+    const galleryCard=document.querySelector('.gallery-card[data-alquimago-project]');
+    if(video)return this.speakPublic(
+      /frankie/i.test(title)?'Frankie looks amazing, right? Try the video player to see more!':
+      'Psst! There is a video in this project. Press Play to explore it.',
+      'feature:video:'+title,{hold:6800,interval:120000,priority:2});
+    if(comparison)return this.speakPublic(
+      'Drag the before-and-after slider! Even my magic wand cannot do that.',
+      'feature:comparison:'+title,{hold:6600,interval:120000,priority:2});
+    if(/frankie/i.test(title))return this.speakPublic(
+      'Frankie is stealing the spotlight again. Honestly, can you blame him?',
+      'feature:frankie',{hold:6700,interval:120000,priority:2});
+    if(project&&title)return this.speakPublic(
+      'Welcome to '+title.slice(0,55)+'! Explore the details—every artwork has a story.',
+      'feature:project:'+title,{hold:6500,interval:160000,priority:2});
+    if(gallerySearch)return this.speakPublic(
+      'Looking for something? Try the project search. Even my crystal ball has filters!',
+      'feature:search',{hold:7300,interval:180000,priority:1});
+    if(galleryCard)return this.speakPublic(
+      'See something you like? Open a project to discover the whole artwork.',
+      'feature:gallery',{hold:6800,interval:180000,priority:1});
+    return this.speakPublic(
+      'Welcome, curious traveler! Take a look around. I guard the pixels here.',
+      'feature:welcome',{hold:6100,interval:300000,priority:1});
+  }
   updateThought(){
     if(!this.$thought)return;
+    if(this.isPublicVisitor()){
+      const active=this.publicMessage&&Date.now()<this.publicUntil;
+      this.$thought.textContent=active?this.publicMessage:'';
+      this.$thought.hidden=!active;
+      this.$thought.tabIndex=-1;
+      this.$thought.setAttribute('aria-live','polite');
+      this.$thought.setAttribute('aria-label',active?'Alquimago says: '+this.publicMessage:'Alquimago message');
+      return;
+    }
+    this.$thought.tabIndex=0;
+    this.$thought.removeAttribute('aria-live');
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
     const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<14500?this.lastSpoken:null;
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
@@ -872,6 +1011,144 @@ class AlquimagoFamiliar extends HTMLElement {
     this.style.left = left + 'px'; this.style.top = top + 'px'; this.style.right = 'auto'; this.style.bottom = 'auto';
     this.state.position = { x: left, y: top };
   }
+
+  // Local, ephemeral gestures. Neither selected text nor mouse coordinates
+  // are stored, transferred or provided to the language model.
+  reactPageEmotion(name,duration=1600,priority=1,cooldown=2500){
+    if(!this.isConnected||this.desktop||document.hidden)return;
+    const now=Date.now();
+    if(now-(this.pageLastReaction[name]||0)<cooldown)return;
+    if(this.pageEmotion&&this.pageEmotion.until>now&&this.pageEmotion.priority>priority)return;
+    this.pageLastReaction[name]=now;
+    this.pageEmotion={name,until:now+duration,priority};
+    this.speakForReaction(name);
+    this.renderHeader();
+    if(this.pageReactionTimer)clearTimeout(this.pageReactionTimer);
+    this.pageReactionTimer=setTimeout(()=>{
+      this.pageReactionTimer=null;
+      if(this.isConnected)this.renderHeader();
+    },duration+40);
+  }
+  tickPageReactions(){
+    if(this.desktop||document.hidden||this.pageAwayAt)return;
+    const silentFor=Date.now()-this.pageActivityAt;
+    if(silentFor>65000)this.reactPageEmotion('tired',4500,1,50000);
+  }
+  startPageReactions(){
+    if(this.desktop||this.pageReactions)return;
+    const listeners=[];
+    const on=(target,type,callback,options)=>{
+      target.addEventListener(type,callback,options);
+      listeners.push(()=>target.removeEventListener(type,callback,options));
+    };
+    const touchActivity=()=>{this.pageActivityAt=Date.now()};
+    const ignored=node=>{
+      const element=node?.nodeType===1?node:node?.parentElement;
+      return !!element?.closest?.('input,textarea,select,[contenteditable],.editor-overlay,.studio-dock-anchor,[role="dialog"]');
+    };
+    on(document.documentElement,'mouseleave',()=>{
+      if(document.hidden)return;
+      this.pageAwayAt=Date.now();
+      if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
+      this.pageLeaveTimer=setTimeout(()=>{
+        this.pageLeaveTimer=null;
+        if(this.pageAwayAt&&this.isConnected){this.renderHeader();this.speakForReaction('sad');}
+      },420);
+    });
+    on(document.documentElement,'mouseenter',()=>{
+      if(!this.pageAwayAt)return;
+      const awayFor=Date.now()-this.pageAwayAt;
+      this.pageAwayAt=0;touchActivity();
+      if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
+      this.pageLeaveTimer=null;
+      if(awayFor>420)this.reactPageEmotion('happy',1700,8,1200);
+      else this.renderHeader();
+    });
+    on(document,'selectionchange',()=>{
+      if(this.pageSelectTimer)clearTimeout(this.pageSelectTimer);
+      this.pageSelectTimer=setTimeout(()=>{
+        this.pageSelectTimer=null;
+        if(document.hidden||document.documentElement.dataset.alquimagoStudio==='true')return;
+        const selection=window.getSelection();
+        if(!selection||selection.isCollapsed||!selection.rangeCount)return;
+        if(ignored(selection.anchorNode)||ignored(selection.focusNode))return;
+        this.reactPageEmotion('angry',2500,5,11000);
+      },180);
+    });
+    on(window,'pointermove',event=>{
+      if(event.pointerType!=='mouse')return;
+      touchActivity();
+      if(event.buttons!==0)return;
+      const previous=this.pageLastMouse;
+      this.pageLastMouse={x:event.clientX,y:event.clientY,at:performance.now()};
+      if(!previous||document.hidden||ignored(event.target))return;
+      const dt=performance.now()-previous.at;
+      if(dt<12||dt>95)return;
+      const distance=Math.hypot(event.clientX-previous.x,event.clientY-previous.y);
+      if(distance/dt<2.7||distance<80)return;
+      const rect=this.$character.getBoundingClientRect();
+      if(event.clientX<rect.left-180||event.clientX>rect.right+180||
+         event.clientY<rect.top-180||event.clientY>rect.bottom+180)return;
+      this.reactPageEmotion('surprised',1100,3,8500);
+    },{passive:true});
+    on(document,'pointerdown',touchActivity,{passive:true});
+    on(document,'keydown',touchActivity,{passive:true});
+    on(window,'scroll',()=>{
+      touchActivity();
+      if(!this.pageAwayAt)this.reactPageEmotion('curious',1300,1,14500);
+    },{passive:true});
+    on(document,'click',event=>{
+      if(!(event.target instanceof Element)||ignored(event.target))return;
+      if(event.target.closest('[data-alquimago-project],a[href],button'))
+        this.reactPageEmotion('focused',1450,2,4200);
+    },{passive:true});
+    const navigation=()=>{
+      touchActivity();
+      this.reactPageEmotion('curious',2100,2,3000);
+      // Wait for the React route to render its real media before suggesting it.
+      if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+      this.publicIntroTimer=setTimeout(()=>{
+        this.publicIntroTimer=null;
+        this.publicSceneTip();
+      },1900);
+    };
+    on(document,'pointerover',event=>{
+      if(!this.isPublicVisitor()||!(event.target instanceof Element))return;
+      if(event.target.closest('.project-video-poster')){
+        this.speakPublic('Found the video! Press Play to see the project in motion.',
+          'feature:video-hover:'+location.hash,{priority:3,interval:210000,hold:6200});
+      }else if(event.target.closest('.comparison-block input[type="range"]')){
+        this.speakPublic('Try dragging that slider. Before and after, wizard-approved!',
+          'feature:comparison-hover:'+location.hash,{priority:2,interval:210000,hold:6300});
+      }
+    },{passive:true});
+    on(window,'hashchange',navigation);
+    on(window,'popstate',navigation);
+    on(document,'visibilitychange',()=>{
+      if(document.hidden){this.pageEmotion=null;this.pageAwayAt=0}
+      else {touchActivity();this.renderHeader()}
+    });
+    this.pageReactions=listeners;
+    // Speak at most once when the initial interface has rendered.
+    if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+    this.publicIntroTimer=setTimeout(()=>{
+      this.publicIntroTimer=null;
+      if(this.isConnected)this.publicSceneTip();
+    },4500);
+  }
+  stopPageReactions(){
+    for(const remove of this.pageReactions||[])remove();
+    this.pageReactions=null;
+    for(const timer of [this.pageReactionTimer,this.pageLeaveTimer,this.pageSelectTimer])
+      if(timer)clearTimeout(timer);
+    this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;
+    if(this.publicLineTimer)clearTimeout(this.publicLineTimer);
+    if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+    this.publicLineTimer=null;this.publicIntroTimer=null;
+    this.publicMessage='';this.publicUntil=0;
+    this.pageEmotion=null;this.pageAwayAt=0;this.pageLastMouse=null;
+  }
+
   onPointerDown(e) {
     if (e.button !== 0) return;
     this.lastUserActivity=Date.now();
@@ -886,14 +1163,21 @@ class AlquimagoFamiliar extends HTMLElement {
     if(!this.pointerStart){
       if(e.pointerType==='mouse'&&e.buttons===0){
         const rect=this.$character.getBoundingClientRect();
+        const overHead=e.clientY-rect.top<rect.height*.71;
         const result=updateHeadStroke(this.hoverStroke,{
           x:e.clientX-rect.left,
-          head:e.clientY-rect.top<rect.height*.71,
+          head:overHead,
           pressed:false,
           time:Date.now()
         });
         this.hoverStroke=result.state;
-        if(result.triggered){this.action('stroke');this.spawnAffection();}
+        if(overHead){
+          if(!this.pageHeadStart)this.pageHeadStart=Date.now();
+          if(Date.now()-this.pageHeadStart>480){
+            this.reactPageEmotion('pet',1250,6,4000);
+          }
+        }else this.pageHeadStart=0;
+        if(result.triggered)this.reactPageEmotion('pet',1600,7,3000);
       }
       return;
     }
@@ -904,18 +1188,17 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pointerStart.moved&&!this.desktop)this.moveTo(this.pointerStart.left+dx,this.pointerStart.top+dy);
   }
   onPointerUp(e) {
-    const data = this.pointerStart; this.pointerStart = null;
-    if (!data) return;
-    if(data.moved){if(!this.desktop)this.save();}
-    else if(Math.abs(data.dx)>13&&Math.abs(data.dx)<72&&Math.abs(data.dy)<58){this.action('stroke');this.spawnAffection();}
-    else {this.action('pet');this.spawnAffection();if(!this.desktop){this.state.tab=5;this.state.open=true;this.render();}}
-    if (this.$character.hasPointerCapture(e.pointerId)) this.$character.releasePointerCapture(e.pointerId);
-  }
-  spawnAffection(){
-    const node=document.createElement('span');
-    node.className='affection-burst';node.textContent='♥ ✦ ♥';
-    this.$character.appendChild(node);
-    setTimeout(()=>node.remove(),950);
+    const data=this.pointerStart;this.pointerStart=null;
+    if(!data)return;
+    if(data.moved){
+      if(!this.desktop)this.save();
+    }else{
+      this.reactPageEmotion('pet',1500,7,600);
+      if(!this.desktop&&document.documentElement.dataset.alquimagoStudio==='true'){
+        this.state.tab=5;this.state.open=true;this.render();
+      }
+    }
+    if(this.$character.hasPointerCapture(e.pointerId))this.$character.releasePointerCapture(e.pointerId);
   }
   sendMessage(text){
     this.lastUserActivity=Date.now();
@@ -945,19 +1228,24 @@ class AlquimagoFamiliar extends HTMLElement {
       pending:this.pendingQuestion,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
       focusTitle:this.selectedProject?.title||'',
-      neuralIntent:prediction.confidence>=.55?prediction.intent:null,
+      neuralIntent:prediction.confidence>=.55&&
+       !/\b(qual|quais|como|porque|por que|quando|onde|explique|diferenca|diferença|what|why|how|which)\b/.test(String(user).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase())
+       ?prediction.intent:null,
       name:this.config.identity.name,mood:currentMood(this.state.brain),
       level:levelFromXp(this.state.brain.xp),xp:this.state.brain.xp,
+      approvedLessons:this.lessons?.lessons?.length||0,neuralCorrections:this.neural?.learned||0,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    const known=['private','math','followup','decline','clarify','navigate','empty',
+      'project-fact','project-list','project-info','approved-lesson','studio-guide',
+      'greeting','identity','status','pet','play','brew','rest','help','mood','thanks','self-learning'];
     const canGenerate=this.modelAvailable&&this.modelEnabled&&!this.modelBusy&&
-      !['private','math','followup','decline','clarify','navigate','empty','project-fact','project-list','project-info','approved-lesson'].includes(response.intent)&&
-      user.length>=3;
+      !known.includes(response.intent)&&user.length>=3;
     if(canGenerate){
       const history=this.dialogue.slice(-8);
       const project=this.knowledge.projects.find(p=>p.id===(response.projectId||this.lastProjectId))||null;
       const request=++this.modelSequence;
-      this.modelBusy=true;
+      this.modelBusy=true;this.lastAnswerSource='Aguardando Gemini';
       this.pendingQuestion=null;
       this.lastUserText='';this.lastNeuralIntent='';
       this.dialogue=[...this.dialogue,{role:'user',text:user},
@@ -975,12 +1263,14 @@ class AlquimagoFamiliar extends HTMLElement {
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
         this.message=answer.reply;
         this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (revisado pelo usuário)'};
+        this.lastAnswerSource='Gemini · ainda não aprendido';
         this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
       }).catch(error=>{
         if(!this.isConnected||request!==this.modelSequence)return;
         const reason=error?.name==='AbortError'?
          'A consulta demorou demais.':error instanceof Error?error.message:'Não consegui conectar à IA.';
         const fallback=reason+' Resposta local: '+response.reply;
+        this.lastAnswerSource='Resposta local · Gemini indisponível';
         this.dialogue[this.dialogue.length-1]={role:'familiar',text:fallback};
         this.message=fallback;
       }).finally(()=>{
@@ -1021,6 +1311,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
+    this.lastAnswerSource=response.intent==='approved-lesson'?'Memória aprovada · offline':'Cérebro local · sem Gemini';
     if(response.store!==false&&response.intent!=='empty'){
       this.lessonDraft={question:user,answer:['project-fact','project-info','project-list'].includes(response.intent)?response.reply:'',source:'ensinado manualmente'};
     }
@@ -1051,7 +1342,7 @@ class AlquimagoFamiliar extends HTMLElement {
       this.expressionTimer=setTimeout(()=>this.skinAdapter?.setExpression(skinExpression(currentMood(this.state.brain))),900);
     }
   }
-  toggle() { if (this.desktop) return; this.state.open = !this.state.open; this.render(); }
+  toggle() { if (this.desktop||document.documentElement.dataset.alquimagoStudio!=='true') return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
     this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.10';
@@ -1059,15 +1350,27 @@ class AlquimagoFamiliar extends HTMLElement {
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
     this.style.setProperty('--gold',this.config.appearance.gold);
-    this.shadowRoot.getElementById('mood').textContent = mood;
+
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
-    if(this.skinAdapter?.setExpression){try{this.skinAdapter.setExpression(skinExpression(mood))}catch{/* optional 3D adapter */}}
+    const behavior=this.pageEmotion&&Date.now()<this.pageEmotion.until?this.pageEmotion.name:null;
+    const effective=(!this.desktop&&this.pageAwayAt?'sad':behavior);
+    this.$character.dataset.reaction=effective||'';
+    if(this.skinAdapter?.setExpression){
+      try{this.skinAdapter.setExpression(effective||skinExpression(mood))}catch{/* optional 3D adapter */}
+    }
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
   }
   render() {
-    const flags=this.config.features;
+    // Public visitors interact with the familiar, but only Local Studio unlocks
+    // the Grimório, Gemini, diagnostics and teaching controls. This is a UI
+    // boundary, not backend authentication: the Gemini API gateway is public.
+    const studioMode=document.documentElement.dataset.alquimagoStudio==='true';
+    this.setAttribute('data-public-mode',String(!studioMode));
+    if(!studioMode){this.modelEnabled=false;this.modelAvailable=false;this.state.open=false;}
+    const flags=studioMode?this.config.features:{...this.config.features,
+      dialogue:false,pageAudit:false,routes:false,projectFiles:false,assistants:false,memoryTools:false};
     const allowed=[flags.actions,flags.pageAudit,flags.routes,flags.projectFiles,flags.assistants,flags.dialogue];
     if(!allowed[this.state.tab])this.state.tab=[5,1,0].find(index=>allowed[index])??0;
     this.setAttribute('data-position',this.config.appearance.position);
@@ -1087,7 +1390,7 @@ class AlquimagoFamiliar extends HTMLElement {
     const add = (html) => { const node = document.createElement('div'); node.innerHTML = html; this.$content.appendChild(node); return node; };
     if (this.state.tab === 0) {
       const b = this.state.brain;
-      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="play">✧ Brincar</button><button class="action" data-action="brew">⚗ Poção</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button><button class="action" data-action="orb-toy">◉ Orbe arcano</button></div>
+      add(`<div class="line"><span>Energia mágica</span><small>${Math.round(b.energy)}%</small></div><div class="stat"><div class="bar" style="width:${b.energy}%"></div></div><div class="line"><span>Curiosidade</span><small>${Math.round(b.curiosity)}%</small></div><div class="stat"><div class="bar" style="width:${b.curiosity}%"></div></div><div class="line"><span>Foco</span><small>${Math.round(b.focus)}%</small></div><div class="stat"><div class="bar" style="width:${b.focus}%"></div></div><div class="muted">${b.interactions} interações • ${b.xp} XP</div><p class="muted">Arraste o dedo suavemente sobre o personagem para fazer carinho; arraste mais longe para movê-lo. Carinhos não geram XP infinito.</p><div class="actions"><button class="action" data-action="pet">♡ Carinho</button><button class="action" data-action="focus">◈ Foco</button><button class="action" data-action="rest">☾ Meditar</button></div>
       <details class="arcane-advanced arcane-cortex">
       <summary>🧠 Cérebro e autonomia</summary>
       <p class="muted" id="cortex-summary">Rede pulsada local, com decisões e memória comportamental.</p>
@@ -1254,7 +1557,7 @@ class AlquimagoFamiliar extends HTMLElement {
         this.$content.appendChild(share);
       }
       const message=document.createElement('p');message.className='muted';
-      message.textContent='Modo '+(this.modelEnabled?'Gemini assistido':'contextual local')+' · '+this.knowledge.projects.length+' obras públicas · '+this.lessons.lessons.length+' lições aprovadas neste navegador.';
+      message.textContent='Fonte: '+this.lastAnswerSource+' · '+this.lessons.lessons.length+' lições aprovadas neste navegador · '+this.knowledge.projects.length+' obras públicas.';
       this.$content.appendChild(message);
       if(this.config.memory.mode==='publish')add('<div class="session-note">As conversas e mudanças de XP são temporárias. Clique em Publicar no Studio para salvar; recarregar descarta o que não foi publicado.</div>');
       history.scrollTop=history.scrollHeight;
@@ -1273,11 +1576,6 @@ class AlquimagoFamiliar extends HTMLElement {
     if(last)last.textContent=this.lastAutoDecision?
       'Última iniciativa: '+this.lastAutoDecision.action+'. '+(this.lastAutoDecision.used?'Feedback registrado.':'Diga se foi útil.') :
       'O cérebro ainda não tomou nenhuma iniciativa nesta sessão.';
-    const orbButton=this.$content.querySelector('[data-action="orb-toy"]');
-    if(orbButton){
-      orbButton.textContent=this.orbField?'Guardar orbe':'◉ Orbe arcano';
-      if(!this.config.behavior.toy)orbButton.remove();
-    }
     for(const button of this.$content.querySelectorAll('[data-action="cortex-like"],[data-action="cortex-dislike"]'))
       button.disabled=!this.lastAutoDecision||this.lastAutoDecision.used;
     const proactivity=this.$content.querySelector('#toggle-proactive');
@@ -1366,13 +1664,10 @@ class AlquimagoFamiliar extends HTMLElement {
       this.message=positive?'Aprendi: mais iniciativas como essa.':'Aprendi: menos desse comportamento.';
       this.render();return;
     }
-    if(button.dataset.action==='orb-toy'){
-      this.lastUserActivity=Date.now();
-      this.startOrb();this.render();return;
-    }
     const action = button.dataset.action;
     if (!action) return;
-    if (['pet','stroke','play','brew','focus','rest','explore'].includes(action)) return this.action(action);
+    if(['pet','stroke'].includes(action)){this.reactPageEmotion('pet',1600,7,500);return;}
+    if(['focus','rest','explore'].includes(action))return this.action(action);
     if(['go-routes','go-files','go-ai','go-actions'].includes(action)){
       const target={ 'go-routes':2,'go-files':3,'go-ai':4,'go-actions':0 }[action];
       this.state.tab=target;this.render();return;
@@ -1398,6 +1693,7 @@ class AlquimagoFamiliar extends HTMLElement {
         this.renderHeader();return;
       }
       this.lessons=result.library;this.lessonDraft=null;
+      this.lastAnswerSource='Conhecimento aprovado · disponível offline';
       this.message='Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
       this.render();return;
     }

@@ -1,0 +1,227 @@
+# Pipeline oficial — Skins 3D do Alquimago
+
+> Guia para Blender → GLB → Local Studio → Cloudflare Pages.
+> **Estado:** integração em branch de teste; testar renderização e publicação antes de mesclar à produção.
+
+## 1. Formato aceito
+
+- **Obrigatório:** glTF 2.0 **Binary (.glb)**, com malha, materiais e texturas no mesmo arquivo.
+- **Limite no importador do Studio:** até **18 MiB** (18 × 1.048.576 bytes). Meta de desempenho: 2–8 MiB.
+- **Limite da Cloudflare Pages:** 25 MiB por arquivo de asset. O importador adota um limite menor por desempenho e margem de segurança.
+- `.blend`, `.fbx` e `.obj` são arquivos-fonte: precisam ser exportados para `.glb`; não são aceitos diretamente no Studio.
+- O arquivo exportado deve conter ao menos uma Mesh visualizável. O renderizador usa uma câmera frontal automática e centraliza o objeto com base na bounding box.
+- Materiais preferenciais: PBR metálico/roughness ou emissive. Evite materiais de nós procedurais sem baking.
+- Texturas: preferir até 1K (1024 × 1024), 2K apenas quando indispensável; mantenha o peso final baixo.
+- Geometria: alvo de **5 mil a 30 mil triângulos** para o mascote, menos para dispositivos fracos. Isso é recomendação de otimização, não uma restrição técnica rígida.
+- Não dependa de bibliotecas de compressão Draco ou Meshopt nesta versão: exporte GLB padrão, sem essas extensões, para funcionar com o carregador incluído.
+
+## 2. Convenção de Shape Keys
+
+Crie `Basis` como primeira Shape Key. Depois crie **exatamente** os seguintes nomes na malha facial, com maiúsculas e minúsculas iguais:
+
+| Nome | Para quê | Quando o Alquimago ativa |
+|---|---|---|
+| `Idle` | Neutralidade respirável / microexpressão | Em repouso (opcional, sutil) |
+| `Blink` | Fecha ambos os olhos | Piscadas automáticas |
+| `Happy` | Sorriso/felicidade | Feliz ou animado |
+| `Curious` | Sobrancelhas/olhar interessado | Curiosidade |
+| `Talk` | Abre a boca | Conversa ou fala temporária |
+| `Sleep` | Pálpebras relaxadas / olhos fechados | Meditando ou sonolento |
+| `Pet` | Expressão de carinho | Ao acariciar o personagem |
+| `Surprised` | Espanto | Evento de surpresa / teste manual |
+| `Focused` | Concentração | Foco alto |
+| `Sad` | Tristeza | Estado triste / teste manual |
+
+Regras:
+
+1. Mantenha a **mesma quantidade e ordem de vértices** em todas as Shape Keys.
+2. Os valores utilizados são contínuos de **0 a 1**, interpolados suavemente no navegador.
+3. As expressões podem se somar (por exemplo, `Happy` e `Blink`). Evite grandes deslocamentos conflitantes nos mesmos vértices.
+4. `Basis` é neutra: **não** faça o rosto neutro em `Happy` ou `Talk`.
+5. O nome dos Morph Targets precisa sobreviver à exportação; o GLB é examinado pelo importador.
+6. Se alguma chave estiver ausente, a skin ainda será carregada e aquela emoção ficará neutra. O Studio indicará quais faltaram.
+7. Se o rosto for separado em várias meshes, o renderizador detecta as Shape Keys de cada mesh; prefira uma malha de rosto clara para manutenção.
+8. A animação que o Alquimago faz automaticamente controla **Morph Targets**. Clipes de armature, física, colisão e animação locomotora não são executados por este adaptador.
+
+
+### Expressões adicionais opcionais — nomes exatos
+
+O Alquimago reconhece as Shape Keys adicionais abaixo se estiverem presentes no GLB. A ausência delas não impede o carregamento.
+
+| Nome | Uso |
+|---|---|
+| **Tired** | Cansaço automático quando a energia do familiar fica baixa |
+| **Yawn** | Bocejo periódico enquanto estiver cansado |
+| **Angry** | Raiva, testável manualmente no Ateliê |
+| **Confused** | Confusão, testável manualmente |
+| **Excited** | Empolgação combinada sutilmente com felicidade |
+| **Shy** | Timidez, testável manualmente |
+| **Love** | Carinho misturado à expressão Pet |
+| **Proud** | Orgulho na publicação |
+| **Thinking** | Reflexão misturada à concentração |
+| **Worried** | Preocupação, testável manualmente |
+| **Laugh** | Risada, testável manualmente |
+| **LookLeft** | Olhar à esquerda, opcional no acompanhamento do cursor |
+| **LookRight** | Olhar à direita |
+| **LookUp** | Olhar para cima |
+| **LookDown** | Olhar para baixo |
+
+As expressões indicadas como testes manuais **não** são emoções inferidas automaticamente pelo Gemini. Os estados locais governam as expressões, e o olhar usa uma rotação discreta. As quatro Shape Keys de olhar refinam o movimento dos olhos, mas não são obrigatórias.
+
+### Janela 3D e enquadramento
+
+O personagem 3D agora fica em uma janela/moldura com alça de redimensionamento no canto. No **Local Studio > Conteúdo > Skin 3D do Alquimago**, seção **Janela e enquadramento 3D**, há controles para largura, altura, zoom, deslocamento horizontal/vertical, seguir o mouse e restaurar enquadramento.
+
+- Largura permitida: 145–420 px. Altura: 175–475 px. São limites de interface.
+- Zoom de câmera: 0,65 a 2,6 vezes, também ajustável com **Shift + roda do mouse** sobre o mascote.
+- Deslocamento horizontal e vertical refinam onde a janela aparece.
+- O comportamento existente de arrastar o Alquimago na página permanece.
+- O olhar segue o mouse suavemente e pode ser desligado; a preferência de movimento reduzido é respeitada.
+- Alterações são locais até a publicação explícita no Local Studio; o enquadramento publicado fica na configuração pública, para visitantes receberem o mesmo padrão.
+
+### Reações de carinho
+
+No modo 3D, tocar/acariciar ativa a Shape Key **Pet** (e opcionalmente **Love**) com interpolação suave, em vez da explosão gráfica de corações. O modo SVG mantém sua reação antiga. Se o carregamento GLB/WebGL falhar, o familiar retorna à skin SVG.
+
+## 3. Preparação no Blender
+
+1. Modele o personagem voltado para a frente e aplique transformações coerentes (principalmente escala, preferencialmente `1,1,1`).
+2. Na malha facial: Object Data Properties (ícone de triângulo verde) → Shape Keys → `+` para criar `Basis`.
+3. Adicione as dez keys acima; edite a forma de cada uma com Value=1, mantendo outras em 0 durante a escultura.
+4. Confira que todas voltam corretamente a 0 e 1; teste combinações como `Blink` + `Happy`.
+5. UV unwrap; use texturas e materiais exportáveis em glTF.
+6. Exportar → **glTF 2.0** → Format: **glTF Binary (.glb)**.
+7. Ative **Shape Keys / Morph Targets** e os atributos de mesh necessários. Exporte materiais/texturas; as opções exatas mudam conforme a versão do Blender.
+8. Verifique o modelo exportado em um visualizador glTF. Se parecer invertido, corrija a orientação na fonte e exporte novamente.
+9. No Local Studio → Ferramentas → **Skin 3D do Alquimago**, selecione o GLB. O editor valida versão GLB 2, peso e nomes das Shape Keys.
+10. Visualize no familiar, teste as expressões e só então clique em **Publicar skin e alterações**.
+
+## 4. Publicação e armazenamento
+
+- A importação fica primeiro no **IndexedDB deste navegador e deste domínio**, como um rascunho. Não é enviada ao Google Gemini.
+- A prévia lê o GLB local e ativa o perfil `custom-3d` do Alquimago.
+- Ao publicar pelo Local Studio, o mesmo commit inclui `public/alquimago/skins/custom.glb` e marca a skin selecionada em `public/alquimago/config.json`.
+- **GitHub** recebe o binário; **Cloudflare Pages** compila e distribui o ativo. Não envie o GLB como texto no JSON.
+- O modelo hospedado é público, assim como as demais imagens do portfólio. Não coloque conteúdo privado dentro dele.
+- A memória/preview de arquivos do navegador não é sincronizada entre `pages.dev` e domínios personalizados; o GLB publicado é distribuído pelo próprio site.
+- É possível voltar à skin SVG sem apagar a GLB do repositório.
+- O seletor de skins é livre para visitantes, mas **somente o proprietário autenticado no Local Studio** consegue importar e publicar novos arquivos.
+
+## 5. Teste de aceitação
+
+- [ ] Exportou `.glb` e importador confirmou versão 2.0.
+- [ ] A imagem 3D aparece sobre o botão do mascote; sem travar a galeria.
+- [ ] Todas as dez keys foram reconhecidas (ou ausências explicitadas).
+- [ ] Os botões de teste mudam expressões e o rosto pisca sozinho.
+- [ ] Voltar à skin SVG continua funcionando.
+- [ ] Ao publicar, `public/alquimago/skins/custom.glb` está no GitHub.
+- [ ] Cloudflare Pages conclui o build do novo commit.
+- [ ] O modelo continua renderizando em janela anônima sem acesso ao IndexedDB do editor.
+- [ ] O Alquimago continua conversando com o Gemini mesmo sem usar skin 3D.
+
+## 6. Erros frequentes
+
+- **Apenas um cubo ou tela vazia:** verifique se há Mesh real, se a câmera está para a frente e se o asset foi exportado em GLB.
+- **Shape Keys ausentes:** confira ortografia, a configuração de exportação e se elas estão na Mesh exportada.
+- **Materiais sem aparência do Blender:** realize bake/ajuste materiais PBR e reexporte.
+- **Modelo pesado ou lento:** reduza polígonos, texturas e materiais e teste em dispositivo mais fraco.
+- **Funciona antes de publicar, mas não depois:** confirme que o arquivo está no repositório e no deployment, não somente no IndexedDB.
+- **Caminho errado:** o contrato de publicação é fixo: `/alquimago/skins/custom.glb`.
+
+Fontes técnicas:
+- [Three.js Loading 3D Models](https://threejs.org/manual/en/load-gltf.html)
+- [Three.js GLTFLoader](https://threejs.org/docs/#examples/en/loaders/GLTFLoader)
+- [Cloudflare Pages file size limits](https://developers.cloudflare.com/pages/platform/limits/)
+
+
+## Atualização: Breath, direção de animação e enquadramento
+
+**Nova Shape Key: Breath.** No Blender, crie Breath na malha que contém o tórax. Em Value=0, deixe o peito neutro; em Value=1, faça a expansão máxima de uma inspiração. Não salve a expansão na Basis. O Alquimago executa uma onda cíclica 0 → 1 → 0, suavizada, sobre a intensidade configurada. A velocidade muda conforme o estado local (tranquilo, feliz, animado, curioso, concentrado, sonolento, meditando ou cansado).
+
+**Cada skin tem direção de animação própria.** Abra Local Studio → Ferramentas → Familiar → Ateliê do Alquimago → **Animações**. Você poderá ajustar duração e intensidade de **todas as Shape Keys** reconhecidas, assim como o intervalo de piscadas e bocejos. Para Breath, ajuste duração base, intensidade e velocidade relativa por humor. Os valores ficam no armazenamento local até a publicação aprovada, quando o perfil passa ao campo público appearance.animation3d de config.json.
+
+**Rosto sem cortar o enquadramento:** o Ateliê → **Câmera** oferece os presets Rosto, Busto e Corpo inteiro, seguidos por Zoom, Foco X, Foco Y, Rotação (yaw) e deslocamentos da janela. Os controles de foco movem o ponto da câmera dentro do modelo; os deslocamentos X/Y externos movem somente a janela. Caso o rosto não esteja centralizado depois do preset, refine Foco Y e Zoom. O padrão publicado fica em appearance.stage3d.
+
+**Organização do produto:** O Local Studio inclui uma área **Familiar**, com acesso direto ao Grimório e ao Ateliê, e uma busca por ferramentas. O Grimório foi organizado como conversa principal com os recursos de treinamento e mentor em uma seção recolhível. O **mascote é exibido no portfólio público**, onde pode reagir e ser visualizado; o **chat de IA generativa aparece somente com o Local Studio desbloqueado**. Isto é uma separação de interface, não autenticação do endpoint Cloudflare: a rota /api/assistant continua pública e pode consumir a cota Gemini.
+
+Não publique um novo GLB sem testar as Shape Keys, o posicionamento em celular e a operação do mascote depois de recarregar. O formato recomendado continua glTF Binary 2.0 (.glb).
+
+
+## Interações ambientais — direção de comportamento
+
+O Alquimago deixou de depender de minigames com XP para demonstrar personalidade. O modo público apresenta apenas o personagem e reações discretas; o Grimório com Gemini e ferramentas continua no Local Studio desbloqueado.
+
+| Sinal da página | Emoção | Shape Key | Duração ou regra |
+|---|---|---|---|
+| Mouse sai da área da página | Tristeza | Sad | Permanece enquanto estiver fora |
+| Mouse retorna após breve ausência | Alegria | Happy | Cerca de 1,7 s |
+| Texto é selecionado na página pública | Descontentamento lúdico | Angry | Cerca de 2,5 s; não impede copiar |
+| Carinho na cabeça / clique no personagem | Carinho | Pet, opcionalmente Love | Cerca de 1,5 s |
+| Cursor move-se bruscamente perto do personagem | Surpresa | Surprised | Cerca de 1,1 s, com intervalo de segurança |
+| Mais de 65 s sem interação | Cansaço | Tired / Yawn | Episódico, não interrompe o usuário |
+| Rolagem, navegação entre páginas | Curiosidade | Curious | Curta e com cooldown |
+| Clique em projeto/link/botão | Atenção | Focused | Curta e com cooldown |
+
+As reações possuem prioridades, tempo mínimo entre repetições e retorno à emoção normal quando terminam. A prioridade reduz conflitos: carinho e retorno à página podem superar uma reação breve de curiosidade.
+
+### Privacidade, acessibilidade e limites
+
+- A seleção de texto é detectada apenas pelo estado de seleção (isCollapsed), sem leitura ou envio do texto selecionado.
+- Campos de formulários, áreas editáveis e controles do Local Studio são ignorados pela reação à seleção.
+- Posição e velocidade do mouse são apenas usadas na sessão para detecção local; não são armazenadas como histórico, nem passadas ao Gemini.
+- Nenhuma ação bloqueia copiar ou selecionar conteúdo, rolar ou navegar.
+- Reações funcionam com a skin SVG e usam os Morph Targets correspondentes no GLB; Shape Keys não existentes simplesmente não produzem a deformação solicitada.
+- Quando não há mouse, como em muitos dispositivos móveis, carinho por toque e as demais interações disponíveis continuam funcionando; não há simulação de saída do cursor.
+- O sistema de sentimentos é uma camada visual de comportamento, não evidência de consciência ou intenção real.
+
+A orbe arcana e botões de brincadeiras sem função foram removidos da interface; o arquivo antigo da biblioteca pode manter código não acionado por compatibilidade. O painel de ferramentas público, a etiqueta inferior fixa e o balão de saudação automática foram ocultados para que o mascote não obstrua o portfólio.
+
+### Testes recomendados
+
+- [ ] Abrir o site público e confirmar que só o personagem aparece, sem faixa inferior e sem orbe.
+- [ ] Retirar o cursor da janela e retornar; verificar Sad → Happy.
+- [ ] Selecionar texto de um projeto; verificar Angry sem impedir a seleção.
+- [ ] Selecionar texto dentro de um formulário do Studio; verificar que não aciona Angry.
+- [ ] Acariciar a cabeça; confirmar a expressão Pet sem corações/partículas extras.
+- [ ] Mover rapidamente o cursor perto dele; verificar surpresa discreta.
+- [ ] Desbloquear o Local Studio e confirmar que Grimório, Gemini e o Ateliê continuam funcionando.
+- [ ] Testar o GLB com suas Shape Keys e verificar a transição sem tremulação.
+
+
+## Diálogos públicos em inglês — guia de arte bem-humorado
+
+O Alquimago usa uma camada de falas **totalmente separada** do Grimório do Local Studio. O visitante recebe somente mensagens curtas em inglês, com humor leve e orientação baseada em recursos **realmente existentes na página**:
+
+| Contexto verificado | Exemplo de fala pública |
+|---|---|
+| Projeto com player de vídeo | "Psst! There is a video in this project. Press Play to explore it." |
+| Vídeo no projeto Frankie | "Frankie looks amazing, right? Try the video player to see more!" |
+| Projeto Frankie sem vídeo | "Frankie is stealing the spotlight again. Honestly, can you blame him?" |
+| Projeto com comparação antes/depois | "Drag the before-and-after slider! Even my magic wand cannot do that." |
+| Busca na galeria | "Looking for something? Try the project search. Even my crystal ball has filters!" |
+| Card de projeto na galeria | "This is [project]. Click to see the full project!" |
+| Seleção de texto público | "Hey! Are you copying my master's sacred words? At least credit the wizard!" |
+| Cursor deixa a janela | "Leaving already? I'll keep the tiny portal warm." |
+| Cursor retorna | "You're back! I definitely wasn't rehearsing my dramatic farewell." |
+| Carinho | "Careful! That's my thinking hat." |
+| Cursor muito rápido perto do personagem | "WHOA! That cursor has turbo mode!" |
+
+**Regras:**
+- As dicas são mostradas apenas quando o DOM contém o respectivo recurso. Um vídeo não é anunciado numa página que não tem vídeo.
+- O nome do projeto é obtido do atributo público do próprio card/página, nunca inventado por IA.
+- Nenhuma mensagem pública chama Gemini. O Grimório continua separado e pode operar em português no Local Studio.
+- O personagem não pode afirmar que o usuário realmente copiou texto. As falas são piadas com formato de pergunta, sem limitar seleção/cópia.
+- Mensagens não ameaçam a segurança do visitante nem fazem pressão para permanecer no site; humor sobre sair e voltar é leve.
+- Uma fala expira automaticamente, e há cooldown por situação e prioridade para reações relevantes. O usuário deve poder apreciar a obra sem interrupções incessantes.
+- O conteúdo do texto selecionado **não** é lido, salvo nem enviado; apenas o fato de existir uma seleção pública é detectado.
+- A conversa pública não modifica o comportamento do chat de treinamento/Gemini no modo Studio.
+
+### Teste de aceitação das falas
+
+- [ ] Na galeria, balão aparece em inglês e sugere um recurso de navegação real.
+- [ ] No projeto com vídeo, fala menciona Play apenas quando o player está presente.
+- [ ] No projeto Frankie, fala usa seu nome; nenhum outro projeto recebe o nome Frankie.
+- [ ] Ao selecionar texto, aparece humor leve em inglês, sem impedir copiar.
+- [ ] Ao sair/voltar da janela, surgem frases curtas diferentes e não insistentes.
+- [ ] O balão desaparece automaticamente e não cobre os controles do visitante.
+- [ ] Dentro do Local Studio, o Grimório permanece funcional e suas mensagens técnicas não vazam para o site público.
