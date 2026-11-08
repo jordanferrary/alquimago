@@ -15,3 +15,13 @@ test('does not invent connections from unrelated knowledge',()=>{
 test('unapproved data cannot enter semantic memory',()=>{
  assert.equal(buildSemanticMemory({lessons:[{question:'O que é X?',answer:'X é Y',approved:false}]}).length,0);
 });
+
+test('reverse reasoning finds a uniquely supported tool by purpose',()=>{
+ const lib=approveLesson(null,'O que faz ZBrush?','ZBrush serve para escultura digital.').library;
+ assert.match(answerFromSemanticMemory('Qual ferramenta serve para escultura digital?',lib)?.reply||'',/ZBrush/);
+});
+test('reverse reasoning refuses ambiguous facts',()=>{
+ const a=approveLesson(null,'O que faz ZBrush?','ZBrush serve para escultura digital.').library;
+ const b=approveLesson(a,'O que faz Blender?','Blender serve para escultura digital.').library;
+ assert.equal(answerFromSemanticMemory('Qual ferramenta serve para escultura digital?',b),null);
+});
