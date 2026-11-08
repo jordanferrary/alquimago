@@ -985,9 +985,13 @@ class AlquimagoFamiliar extends HTMLElement {
       const active=this.publicMessage&&Date.now()<this.publicUntil;
       this.$thought.textContent=active?this.publicMessage:'';
       this.$thought.hidden=!active;
+      this.$thought.tabIndex=-1;
+      this.$thought.setAttribute('aria-live','polite');
       this.$thought.setAttribute('aria-label',active?'Alquimago says: '+this.publicMessage:'Alquimago message');
       return;
     }
+    this.$thought.tabIndex=0;
+    this.$thought.removeAttribute('aria-live');
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
     const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<14500?this.lastSpoken:null;
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
