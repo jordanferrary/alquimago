@@ -66,6 +66,16 @@ function relevance(text,project){
 }
 function chooseProject(text,knowledge,lastId='',focusTitle=''){
  const records=knowledge.projects||[];
+ const q=knowledgeCanon(text);
+ // Broad site feedback is not automatically criticism of the last project.
+ // An explicit project title or pronoun is required to reuse its context.
+ const broadlyAboutSite=/\b(?:site|portfolio|pagina|galeria)\b/.test(q)&&
+  !/\b(?:dela|dele|nela|nele|essa obra|esse projeto|dessa obra)\b/.test(q);
+ const namesAProject=records.some(project=>{
+  const title=knowledgeCanon(project.title);
+  return title.length>=4&&q.includes(title);
+ });
+ if(broadlyAboutSite&&!namesAProject)return null;
  const results=records.map(project=>({project,score:relevance(text,project)})).sort((a,b)=>b.score-a.score);
  if(results[0]?.score>=2.2)return results[0].project;
  if(PRONOUN.test(knowledgeCanon(text))||TOOLS.test(knowledgeCanon(text))||FEEDBACK.test(knowledgeCanon(text))){
