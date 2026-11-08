@@ -1268,6 +1268,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
     let response=approved?{...approved,store:true}:respondToChat(user,{
       pending:this.pendingQuestion,
+      teachingMemory:this.teaching,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
       history:this.dialogue.slice(-8),
       focusTitle:this.selectedProject?.title||'',
@@ -1377,7 +1378,12 @@ class AlquimagoFamiliar extends HTMLElement {
       this.dialogue=[...this.dialogue,{role:'familiar',text:response.reply}].slice(-24);
     }
     this.message=response.reply;
-    this.lastAnswerSource=['approved-lesson','semantic-memory'].includes(response.intent)?'Memória aprovada · offline':'Cérebro local · sem Gemini';
+    this.lastAnswerSource=['approved-lesson','semantic-memory'].includes(response.intent)?'Memória aprovada · offline':
+      ['learned-social','learned-milestone'].includes(response.intent)?'Linguagem contextual · conhecimento revisado':'Cérebro local · sem Gemini';
+    if(response.intent==='learned-milestone'||response.intent==='learned-social'&&learnedMeaning?.intents?.includes('praise')){
+      this.affect=affectSignal(this.affect,'happy',Date.now());
+      this.affect=affectTick(this.affect,Date.now());
+    }
     if(response.store!==false&&response.intent!=='empty'){
       this.lessonDraft={question:user,answer:['project-fact','project-info','project-list'].includes(response.intent)?response.reply:'',source:'ensinado manualmente'};
     }
@@ -1411,7 +1417,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop||document.documentElement.dataset.alquimagoStudio!=='true') return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.11.1';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.11.2';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1951,7 +1957,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.11.1',
+    version: '0.11.2',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
