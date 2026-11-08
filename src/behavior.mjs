@@ -4,7 +4,7 @@
  * 512 leaky integrate-and-fire cells / 16,384 deterministic sparse synapses.
  * 32 opt-in, privacy-preserving sensor channels and 16 action motor neurons.
  * Plasticity: reward-modulated motor value learning, bounded contextual
- * conditioning and synaptic traces for 128 eligible connections.
+ * conditioning and synaptic traces for 512 eligible connections.
  *
  * This is a tiny decision network, not an LLM. It does not observe keystrokes,
  * other tabs, private window content or text typed into the host website.
@@ -82,7 +82,7 @@ export function cleanCortex(value){
    action:x.action,context:x.context,reward:x.reward,
    at:bClamp(x.at,0,1e13)
   }));
- for(const [i,v] of Object.entries(bObject(d.synapses)).slice(-128)){
+ for(const [i,v] of Object.entries(bObject(d.synapses)).slice(-512)){
   const key=Number(i);
   if(Number.isInteger(key)&&key>=0&&key<CORTEX_SYNAPSES&&Number.isFinite(v))
    state.synapses[key]=bClamp(v,-.45,.45);
@@ -137,17 +137,23 @@ export function createCortexRuntime(state){
  }
  return {state:saved,pre,post,weights,
   voltage:new Float32Array(CORTEX_CELLS),spikes:new Uint8Array(CORTEX_CELLS),
-  recentMotors:new Float32Array(CORTEX_MOTORS),lastContext:'home'};
+  recentMotors:new Float32Array(CORTEX_MOTORS),
+  eligibility:new Float32Array(CORTEX_SYNAPSES),lastContext:'home'};
 }
 /** Six short LIF iterations: integrates, leaks, fires and records motor spikes. */
 export function pulseCortex(engine,senses){
  const signal=Array.isArray(senses)&&senses.length===CORTEX_SENSORS?senses:Array(CORTEX_SENSORS).fill(0);
- const {pre,post,weights,voltage,spikes,recentMotors}=engine;
+ const {pre,post,weights,voltage,spikes,recentMotors,eligibility}=engine;
  recentMotors.fill(0);
+ eligibility.fill(0);
  for(let tick=0;tick<6;tick++){
   const incoming=new Float32Array(CORTEX_CELLS);
-  for(let i=0;i<CORTEX_SYNAPSES;i++)if(spikes[pre[i]])
+  for(let i=0;i<CORTEX_SYNAPSES;i++)if(spikes[pre[i]]){
    incoming[post[i]]+=weights[i];
+   // Track pathways that actually carried impulses toward motor cells.
+   // Feedback can adapt these paths, never arbitrary inactive synapses.
+   if(post[i]>=CORTEX_CELLS-CORTEX_MOTORS)eligibility[i]++;
+  }
   for(let n=0;n<CORTEX_CELLS;n++){
    // Deterministic background fluctuations; sensor evidence receives stronger input.
    const sensor=n<CORTEX_SENSORS?(.30+signal[n]*1.25):0;
@@ -235,26 +241,30 @@ export function rewardCortex(engine,action,context,reward,now=Date.now()){
  s.episodes.push({action,context:bucket,reward:r>0?1:r<0?-1:0,at:now});
  s.episodes=s.episodes.slice(-32);
  s.trust=bClamp(s.trust+r*1.5);
- // Only recently active, eligible synapses are adjusted. Persist a sparse,
- // bounded set instead of leaking the whole 16K connection graph to GitHub.
+ // Only eligible synapses that fired during the most recent pulse are adjusted.
+ // A sparse, bounded trace survives browser restarts; no raw conversation is saved.
  if(r!==0){
   let written=0;
-  for(let i=0;i<engine.pre.length&&written<128;i++){
-   const pre=engine.pre[i],post=engine.post[i];
-   if(post!==CORTEX_CELLS-CORTEX_MOTORS+index||!engine.spikes[pre])continue;
-   const old=s.synapses[i]||0,delta=bClamp(old+r*.012,-.45,.45);
-   s.synapses[i]=delta;engine.weights[i]=bClamp(engine.weights[i]+r*.012,-2,2);
+  for(let i=0;i<engine.pre.length&&written<512;i++){
+   if(engine.post[i]!==CORTEX_CELLS-CORTEX_MOTORS+index)continue;
+   const pulses=engine.eligibility?.[i]||0;
+   if(pulses<=0)continue;
+   const old=s.synapses[i]||0;
+   const delta=bClamp(old+r*.012*Math.min(6,pulses)/6,-.45,.45);
+   s.synapses[i]=delta;
+   engine.weights[i]=bClamp(engine.weights[i]+delta-old,-2,2);
    written++;
   }
   const keys=Object.keys(s.synapses);
-  if(keys.length>128){for(const key of keys.slice(0,keys.length-128))delete s.synapses[key];}
+  if(keys.length>512){for(const key of keys.slice(0,keys.length-512))delete s.synapses[key];}
  }
  return s;
 }
 export function cortexSummary(state){
  const s=cleanCortex(state);
  return {neurons:CORTEX_CELLS,synapses:CORTEX_SYNAPSES,sensors:CORTEX_SENSORS,
-  motors:CORTEX_MOTORS,learnedEpisodes:s.episodes.length,feedback:s.feedbackCount,
+  motors:CORTEX_MOTORS,plasticSynapses:Object.keys(s.synapses).length,
+  learnedEpisodes:s.episodes.length,feedback:s.feedbackCount,
   preferred:CORTEX_ACTIONS[s.rewardBias.indexOf(Math.max(...s.rewardBias))]};
 }
 
