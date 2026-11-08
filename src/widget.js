@@ -536,7 +536,7 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       if(e.target?.id==='toggle-llm'){
         this.modelEnabled=this.modelAvailable&&!!e.target.checked;
-        this.message=this.modelEnabled?'IA generativa ativada para esta sessão. Suas próximas perguntas poderão ser enviadas ao serviço autorizado.':'Modo contextual local ativado.';
+        this.message=this.modelEnabled?'Professor Gemini ativado nesta sessão apenas para dúvidas sem resposta local.':'Modo local ativado, sem consulta ao Gemini.';
         this.renderHeader();
       }
       if(e.target?.id==='toggle-proactive'){
@@ -1234,10 +1234,11 @@ class AlquimagoFamiliar extends HTMLElement {
       }));
       return;
     }
+    const learnedMeaning=recognizeTeachingLabels(user,this.teaching);
     const approved=recallLesson(user,this.lessons)||answerFromSemanticMemory(user,this.lessons);
     const prediction=approved?{intent:'approved-lesson',confidence:1}:neuralPredict(this.neural,user);
     this.lastUserText=user;this.lastNeuralIntent=prediction.intent;
-    const response=approved?{...approved,store:true}:respondToChat(user,{
+    let response=approved?{...approved,store:true}:respondToChat(user,{
       pending:this.pendingQuestion,
       knowledge:this.knowledge,lastProjectId:this.lastProjectId,
       focusTitle:this.selectedProject?.title||'',
@@ -1249,6 +1250,26 @@ class AlquimagoFamiliar extends HTMLElement {
       approvedLessons:this.lessons?.lessons?.length||0,neuralCorrections:this.neural?.learned||0,
       page:this.activePage?.route||'desktop',suggestions:this.suggestions
     });
+    // A recent autonomous initiative can be corrected by conversational
+    // praise/reprimand, not only by buttons. Do not mistake a question about
+    // a problem for explicit behavioral feedback.
+    const qForm=/[?]|\\b(?:por que|porque|pq|como|qual|explique)\\b/i.test(user);
+    const taughtFeedback=learnedMeaning?.intents.includes('reprimand')?-1:
+      learnedMeaning?.intents.includes('praise')?1:null;
+    const explicitFeedback=/^(?:vc |voce |você )?(?:errou|fez errado|não gostei disso|nao gostei disso|pare com isso)[!. ]*$/i.test(user)?-1:
+      /^(?:parabéns|parabens|muito bem|gostei disso|bom trabalho)[!. ]*$/i.test(user)?1:null;
+    const feedback=qForm?null:(taughtFeedback??explicitFeedback);
+    const decision=this.lastAutoDecision;
+    if(feedback!==null&&decision&&!decision.used&&Date.now()-decision.at<120000){
+      rewardCortex(this.cortex,decision.action,decision.context,feedback,Date.now());
+      decision.used=true;this.save();
+      if(response.intent==='unknown'){
+        response={reply:feedback>0?
+          'Obrigado pelo feedback! Vou priorizar iniciativas como essa. ✦':
+          'Entendi a crítica. Vou diminuir esse tipo de iniciativa e observar o resultado.',
+          intent:'behavior-feedback'};
+      }
+    }
     const known=['private','math','followup','decline','clarify','navigate','empty',
       'project-fact','project-list','project-info','approved-lesson','semantic-memory','studio-guide',
       'greeting','identity','status','pet','play','brew','rest','help','mood','thanks','self-learning'];
@@ -1260,9 +1281,8 @@ class AlquimagoFamiliar extends HTMLElement {
       const request=++this.modelSequence;
       this.modelBusy=true;this.lastAnswerSource='Aguardando Gemini';
       this.pendingQuestion=null;
-      this.lastUserText='';this.lastNeuralIntent='';
       this.dialogue=[...this.dialogue,{role:'user',text:user},
-        {role:'familiar',text:'Consultando o modelo de linguagem…'}].slice(-24);
+        {role:'familiar',text:'Consultando meu professor Gemini…'}].slice(-24);
       this.state.tab=5;this.state.open=true;this.render();
       this.modelAbort?.abort();
       const controller=new AbortController();this.modelAbort=controller;
@@ -1273,11 +1293,13 @@ class AlquimagoFamiliar extends HTMLElement {
         pageUrl:location.href,signal:controller.signal
       }).then(answer=>{
         if(!this.isConnected||request!==this.modelSequence)return;
-        this.dialogue[this.dialogue.length-1]={role:'familiar',text:answer.reply};
-        this.message=answer.reply;
-        this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (revisado pelo usuário)'};
-        this.lastAnswerSource='Gemini professor · aguarda aprovação';
-        this.lastSpoken=answer.reply;this.lastSpokenAt=Date.now();
+        const taught='Meu professor Gemini explicou: '+answer.reply+
+          ' Para eu reutilizar isso sem o Gemini, revise e aprove a lição no grimório.';
+        this.dialogue[this.dialogue.length-1]={role:'familiar',text:taught};
+        this.message=taught;
+        this.lessonDraft={question:user,answer:answer.reply,source:'Gemini (aprovado pelo usuário)'};
+        this.lastAnswerSource='Gemini professor · lição pendente';
+        this.lastSpoken=taught;this.lastSpokenAt=Date.now();
       }).catch(error=>{
         if(!this.isConnected||request!==this.modelSequence)return;
         const reason=error?.name==='AbortError'?
