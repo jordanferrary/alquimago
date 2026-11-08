@@ -9,6 +9,8 @@ import {INTENTS,seedNeuralModel,upgradeNeuralSeed,trainNeural,teachNeural,neural
 import {projectMeta,projectAdvice,projectIdentity,shouldCommentProject} from './project-insight.mjs';
 import {normalizeLanguage,loadLanguage} from './i18n.mjs';
 import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
+import {ROBOT_SVG,ROBOT_STYLES,ORB_EXPRESSIONS} from './orb-skin.mjs';
+import {createAffect,affectSignal,affectTick,setAffectMusic} from './affect.mjs';
 import {inspectCover,imageMetricAdvice} from './image-insight.mjs';
 import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
 import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
@@ -360,50 +362,9 @@ const STYLE = `
 .arcane-skin-image{width:100%;height:100%;object-fit:contain;display:block;filter:drop-shadow(0 6px 13px #07020e88)}
 
 @media(prefers-reduced-motion:reduce){.character,.character .eyes,.rune{animation:none!important}}
+${ROBOT_STYLES}
 `;
-const SVG = `<svg viewBox="0 0 116 150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-<defs>
- <radialGradient id="arc-halo"><stop stop-color="#bd84ff" stop-opacity=".42"/><stop offset="1" stop-color="#8445d9" stop-opacity="0"/></radialGradient>
- <linearGradient id="arc-hat" x1=".1" y1="0" x2=".8" y2="1"><stop stop-color="#7651bd"/><stop offset=".52" stop-color="#3f246d"/><stop offset="1" stop-color="#23173c"/></linearGradient>
- <linearGradient id="arc-cloak" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6f43aa"/><stop offset=".65" stop-color="#342052"/><stop offset="1" stop-color="#170f2b"/></linearGradient>
- <linearGradient id="arc-flask" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d4ffed" stop-opacity=".8"/><stop offset=".55" stop-color="#47f5d6" stop-opacity=".7"/><stop offset="1" stop-color="#36a5ec" stop-opacity=".85"/></linearGradient>
- <filter id="arc-glow"><feGaussianBlur stdDeviation="2.1"/></filter>
-</defs>
-<ellipse cx="58" cy="87" rx="55" ry="60" fill="url(#arc-halo)"/>
-<g class="arc-sigils" fill="none" stroke="#d5a7ff" stroke-width=".9" opacity=".68"><circle cx="58" cy="93" r="45" stroke-dasharray="3 5"/><path d="M58 40v8M58 139v-7M4 93h8M104 93h8"/><circle cx="58" cy="93" r="35" stroke-dasharray="1 10"/></g>
-<ellipse cx="58" cy="143" rx="37" ry="4" fill="#0e0925" opacity=".3"/>
-<!-- robe and sleeves -->
-<path d="M37 93Q20 99 22 133Q38 144 58 144Q81 144 96 133Q96 101 78 94L70 89H47Z" fill="url(#arc-cloak)" stroke="#b893df" stroke-width="1.7"/>
-<path d="M50 94L58 111L67 94L63 132L58 138L53 132Z" fill="#261838" stroke="#9e71c2" stroke-width="1.2"/>
-<path d="M58 107l5 9-5 9-5-9Z" fill="#d7b572" stroke="#fff2bd" stroke-width=".7"/>
-<path d="M36 100q-13 5-16 22" fill="none" stroke="#7952b2" stroke-width="13" stroke-linecap="round"/>
-<path d="M81 102q12 3 17 18" fill="none" stroke="#7952b2" stroke-width="12" stroke-linecap="round"/>
-<!-- flowing hair -->
-<path d="M33 69Q23 93 36 108L44 99Q48 113 52 102L69 100Q75 111 83 107Q89 89 82 69Z" fill="#ece4f5" stroke="#b9a8d1" stroke-width="1.8"/>
-<!-- face -->
-<path d="M32 68Q30 47 57 48Q83 46 85 68L81 88Q75 100 59 102Q39 101 34 88Z" fill="#e9c1ad" stroke="#ba8b9a" stroke-width="1.4"/>
-<ellipse cx="42" cy="85" rx="6" ry="3.3" fill="#efa5ac" opacity=".6"/><ellipse cx="74" cy="85" rx="6" ry="3.3" fill="#efa5ac" opacity=".6"/>
-<!-- expressive hair fringe and eyes -->
-<path d="M31 69Q37 50 51 54Q56 44 69 54Q79 52 85 69Q75 64 69 64Q64 73 58 72Q50 63 42 69Q36 67 31 71Z" fill="#f4ebff" stroke="#c9b8de" stroke-width="1.3"/>
-<g class="eyes"><path d="M43 77q4-3 9 0" fill="none" stroke="#39243b" stroke-width="2" stroke-linecap="round"/><path d="M65 77q4-3 9 0" fill="none" stroke="#39243b" stroke-width="2" stroke-linecap="round"/><ellipse cx="47.5" cy="81" rx="3" ry="5" fill="#251936"/><ellipse cx="69" cy="81" rx="3" ry="5" fill="#251936"/><circle cx="48" cy="79.4" r="1.3" fill="#fff"/><circle cx="69.5" cy="79.4" r="1.3" fill="#fff"/></g>
-<path class="arc-mouth" d="M54 91q4 4 8 0" fill="none" stroke="#9b6374" stroke-width="1.6" stroke-linecap="round"/>
-<!-- hat with gold circlet and small arcane star -->
-<path d="M18 64Q29 55 35 40Q52 13 59 5Q73 28 79 46Q88 56 97 61Q92 72 57 73Q29 72 18 64Z" fill="url(#arc-hat)" stroke="#c9a6ff" stroke-width="2.1"/>
-<path d="M38 39Q55 29 76 44L80 53Q58 48 31 55Z" fill="#9a6abd" opacity=".35"/>
-<path d="M22 62Q57 70 94 61" fill="none" stroke="#e3c077" stroke-width="4.5" stroke-linecap="round"/>
-<path d="M56 13l3 6 7 1-5 5 2 7-7-4-6 4 1-7-5-5 7-1Z" fill="#fce1a4" stroke="#fff2c8" stroke-width="1"/>
-<circle cx="59" cy="23" r="2" fill="#fff9d6"/>
-<!-- alchemist vial in right hand -->
-<path d="M94 111l3-7 7 2-1 7 5 10q3 12-9 15-12-2-9-14Z" fill="url(#arc-flask)" stroke="#cffdf1" stroke-width="1.5"/>
-<path d="M95 110l9 3" stroke="#e8fff4" stroke-width="2"/><path d="M92 126q6 5 14 0" fill="none" stroke="#1ee4ba" stroke-width="2"/>
-<circle class="potion-bubble" cx="99" cy="121" r="2.4" fill="#ecfffe"/><circle class="potion-bubble" cx="103" cy="117" r="1.2" fill="#fff"/>
-<path d="M88 118q5-6 7-2" fill="none" stroke="#e7c7b9" stroke-width="5" stroke-linecap="round"/>
-<!-- tiny feet and sparkles -->
-<ellipse cx="44" cy="143" rx="12" ry="4" fill="#251333" stroke="#9e77bc" stroke-width="1.5"/><ellipse cx="71" cy="143" rx="12" ry="4" fill="#251333" stroke="#9e77bc" stroke-width="1.5"/>
-<path class="potion-spark" d="M101 76l2 7 7 2-7 2-2 7-2-7-7-2 7-2Z" fill="#9ff5e8"/>
-<path class="potion-spark" d="M17 88l2 5 5 2-5 2-2 5-2-5-5-2 5-2Z" fill="#ffdf9a"/>
-<circle cx="93" cy="53" r="2" fill="#e7d4ff"/>
-</svg>`;
+
 const MAIN_TABS=[{index:5,key:'chat'},{index:1,key:'insights'},{index:0,key:'actions'}];
 const MOODS = { feliz: 'Sua magia está em alta!', animado:'Pronto para uma aventura.', meditando:'Recarregando as runas...', sonolento:'Hora de descansar.', concentrado:'Estudando feitiços...', curioso:'Explorando ideias.', tranquilo:'Seu familiar está por aqui.' };
 const CONFIG_URL = typeof document==='undefined'?'':(document.currentScript?.dataset?.config||window.ALQUIMAGO_CONFIG_URL||'');
@@ -461,13 +422,15 @@ class AlquimagoFamiliar extends HTMLElement {
     this.behaviorAllowed=false;this.behaviorMode='equilibrado';
     this.lastUserActivity=Date.now();this.lastAutoDecision=null;this.lastAutoFeedbackAt=0;
     this.orb=null;this.orbElement=null;this.orbField=null;this.orbFrame=0;this.orbStopAt=0;
+    this.affect=createAffect((Date.now()^Math.floor(Math.random()*0xffffffff))>>>0,Date.now());
+    this.affectTicker=null;this.musicHandler=null;this.svgPreview=null;this.svgPreviewTimer=null;
     this.pageEmotion=null;this.pageAwayAt=0;this.pageActivityAt=Date.now();this.pageReactions=null;
     this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;this.pageHeadStart=0;
     this.pageLastReaction=Object.create(null);this.pageLastMouse=null;
     this.publicMessage='';this.publicUntil=0;this.publicLastSpokenAt=0;
     this.publicPriority=0;this.publicSaidAt=Object.create(null);
     this.publicLineTimer=null;this.publicIntroTimer=null;this.publicSpeechCount=0;
-    this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
+    this.skinProfiles=[{id:'padrao',label:'Alquimago Orb 2D — animado',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
   }
@@ -478,7 +441,7 @@ class AlquimagoFamiliar extends HTMLElement {
     this.state.brain = passTime(restoreBrain(saved.brain), Math.max(0, Date.now() - (saved.brain?.lastSeen || Date.now())));
     if (saved.position && Number.isFinite(saved.position.x) && Number.isFinite(saved.position.y)) this.state.position = saved.position;
     this.state.open = this.desktop;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><section class="shell"><div class="panel" id="panel"><header class="panel-header"><div class="row"><b id="wizard-title">✦ Grimório</b><span class="badge" id="level">Nível 1</span><button type="button" id="close-panel" aria-label="Fechar grimório" title="Fechar" class="panel-close">✕</button></div><div class="subtitle" id="wizard-subtitle">Familiar local • sem coleta de dados</div></header><nav class="tabs" id="tabs" aria-label="Seções"></nav><div class="content" id="content"></div><div class="feedback" id="feedback" role="status"></div></div><button type="button" class="thought" id="thought" aria-label="Conversar com o familiar"></button><button type="button" class="character" id="character" aria-label="Interagir com Alquimago" title="Toque para carinho, deslize para acariciar ou arraste para mover">${ROBOT_SVG}</button><button type="button" class="familiar-title" id="toggle"><strong id="wizard-label">✦ Alquimago</strong><span aria-hidden="true">⌃</span></button></section>`;
     this.$panel = this.shadowRoot.getElementById('panel');
     this.$character = this.shadowRoot.getElementById('character');
     this.$content = this.shadowRoot.getElementById('content');
@@ -558,6 +521,21 @@ class AlquimagoFamiliar extends HTMLElement {
     this.lastSpoken=this.config.identity.greeting;this.lastSpokenAt=Date.now();this.updateThought();
     this.startObservation();
     this.startPageReactions();
+    // The original Orb listens only to the site player's public playback state.
+    // No audio samples, private text or microphone access are needed.
+    this.musicHandler=event=>{
+      const playing=event?.detail?.playing===true;
+      const justStarted=playing&&!this.affect.music;
+      this.affect=setAffectMusic(this.affect,playing,Date.now());
+      this.affect=affectTick(this.affect,Date.now());
+      if(justStarted)this.speakPublic('Oh, music! Activating my best floating-and-vibing mode.',
+        'music:play',{priority:1,interval:150000,hold:5700});
+      if(this.isConnected)this.renderHeader();
+    };
+    window.addEventListener('alquimago:music-state',this.musicHandler);
+    const media=document.querySelector('.music-widget audio');
+    if(typeof HTMLAudioElement!=='undefined'&&media instanceof HTMLAudioElement&&!media.paused&&!media.ended)
+      this.musicHandler({detail:{playing:true}});
     this.studioHandler=event=>{
       const d=event?.detail;
       if(!d||typeof d.section!=='string')return;
@@ -646,9 +624,18 @@ class AlquimagoFamiliar extends HTMLElement {
       this.render();
     }).catch(()=>{this.message='Configuração não disponível; usando padrão seguro.';if(this.isConnected)this.renderHeader();});
     this.timer = setInterval(() => { this.state.brain = passTime(this.state.brain, 10000); this.save();this.onIdleTick();this.tickPageReactions(); this.renderHeader(); }, 10000);
+    this.affectTicker=setInterval(()=>{
+      if(!this.isConnected||document.hidden)return;
+      this.affect=affectTick(this.affect,Date.now());
+      this.renderHeader();
+    },2600);
   }
   disconnectedCallback(){
     if(this.timer)clearInterval(this.timer);
+    if(this.affectTicker)clearInterval(this.affectTicker);
+    this.affectTicker=null;
+    if(this.musicHandler)window.removeEventListener('alquimago:music-state',this.musicHandler);
+    this.musicHandler=null;
     if(this.wheelTimer)clearTimeout(this.wheelTimer);
     if(this.speechTimer)clearTimeout(this.speechTimer);
     this.modelAbort?.abort();this.modelSequence++;
@@ -819,7 +806,45 @@ class AlquimagoFamiliar extends HTMLElement {
         }catch{/* fall back to built-in SVG */ }
       }
     }
-    this.$character.innerHTML=SVG;
+    this.$character.innerHTML=ROBOT_SVG;
+    this.$character.dataset.expression='idle';
+    // Keep the exact expressive, animated Orb faces, also available to the
+    // Studio preview system without requiring a GLB or third-party renderer.
+    const normalize=name=>{
+      const raw=String(name||'idle').toLowerCase().replace(/[^a-z]/g,'');
+      const aliases={stroke:'pet',affection:'pet',surprise:'surprised',anger:'angry',
+        sleepy:'tired',meditating:'sleep',joy:'happy',focus:'focused'};
+      const key=aliases[raw]||raw;
+      return Object.hasOwn(ORB_EXPRESSIONS,key)?key:'idle';
+    };
+    const apply=name=>{
+      const key=normalize(name);
+      this.$character.dataset.expression=key;
+      const speed=key==='sleep'?6.3:key==='tired'?5.1:
+        ['excited','angry','surprised'].includes(key)?2.1:4.1;
+      this.$character.style.setProperty('--orb-breath-duration',speed+'s');
+      return key;
+    };
+    this.skinAdapter={
+      setExpression:name=>{
+        if(this.svgPreview&&Date.now()<this.svgPreview.until)return;
+        if(name==='talk'){this.skinAdapter.previewExpression('talk',900);return;}
+        apply(name);
+      },
+      previewExpression:(name,duration=2100)=>{
+        if(this.svgPreviewTimer)clearTimeout(this.svgPreviewTimer);
+        const key=apply(name);
+        this.svgPreview={name:key,until:Date.now()+duration};
+        this.svgPreviewTimer=setTimeout(()=>{
+          this.svgPreview=null;this.svgPreviewTimer=null;
+          if(this.isConnected)this.renderHeader();
+        },duration);
+      },
+      dispose:()=>{
+        if(this.svgPreviewTimer)clearTimeout(this.svgPreviewTimer);
+        this.svgPreviewTimer=null;this.svgPreview=null;
+      }
+    };
   }
   projectPointerOver(e){
     if(this.isPublicVisitor()){
@@ -949,10 +974,10 @@ class AlquimagoFamiliar extends HTMLElement {
     const lines={
       sad:["Leaving already? I'll keep the tiny portal warm.","Off to another tab? I'll guard the pixels."],
       happy:["You're back! I definitely wasn't rehearsing my dramatic farewell.","Welcome back! The art missed you. Probably."],
-      angry:["Hey! Are you copying my master's sacred words? At least credit the wizard!","Hold on—are you borrowing that text? My legal department is a very small owl."],
-      pet:["Careful! That's my thinking hat.","Oh! A head pat. I shall allow this."],
-      surprised:["WHOA! That cursor has turbo mode!","Easy there, speedster! My hat nearly flew away."],
-      tired:["I'm practicing my sleepy spell. The art isn't going anywhere.","Even tiny wizards need a dramatic yawn."]
+      angry:["Hey! Are you copying my creator's words? Please give credit!","Hold on—are you borrowing that text? My legal department is a very small circuit."],
+      pet:["Easy on the headset! Those are premium sensors.","Oh! A head pat. My circuits approve."],
+      surprised:["WHOA! That cursor has turbo mode!","Easy there, speedster! My headset nearly flew away."],
+      tired:["Low-power mode activated. The art isn't going anywhere.","Even a tiny robot deserves a dramatic yawn."]
     };
     const set=lines[name];
     if(!set)return;
@@ -1034,6 +1059,8 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pageEmotion&&this.pageEmotion.until>now&&this.pageEmotion.priority>priority)return;
     this.pageLastReaction[name]=now;
     this.pageEmotion={name,until:now+duration,priority};
+    this.affect=affectSignal(this.affect,name,now);
+    this.affect=affectTick(this.affect,now);
     this.speakForReaction(name);
     this.renderHeader();
     if(this.pageReactionTimer)clearTimeout(this.pageReactionTimer);
@@ -1384,7 +1411,7 @@ class AlquimagoFamiliar extends HTMLElement {
   toggle() { if (this.desktop||document.documentElement.dataset.alquimagoStudio!=='true') return; this.state.open = !this.state.open; this.render(); }
   renderHeader() {
     const mood=currentMood(this.state.brain);
-    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.10';
+    this.shadowRoot.getElementById('wizard-title').textContent='✦ '+this.config.identity.name+' · v0.11.1';
     this.shadowRoot.getElementById('wizard-label').textContent='✦ '+this.config.identity.name;
     this.shadowRoot.getElementById('wizard-subtitle').textContent=this.config.identity.subtitle+(this.config.memory.mode==='publish'?' · rascunho até publicar':'');
     this.style.setProperty('--violet',this.config.appearance.accent);
@@ -1392,11 +1419,23 @@ class AlquimagoFamiliar extends HTMLElement {
 
     this.shadowRoot.getElementById('level').textContent = `Nível ${levelFromXp(this.state.brain.xp)}`;
     this.$character.dataset.mood = mood;
-    const behavior=this.pageEmotion&&Date.now()<this.pageEmotion.until?this.pageEmotion.name:null;
-    const effective=(!this.desktop&&this.pageAwayAt?'sad':behavior);
-    this.$character.dataset.reaction=effective||'';
+    const internal=this.affect?.expression||skinExpression(mood);
+    const effective=this.skin?.type==='model3d'&&internal==='serene'?'breath':internal;
+    this.$character.dataset.reaction='';
+    this.$character.dataset.affect=internal;
+    this.$character.dataset.music=this.affect?.music?'playing':'paused';
+    const moodLabel=this.$content?.querySelector('.grimoire-mood-indicator');
+    if(moodLabel){
+      const moodNames={serene:'Sereno',breath:'Tranquilo',idle:'Neutro',
+        happy:'Alegre',pet:'Afetuoso',love:'Carinhoso',excited:'Animado',
+        curious:'Curioso',focused:'Concentrado',thinking:'Pensativo',
+        surprised:'Surpreso',worried:'Preocupado',angry:'Irritado',
+        sad:'Triste',tired:'Cansado',sleep:'Sonolento'};
+      moodLabel.textContent='Humor interno: '+(moodNames[internal]||internal)+
+        (this.affect?.music?' · Música tocando':'');
+    }
     if(this.skinAdapter?.setExpression){
-      try{this.skinAdapter.setExpression(effective||skinExpression(mood))}catch{/* optional 3D adapter */}
+      try{this.skinAdapter.setExpression(effective)}catch{/* optional renderer */}
     }
     this.$feedback.textContent = this.message || MOODS[mood];
     this.updateThought();
@@ -1912,7 +1951,7 @@ class AlquimagoFamiliar extends HTMLElement {
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   if (!customElements.get(TAG)) customElements.define(TAG, AlquimagoFamiliar);
   window.Alquimago = {
-    version: '0.11.0',
+    version: '0.11.1',
     mount(target = document.body, mode = 'web') {
       const el = document.createElement(TAG);
       if (mode === 'desktop') el.setAttribute('data-mode', 'desktop');
