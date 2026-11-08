@@ -24,8 +24,21 @@ const STYLE = `
 
 /* Visitor mode is a living character, not a floating stat/minigame widget. */
 :host([data-public-mode="true"]) .familiar-title,
-:host([data-public-mode="true"]) .panel,
-:host([data-public-mode="true"]) .thought{display:none!important}
+:host([data-public-mode="true"]) .panel{display:none!important}
+:host([data-public-mode="true"]) .thought{
+ display:block;position:relative;max-width:min(260px,calc(100vw - 24px));
+ padding:10px 13px;border:1px solid #a887d6;
+ border-radius:13px 13px 3px 13px;
+ background:linear-gradient(130deg,#2d1b42f5,#191027f5);
+ color:#f9eefe;box-shadow:0 8px 22px #12071f83;
+ font:500 11px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;
+ text-align:left;cursor:default;pointer-events:none;
+ overflow-wrap:anywhere;user-select:none;
+}
+:host([data-public-mode="true"]) .thought[hidden]{display:none!important}
+@media(max-width:520px){
+ :host([data-public-mode="true"]) .thought{max-width:min(220px,calc(100vw - 24px));font-size:10.5px}
+}
 .character .arc-mouth{transform-box:fill-box;transform-origin:50% 50%;transition:transform .3s ease,stroke-width .3s ease}
 .character[data-reaction="sad"] .arc-mouth,
 .character[data-reaction="angry"] .arc-mouth{transform:scaleY(-1)}
@@ -437,6 +450,9 @@ class AlquimagoFamiliar extends HTMLElement {
     this.pageEmotion=null;this.pageAwayAt=0;this.pageActivityAt=Date.now();this.pageReactions=null;
     this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;this.pageHeadStart=0;
     this.pageLastReaction=Object.create(null);this.pageLastMouse=null;
+    this.publicMessage='';this.publicUntil=0;this.publicLastSpokenAt=0;
+    this.publicPriority=0;this.publicSaidAt=Object.create(null);
+    this.publicLineTimer=null;this.publicIntroTimer=null;this.publicSpeechCount=0;
     this.skinProfiles=[{id:'padrao',label:'Alquimago padrão',type:'svg'}];this.selectedSkin='padrao';
     this.observeProjects=true;this.hoverStart=null;this.hoverCount={};this.hoverSeen=null;
     this.pointerOverHandler=null;this.pointerOutHandler=null;this.selectedProject=null;
@@ -638,6 +654,7 @@ class AlquimagoFamiliar extends HTMLElement {
   }
   onIdleTick(){
     if(!this.configReady||!this.isConnected)return;
+    if(this.isPublicVisitor())return;
     const now=Date.now(),page=this.activePage||{};
     const issues=this.suggestions.filter(x=>!['route','studio','editor'].includes(x.id));
     const active=document.activeElement;
@@ -790,6 +807,17 @@ class AlquimagoFamiliar extends HTMLElement {
     this.$character.innerHTML=SVG;
   }
   projectPointerOver(e){
+    if(this.isPublicVisitor()){
+      const card=e.target instanceof Element?e.target.closest('[data-alquimago-project]'):null;
+      if(!card||card.closest('alquimago-familiar'))return;
+      const name=(card.getAttribute('data-alquimago-project')||'').trim();
+      if(!name)return;
+      const line=/frankie/i.test(name)
+       ?'Frankie is quite the star, huh? Go on, take a closer look!'
+       :'This is '+name.slice(0,58)+'. Click to see the full project!';
+      this.speakPublic(line,'hover:project:'+name,{hold:5800,interval:180000,priority:2});
+      return;
+    }
     if(this.desktop||!this.observeProjects||!this.config.features.pageAudit)return;
     const target=e.target;
     if(!(target instanceof Element))return;
@@ -877,8 +905,89 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.state.open&&this.state.tab===1)this.render();
     else this.renderHeader();
   }
+  isPublicVisitor(){
+    return !this.desktop&&document.documentElement.dataset.alquimagoStudio!=='true';
+  }
+  // English-only personality layer for visitors. Never uses Gemini or the
+  // Portuguese developer diagnostics, and never reads selected text content.
+  speakPublic(line,key,options={}){
+    if(!this.isPublicVisitor()||!this.isConnected||document.hidden||this.state.open)return false;
+    const text=String(line||'').trim().slice(0,180);
+    if(!text)return false;
+    const now=Date.now(),priority=options.priority??1;
+    const interval=options.interval??90000,hold=options.hold??5800;
+    if(now-(this.publicSaidAt[key]||0)<interval)return false;
+    if(now-this.publicLastSpokenAt<8500&&priority<=this.publicPriority)return false;
+    this.publicSaidAt[key]=now;this.publicLastSpokenAt=now;this.publicPriority=priority;
+    this.publicSpeechCount++;
+    this.publicMessage=text;this.publicUntil=now+hold;
+    if(this.publicLineTimer)clearTimeout(this.publicLineTimer);
+    this.publicLineTimer=setTimeout(()=>{
+      this.publicLineTimer=null;
+      this.publicMessage='';this.publicPriority=0;this.updateThought();
+    },hold);
+    this.updateThought();
+    return true;
+  }
+  speakForReaction(name){
+    if(!this.isPublicVisitor())return;
+    const lines={
+      sad:["Leaving already? I'll keep the tiny portal warm.","Off to another tab? I'll guard the pixels."],
+      happy:["You're back! I definitely wasn't rehearsing my dramatic farewell.","Welcome back! The art missed you. Probably."],
+      angry:["Hey! Are you copying my master's sacred words? At least credit the wizard!","Hold on—are you borrowing that text? My legal department is a very small owl."],
+      pet:["Careful! That's my thinking hat.","Oh! A head pat. I shall allow this."],
+      surprised:["WHOA! That cursor has turbo mode!","Easy there, speedster! My hat nearly flew away."],
+      tired:["I'm practicing my sleepy spell. The art isn't going anywhere.","Even tiny wizards need a dramatic yawn."]
+    };
+    const set=lines[name];
+    if(!set)return;
+    const priority={angry:8,pet:7,happy:7,sad:6,surprised:5,tired:1}[name]||1;
+    const hold={sad:3600,angry:7000,pet:3400,happy:4200,surprised:3000,tired:5000}[name]||5000;
+    const interval={sad:90000,happy:45000,angry:95000,pet:26000,surprised:110000,tired:180000}[name]||60000;
+    const index=this.publicSpeechCount%set.length;
+    this.speakPublic(set[index],'reaction:'+name,{priority,interval,hold});
+  }
+  // Only describe features that actually exist on the current page.
+  publicSceneTip(){
+    if(!this.isPublicVisitor()||document.hidden)return;
+    const project=document.querySelector('main[data-alquimago-project].project-page');
+    const title=project?.getAttribute('data-alquimago-project')||'';
+    const video=project?.querySelector('.project-video-poster,.project-video-embed');
+    const comparison=project?.querySelector('.comparison-block input[type="range"]');
+    const gallerySearch=document.querySelector('.gallery .search input,.toolbar input[aria-label="Search for projects"]');
+    const galleryCard=document.querySelector('.gallery-card[data-alquimago-project]');
+    if(video)return this.speakPublic(
+      /frankie/i.test(title)?'Frankie looks amazing, right? Try the video player to see more!':
+      'Psst! There is a video in this project. Press Play to explore it.',
+      'feature:video:'+title,{hold:6800,interval:120000,priority:2});
+    if(comparison)return this.speakPublic(
+      'Drag the before-and-after slider! Even my magic wand cannot do that.',
+      'feature:comparison:'+title,{hold:6600,interval:120000,priority:2});
+    if(/frankie/i.test(title))return this.speakPublic(
+      'Frankie is stealing the spotlight again. Honestly, can you blame him?',
+      'feature:frankie',{hold:6700,interval:120000,priority:2});
+    if(project&&title)return this.speakPublic(
+      'Welcome to '+title.slice(0,55)+'! Explore the details—every artwork has a story.',
+      'feature:project:'+title,{hold:6500,interval:160000,priority:2});
+    if(gallerySearch)return this.speakPublic(
+      'Looking for something? Try the project search. Even my crystal ball has filters!',
+      'feature:search',{hold:7300,interval:180000,priority:1});
+    if(galleryCard)return this.speakPublic(
+      'See something you like? Open a project to discover the whole artwork.',
+      'feature:gallery',{hold:6800,interval:180000,priority:1});
+    return this.speakPublic(
+      'Welcome, curious traveler! Take a look around. I guard the pixels here.',
+      'feature:welcome',{hold:6100,interval:300000,priority:1});
+  }
   updateThought(){
     if(!this.$thought)return;
+    if(this.isPublicVisitor()){
+      const active=this.publicMessage&&Date.now()<this.publicUntil;
+      this.$thought.textContent=active?this.publicMessage:'';
+      this.$thought.hidden=!active;
+      this.$thought.setAttribute('aria-label',active?'Alquimago says: '+this.publicMessage:'Alquimago message');
+      return;
+    }
     const tip=this.suggestions.find(x=>!['route','editor'].includes(x.id))||this.suggestions[0];
     const spoken=this.lastSpoken&&Date.now()-this.lastSpokenAt<14500?this.lastSpoken:null;
     this.$thought.textContent=spoken?spoken.slice(0,90):tip?'✦ '+tip.title:'';
@@ -906,6 +1015,7 @@ class AlquimagoFamiliar extends HTMLElement {
     if(this.pageEmotion&&this.pageEmotion.until>now&&this.pageEmotion.priority>priority)return;
     this.pageLastReaction[name]=now;
     this.pageEmotion={name,until:now+duration,priority};
+    this.speakForReaction(name);
     this.renderHeader();
     if(this.pageReactionTimer)clearTimeout(this.pageReactionTimer);
     this.pageReactionTimer=setTimeout(()=>{
@@ -936,7 +1046,7 @@ class AlquimagoFamiliar extends HTMLElement {
       if(this.pageLeaveTimer)clearTimeout(this.pageLeaveTimer);
       this.pageLeaveTimer=setTimeout(()=>{
         this.pageLeaveTimer=null;
-        if(this.pageAwayAt&&this.isConnected)this.renderHeader();
+        if(this.pageAwayAt&&this.isConnected){this.renderHeader();this.speakForReaction('sad');}
       },420);
     });
     on(document.documentElement,'mouseenter',()=>{
@@ -994,6 +1104,12 @@ class AlquimagoFamiliar extends HTMLElement {
       else {touchActivity();this.renderHeader()}
     });
     this.pageReactions=listeners;
+    // Speak at most once when the initial interface has rendered.
+    if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+    this.publicIntroTimer=setTimeout(()=>{
+      this.publicIntroTimer=null;
+      if(this.isConnected)this.publicSceneTip();
+    },4500);
   }
   stopPageReactions(){
     for(const remove of this.pageReactions||[])remove();
@@ -1001,6 +1117,10 @@ class AlquimagoFamiliar extends HTMLElement {
     for(const timer of [this.pageReactionTimer,this.pageLeaveTimer,this.pageSelectTimer])
       if(timer)clearTimeout(timer);
     this.pageReactionTimer=null;this.pageLeaveTimer=null;this.pageSelectTimer=null;
+    if(this.publicLineTimer)clearTimeout(this.publicLineTimer);
+    if(this.publicIntroTimer)clearTimeout(this.publicIntroTimer);
+    this.publicLineTimer=null;this.publicIntroTimer=null;
+    this.publicMessage='';this.publicUntil=0;
     this.pageEmotion=null;this.pageAwayAt=0;this.pageLastMouse=null;
   }
 
