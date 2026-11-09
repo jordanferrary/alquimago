@@ -591,12 +591,12 @@ class AlquimagoFamiliar extends HTMLElement {
       if(!this.isConnected||this.desktop||this.config.memory.mode!=='publish')return;
       const status=event?.detail?.status;
       const replies={
-        missing:'Você ainda não me deu o dinheiro para comprar pão! ✦ Abra Publicar e use o campo protegido para fornecer o token. Nunca envie tokens aqui no chat.',
-        ready:'Dinheiro guardado no cofre! ✦ Já posso usar sua autorização atual. Revise e confirme a publicação no Studio.',
-        expired:'O pão mofou! 🥖 A autorização anterior não funciona mais. Posso jogá-la fora? Use Descartar token no Studio e salve outro.',
-        forbidden:'Tenho uma autorização, mas ela não permite publicar neste repositório. Podemos descartar e cadastrar uma com a permissão correta?',
+        missing:'Ainda não tenho o dinheiro do pão! ✦ O Cofre do Alquimago foi aberto: cole o token no campo protegido, fora do chat, e guarde-o criptografado.',
+        ready:'Dinheiro guardado no meu cofre! ✦ Minha autorização criptografada está pronta. Revise e confirme cada publicação na janela protegida.',
+        expired:'O pão mofou! 🥖 Minha autorização expirou ou foi revogada. Use Descartar token no Cofre do Alquimago e salve outro.',
+        forbidden:'Meu token não permite publicar neste repositório. Revise as permissões e cadastre outra credencial no meu cofre.',
         offline:'Não consegui conferir o dinheiro agora. O GitHub pode estar indisponível; não descartei seu token.',
-        unavailable:'Não consegui abrir o cofre. Não vou pedir que você mande tokens no chat. Verifique a área de publicação do Studio.'
+        unavailable:'Não consegui abrir o meu cofre protegido. Nunca envie tokens no chat; confira a janela de publicação do Alquimago.'
       };
       const reply=replies[status];
       if(!reply)return;
@@ -1355,7 +1355,7 @@ class AlquimagoFamiliar extends HTMLElement {
       // publisher. The phrase is never an authentication factor or approval.
       const allowed=!this.desktop&&this.config.memory.mode==='publish'&&this.studioInfo?.editing===true;
       const reply=allowed?
-        'Vou conferir se ainda tenho dinheiro para comprar pão... ⚗ A autorização será verificada no Studio. A frase não publica nada sozinha.':
+        'Vou conferir se ainda tenho dinheiro para comprar pão... ⚗ O meu cofre de publicação será aberto. A frase não publica nada sozinha.':
         'Esse comando está disponível apenas no Local Studio desbloqueado. Ele não publica sozinho.';
       this.dialogue=[...this.dialogue,{role:'user',text:user},{role:'familiar',text:reply}].slice(-24);
       this.lastUserText='';this.lastNeuralIntent='';this.pendingQuestion=null;
