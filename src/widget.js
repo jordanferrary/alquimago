@@ -1601,7 +1601,7 @@ class AlquimagoFamiliar extends HTMLElement {
       <button class="action" data-action="import-memory">Restaurar</button>
       <button class="action" data-action="reset-memory">Zerar dados</button></div>
       <div class="muted">Aparência: <span id="arcane-skin-label"></span></div>
-      </details>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. <button type="button" class="action primary" data-action="open-publish">Publicar alterações</button> Recarregar descarta o rascunho.</div>');
+      </details>`);if(this.config.memory.mode==='publish')add('<div class="session-note">Estas mudanças só serão mantidas se você publicar. Para abrir o meu cofre de publicação, envie exatamente “vai comprar pão” no chat, com o Studio desbloqueado. Recarregar descarta o rascunho.</div>');
     } else if (this.state.tab === 1) {
       if (this.desktop) add('<p class="muted">No desktop, o familiar não lê outras janelas. A leitura de projetos será um módulo futuro com permissão explícita.</p>');
       else {
@@ -1922,8 +1922,9 @@ class AlquimagoFamiliar extends HTMLElement {
       return;
     }
     if(action==='open-publish'){
-      this.state.open=false;this.render();
-      window.dispatchEvent(new Event('alquimago:request-publish'));
+      // Legacy controls cannot bypass the exact chat command.
+      this.message='Para abrir meu cofre de publicação, envie “vai comprar pão” no chat do Studio desbloqueado.';
+      this.renderHeader();
       return;
     }
     if(action==='approve-lesson'){
