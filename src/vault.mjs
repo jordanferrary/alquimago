@@ -153,3 +153,33 @@ export async function createAlquimagoVault({
   return unavailableVault('Cofre não pôde ser aberto; não foram feitas gravações em texto puro.');
  }
 }
+
+/**
+ * Portfolio's published familiar never writes chat, lessons or neural drafts
+ * to localStorage or IndexedDB. The GitHub publishing token lives separately.
+ */
+export function createAlquimagoSessionVault(){
+ const values=new Map();
+ return {status:'session',reason:'Somente na sessão, sem armazenamento no navegador',
+  storage:{
+   getItem:name=>values.get(name)??null,
+   setItem:(name,value)=>{if(typeof name==='string'&&typeof value==='string')values.set(name,value);},
+   removeItem:name=>values.delete(name)
+  },
+  flush:async()=>true};
+}
+/** Clear the familiar's old encrypted memory without touching publisher tokens. */
+export function retireAlquimagoBrowserMemory({namespace='default',legacyStorage=null,indexedDBFactory=globalThis.indexedDB}={}){
+ const names=new Set([...vaultKeys(namespace),'alquimago:v1']);
+ for(const name of names){try{legacyStorage?.removeItem(name);}catch{/* unavailable */}}
+ if(!indexedDBFactory?.deleteDatabase)return Promise.resolve(false);
+ return new Promise(resolve=>{
+  try{
+   // Dedicated familiar-only database. Publisher token is in a different DB.
+   const request=indexedDBFactory.deleteDatabase(VAULT_DATABASE);
+   request.onsuccess=()=>resolve(true);
+   request.onerror=()=>resolve(false);
+   request.onblocked=()=>resolve(false);
+  }catch{resolve(false);}
+ });
+}

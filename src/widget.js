@@ -12,7 +12,7 @@ import {normalizeSkin,safeSkinUrl,skinExpression} from './skin.mjs';
 import {ROBOT_SVG,ROBOT_STYLES,ORB_EXPRESSIONS} from './orb-skin.mjs';
 import {createAffect,affectSignal,affectTick,setAffectMusic} from './affect.mjs';
 import {inspectCover,imageMetricAdvice,validateReviewImageFile,prepareReviewImage} from './image-insight.mjs';
-import {createAlquimagoVault,unavailableVault} from './vault.mjs';
+import {createAlquimagoVault,createAlquimagoSessionVault,retireAlquimagoBrowserMemory,unavailableVault} from './vault.mjs';
 import {blankPreferences,cleanPreferences,rankTips,learnTip,readPreferences,writePreferences} from './episodic.mjs';
 import {createCortex,cleanCortex,createCortexRuntime,tickCortex,rewardCortex,cortexSummary,readCortex,writeCortex} from './behavior.mjs';
 import {createOrb,stepOrb,tossOrb} from './physics.mjs';
@@ -614,16 +614,25 @@ class AlquimagoFamiliar extends HTMLElement {
     void (CONFIG_URL?loadConfig(CONFIG_URL,{origin:location.origin}):Promise.resolve(normalizeConfig(null))).then(async config=>{
       let legacyStorage=null;
       try{legacyStorage=window.localStorage;}catch{}
-      this.vault=await createAlquimagoVault({
-        namespace:config.memory.namespace,legacyStorage,
-        onStatus:state=>{
-          this.vaultStatus=state.status;
-          if(state.status==='error'){
-            this.message='Não consegui gravar o cofre criptografado. Nenhuma cópia em texto puro será criada.';
-            if(this.isConnected)this.renderHeader();
+      if(config.memory.mode==='publish'){
+        // Public portfolio: discard local memory, keep only session conversation
+        // context. Credentials are encrypted by the host site's separate vault.
+        this.vault=createAlquimagoSessionVault();
+        void retireAlquimagoBrowserMemory({
+          namespace:config.memory.namespace,legacyStorage
+        });
+      }else{
+        this.vault=await createAlquimagoVault({
+          namespace:config.memory.namespace,legacyStorage,
+          onStatus:state=>{
+            this.vaultStatus=state.status;
+            if(state.status==='error'){
+              this.message='Não consegui gravar o cofre criptografado. Nenhuma cópia em texto puro será criada.';
+              if(this.isConnected)this.renderHeader();
+            }
           }
-        }
-      });
+        });
+      }
       activeVaultStorage=this.vault.storage;
       this.vaultStatus=this.vault.status;
       this.config=config;
@@ -650,12 +659,11 @@ class AlquimagoFamiliar extends HTMLElement {
         }catch{this.language=normalizeLanguage(null)}
       }
       this.dialogue=config.memory.mode==='publish'?[]:readDialogue(storage(),config.memory.namespace);
-      // Approved lessons are private to this browser/site, including Studio
-      // installations. Refresh and deploy do not erase them, and publish
-      // snapshots never upload them as publicly readable JSON.
+      // In publish mode approved lessons stay in RAM and vanish on reload.
+      // Only standalone modes may keep encrypted, device-local knowledge.
       this.lessons=readLessons(storage(),config.memory.namespace);
       this.teaching=readTeachingExamples(storage(),config.memory.namespace);
-      this.message=this.vault.status==='protected'?config.identity.greeting:
+      this.message=['protected','session'].includes(this.vault.status)?config.identity.greeting:
         '⚠ Cofre indisponível: posso conversar, mas não salvarei novas lições neste navegador.';
       this.lastSpoken=this.message;this.lastSpokenAt=Date.now();
       this.neural=config.memory.mode==='publish'?this.neural:(readNeural(storage(),config.memory.namespace)||this.neural);
@@ -1938,8 +1946,10 @@ class AlquimagoFamiliar extends HTMLElement {
         this.renderHeader();return;
       }
       this.lessons=result.library;this.lessonDraft=null;
-      this.lastAnswerSource='Conhecimento aprovado · disponível offline';
-      this.message='Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
+      this.lastAnswerSource=this.config.memory.mode==='publish'?'Conhecimento aprovado · sessão atual':'Conhecimento aprovado · disponível offline';
+      this.message=this.config.memory.mode==='publish'
+        ?'Lição aprovada nesta sessão. Ela não fica gravada automaticamente neste navegador.'
+        :'Conhecimento aprovado! Vou reutilizá-lo em perguntas semelhantes, mesmo depois de atualizações do site.';
       this.render();return;
     }
     if(action==='clear-chat'){
@@ -1997,7 +2007,8 @@ class AlquimagoFamiliar extends HTMLElement {
       }
       const named=intents.map(key=>TEACHING_INTENTS[key]).join(' + ');
       const reply='Aprendi o significado da mensagem: '+named+'. Tom: '+(TEACHING_TONES[tone]||'Neutro')+
-        (topic?' · Assunto: '+topic:'')+'. Essa associação ficou salva neste dispositivo.';
+        (topic?' · Assunto: '+topic:'')+
+        (this.config.memory.mode==='publish'?'. Essa associação vale somente até recarregar a página.':'. Essa associação ficou salva neste dispositivo.');
       this.dialogue=[...this.dialogue,{role:'familiar',text:reply}].slice(-24);
       if(this.config.memory.mode!=='publish')
         writeDialogue(storage(),this.config.memory.namespace,this.dialogue);

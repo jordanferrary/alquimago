@@ -42,3 +42,10 @@ Não inventar cifra, hash ou esquema de derivação. Se houver novos formatos, i
 ## Testes
 
 `npm test` executa `tests/vault.test.mjs`, cobrindo migração, falha sem WebCrypto, isolamento por namespace, chave não exportável, adulteração de ciphertext e preservação de dados na falha. `npm run build` deve gerar o JS de navegador sem imports ESM residuais.
+
+
+## Portfólio publicado: privacidade por padrão
+
+No modo `memory.mode='publish'`, a memória temporária é inteiramente em RAM por `createAlquimagoSessionVault()`. Mensagens, lições ensinadas na sessão, significados, correções e estado temporário não são gravados nem recuperados do armazenamento do navegador. O chat mantém até 24 mensagens apenas para contexto durante a sessão. O bootstrap tenta apagar dados legados exclusivos do Alquimago (IndexedDB `alquimago-private-vault` e chaves `alquimago:*` do namespace), mas essa limpeza poderá ser bloqueada por outra aba antiga. A publicação GitHub, quando confirmada pelo proprietário, pode conter apenas a memória numérica validada, nunca mensagens.
+
+O **token de publicação do GitHub** é separado: fica no cofre criptografado `alquimago-github-publisher-v2`, administrado pelo portfólio, e **não é afetado por essa limpeza**. O modo autônomo de outros projetos mantém seu mecanismo de memória criptografada, quando configurado para utilizá-lo.
